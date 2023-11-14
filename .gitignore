@@ -4,6 +4,7 @@
 
 # build
 /build*/
+/out/
 
 # Prerequisites
 *.d
