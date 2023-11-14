@@ -2,6 +2,11 @@
 *.swp
 *~
 
+# vscode
+/.vs/
+/.vscode/
+CMakeSettings.json
+
 # build
 /build*/
 /out/
