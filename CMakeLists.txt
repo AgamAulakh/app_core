@@ -7,6 +7,7 @@
 cmake_minimum_required(VERSION 3.20.0)
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+
 project(app_core)
 
 # NORDIC SDK APP START
@@ -20,5 +21,9 @@ include_directories(inc)
 
 zephyr_library_include_directories(.)
 
+# Add project directories
+zephyr_library_include_directories(.)
+add_subdirectory(src)
+
 # Add CMSIS library from nrfSDK
-# include_directories(..\\..\\..\\..\\modules\\hal\\cmsis\\CMSIS\\DSP\\Include)
+include_directories(..\\..\\..\\..\\modules\\hal\\cmsis\\CMSIS\\DSP\\Include)

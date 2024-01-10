@@ -17,6 +17,7 @@ extern "C" {
 
 #include <state_machine.h>
 #include <led_handler.h>
+#include "DataAcquisitionThread.h"
 
 #include <nrf.h>
 #include <nrfx.h>
@@ -25,8 +26,11 @@ extern "C" {
 #include <stdlib.h>
 
 LOG_MODULE_REGISTER(app_core_main, LOG_LEVEL_INF);
+#include "ArmMatrixWrapper.h"
+#include "DataAcquisitionThread.h"
+#include "drivers/ads1299-x.h"
 
-#define LOG_DELAY_MS 1000
+#define LOG_DELAY_MS 5000
 
 int main(void)
 {
@@ -35,11 +39,25 @@ int main(void)
 	state_machine_init();
 
 	LED1::init();
+	// DataAcquisitionThread::GetInstance().Initialize();
+
+	// DataAcquisitionThread::GetInstance().SendMessage(
+	// 	DataAcquisitionThread::CHECK_AFE_ID
+	// );
+
+	TIBareMetalWrapper AFEWrapper;
+	k_msleep(2500);
+	AFEWrapper.Initialize();
 
 	while(1) {
+		// DataAcquisitionThread::GetInstance().SendMessage(
+		// 	DataAcquisitionThread::READ_AFE_SAMPLE
+		// );
 		LOG_DBG("main thread up time: %u ms", k_uptime_get_32());
 		k_msleep(LOG_DELAY_MS);
+
+		AFEWrapper.RunInternalSquareWaveTest();
 	}
 
 	return 0;
-}
+};
