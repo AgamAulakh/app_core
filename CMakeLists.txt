@@ -15,6 +15,9 @@ target_sources(app PRIVATE src/main.cpp)
 
 zephyr_library_include_directories(.)
 
+# Add project directories
+add_subdirectory(src)
+
 # Add CMSIS library from nrfSDK
 include_directories(..\\..\\..\\..\\modules\\hal\\cmsis\\CMSIS\\DSP\\Include)
 

@@ -30,11 +30,6 @@
  */
 
 #define SNR_ERROR_THRESH	((float32_t)120)
-constexpr int32_t sigproc_buf_num_int = 8 * 1000 * 5;
-constexpr int32_t afe_buf_num_int = 8 * 1000 * 1;
-
-static float32_t test_buffer_sigproc [sigproc_buf_num_int] = { 0 };
-static float32_t test_buffer_afe [afe_buf_num_int] = { 0 };
 
 void disable_ram_and_wfi(register volatile uint32_t *reg_begin,
 			 register volatile uint32_t *reg_last)
@@ -43,7 +38,7 @@ void disable_ram_and_wfi(register volatile uint32_t *reg_begin,
 
 	do {
 		*reg_begin = 0;
-		reg_begin += sizeof(NRF_VMC->RAM[0]) / sizeof(reg_begin[0]);
+		// reg_begin += sizeof(NRF_VMC->RAM[0]) / sizeof(reg_begin[0]);
 	} while (reg_begin <= reg_last);
 
 	__DSB();
@@ -100,14 +95,6 @@ int main(void)
 	// disable_ram_and_wfi(&NRF_VMC->RAM[0].POWER,
 	// 		    &NRF_VMC->RAM[ARRAY_SIZE(NRF_VMC->RAM) - 1].POWER);
 
-	test_buffer_sigproc[0] = 1;
-	test_buffer_afe[0] = 1;
-
-	size_t fft_length = 100;
-	uint32_t fft_input[fft_length] = { 0 };
-	uint32_t fft_output[fft_length] = { 0 };
-
-	test_arm_rfft_f32_real(fft_input, fft_output, fft_length);
 
 	return 0;
 }
@@ -129,15 +116,15 @@ static int network_gpio_allow(void)
 	uint32_t start_pin = (IS_ENABLED(CONFIG_SOC_ENABLE_LFXO) ? 2 : 0);
 
 	/* Allow the network core to use all GPIOs. */
-	for (uint32_t i = start_pin; i < P0_PIN_NUM; i++) {
-		NRF_P0_S->PIN_CNF[i] = (GPIO_PIN_CNF_MCUSEL_NetworkMCU <<
-					GPIO_PIN_CNF_MCUSEL_Pos);
-	}
+	// for (uint32_t i = start_pin; i < P0_PIN_NUM; i++) {
+	// 	NRF_P0_S->PIN_CNF[i] = (GPIO_PIN_CNF_MCUSEL_NetworkMCU <<
+	// 				GPIO_PIN_CNF_MCUSEL_Pos);
+	// }
 
-	for (uint32_t i = 0; i < P1_PIN_NUM; i++) {
-		NRF_P1_S->PIN_CNF[i] = (GPIO_PIN_CNF_MCUSEL_NetworkMCU <<
-					GPIO_PIN_CNF_MCUSEL_Pos);
-	}
+	// for (uint32_t i = 0; i < P1_PIN_NUM; i++) {
+	// 	NRF_P1_S->PIN_CNF[i] = (GPIO_PIN_CNF_MCUSEL_NetworkMCU <<
+	// 				GPIO_PIN_CNF_MCUSEL_Pos);
+	// }
 
 
 	return 0;
