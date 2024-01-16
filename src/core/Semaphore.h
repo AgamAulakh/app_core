@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-#ifndef SEMAPHORE_H
-#define SEMAPHORE_H
+#pragma once
 #include <stdio.h>
 #include <zephyr/kernel.h>
 #include <zephyr/arch/cpu.h>
@@ -41,5 +40,3 @@ public:
 	int wait(int timeout);
 	void give(void);
 };
-
-#endif

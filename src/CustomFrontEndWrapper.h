@@ -1,5 +1,4 @@
-#ifndef CUSTOM_FRONT_END_WRAPPER_H
-#define CUSTOM_FRONT_END_WRAPPER_H
+#pragma once
 
 #include <zephyr/drivers/spi.h>
 #include <zephyr/device.h>
@@ -21,5 +20,3 @@ public:
     void Configure() override;
     eeg_sample ReadData() override;
 };
-
-#endif

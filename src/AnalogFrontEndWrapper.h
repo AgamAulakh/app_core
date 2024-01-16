@@ -1,5 +1,4 @@
-#ifndef ANALOG_FRONT_END_WRAPPER_H
-#define ANALOG_FRONT_END_WRAPPER_H
+#pragma once
 
 #include "Data.h"
 
@@ -11,5 +10,3 @@ public:
     virtual void Configure() = 0;
     virtual eeg_sample ReadData() = 0;
 };
-
-#endif

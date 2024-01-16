@@ -1,5 +1,4 @@
-#ifndef THREAD_MESSAGE_H
-#define THREAD_MESSAGE_H
+#pragma once
 
 #include <zephyr/kernel.h>
 
@@ -65,5 +64,3 @@ public:
         k_msgq_purge(&queue);
     };
 };
-
-#endif

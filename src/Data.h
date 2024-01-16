@@ -1,6 +1,4 @@
-#ifndef DATA_H
-#define DATA_H
-
+#pragma once
 // #include <stdlib.h>
 #include <cstdint>
 
@@ -12,5 +10,3 @@ struct eeg_sample {
     uint8_t buf[3] = { 0 }; // for max 24 bit adc readings TODO: add units
     uint64_t timestamp_ms = 0;
 };
-
-#endif

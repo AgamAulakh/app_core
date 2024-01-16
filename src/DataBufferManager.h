@@ -1,5 +1,4 @@
-#ifndef DATA_BUFFER_MANAGER_H
-#define DATA_BUFFER_MANAGER_H
+#pragma once
 
 #include <zephyr/kernel.h>
 #include <zephyr/sys/sem.h>
@@ -19,5 +18,3 @@ public:
     static void spi_dma_setup();
     static void spi_sensor_read_and_transfer();
 };
-
-#endif

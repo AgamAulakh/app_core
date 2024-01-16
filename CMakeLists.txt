@@ -14,9 +14,10 @@ project(app_core)
 target_sources(app PRIVATE src/main.cpp)
 # NORDIC SDK APP END
 
-zephyr_library_include_directories(.)
+# COMPILER AND LINKER OPTIONS
 
 # Add project directories
+zephyr_library_include_directories(.)
 add_subdirectory(src)
 
 # Add CMSIS library from nrfSDK

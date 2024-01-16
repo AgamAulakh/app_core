@@ -1,5 +1,4 @@
-#ifndef TI_FRONT_END_WRAPPER_H
-#define TI_FRONT_END_WRAPPER_H
+#pragma once
 
 #include "AnalogFrontEndWrapper.h"
 class TIFrontEndWrapper : public AnalogFrontEndWrapper {
@@ -8,5 +7,3 @@ public:
     void Configure() override;
     eeg_sample ReadData() override;
 };
-
-#endif

@@ -1,14 +1,12 @@
-#ifndef DATA_ACQUISITION_THREAD_H
-#define DATA_ACQUISITION_THREAD_H
+#pragma once
 
+#include <zephyr/logging/log_ctrl.h>
+#include <zephyr/logging/log.h>
 #include "core/Thread.h"
 
-#define DATA_ACQ_THREAD_STACK_SIZE_B 1024
-#define DATA_ACQ_THREAD_PRIORITY 5
+#define DATA_ACQ_THREAD_STACK_SIZE_B 4096
+#define DATA_ACQ_THREAD_PRIORITY 4 // max based on prj config
 #define DATA_ACQ_THREAD_MSG_Q_DEPTH 10
-
-K_THREAD_STACK_DEFINE(data_acq_stack_area, DATA_ACQ_THREAD_STACK_SIZE_B);
-struct k_thread data_acq_thread_data;
 
 class DataAcquisitionThread : public Thread<DATA_ACQ_THREAD_MSG_Q_DEPTH> {
 private:
@@ -36,5 +34,3 @@ public:
         return instance;
     }
 };
-
-#endif
