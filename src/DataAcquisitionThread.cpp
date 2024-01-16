@@ -1,34 +1,28 @@
 #include "DataAcquisitionThread.h"
 
 void DataAcquisitionThread::Initialize() {
-    if (thread_id == nullptr) {
-        // thread doesnt exist, make one naow:
-        thread_id = k_thread_create(
-            K_THREAD_STACK_ALLOC(daq_thread_stack, DATA_ACQUISITION_THREAD_STACK_SIZE_B),
-            K_THREAD_STACK_SIZEOF(daq_thread_stack),
-            Run,
-            this, // NEED to pass this ptr because it doesnt exist in the static function
-            nullptr,
-            nullptr,
-            K_PRIO_COOP(7), // TODO: change
-            0,
-            K_NO_WAIT);
+    if (id == nullptr) {
+        id = k_thread_create(
+            &data_acq_thread_data, data_acq_stack_area,
+            K_THREAD_STACK_SIZEOF(data_acq_stack_area),
+            DataAcquisitionThread::RunThreadSequence,
+            this, NULL, NULL,
+            DATA_ACQ_THREAD_PRIORITY, 0, K_NO_WAIT
+        );
 
-        k_thread_name_set(thread_id, "DataAcquisitionThread");
-
-        if (thread_id == nullptr) {
-            // TODO: print err on debug uart
-        }
+        k_thread_name_set(id, "DataAcquisitionThread");
     }
 }
+
 void DataAcquisitionThread::Run() {
+    uint8_t message = 0;
     while (true) {
-        ThreadMessage msg;
-        if (k_msgq_get(&message_queue, &msg, K_FOREVER) == 0) {
-            switch(msg.data_acq_msg) {
-                STOP_READING_AFE:
-                START_READING_AFE:
-                INVALID:
+        if (message_queue.get(message)) {
+            switch (static_cast<DataAcquisitionThreadMessage>(message)) {
+                case STOP_READING_AFE:
+                case START_READING_AFE:
+                case INVALID:
+                default:
                     break;
             }
         }

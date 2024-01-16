@@ -7,12 +7,12 @@
 #include "AnalogFrontEndWrapper.h"
 #include "DataBufferManager.h"
 
-#define SPI_DEV_NAME DT_LABEL(DT_NODELABEL(spi0))
+// #define SPI_DEV_NAME DT_LABEL(DT_NODELABEL(spi0))
 
 class CustomFrontEndWrapper : public AnalogFrontEndWrapper {
 private:
-    static const char *spi_device_name;
-    static const struct device *spi_dev;
+    // static const char *spi_device_name;
+    // static const struct device *spi_dev;
 
 public:
     CustomFrontEndWrapper();

@@ -85,10 +85,6 @@ static void test_arm_rfft_f32_real_backend(
 	free(scratch);
 }
 
-static void test_arm_rfft_f32_real(const uint32_t *input, const uint32_t *ref, size_t length) {
-	test_arm_rfft_f32_real_backend(false, input, ref, length);
-}
-
 int main(void)
 {
 	/* Power off RAM and suspend CPU */
