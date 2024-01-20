@@ -11,10 +11,12 @@
 
 extern "C" {
 #include <ble_handler.h>
+#include <state_machine.h>
 }
 
 #include <nrf.h>
 #include <nrfx.h>
+#include <zephyr/logging/log.h>
 
 #include <stdlib.h>
 
@@ -135,6 +137,8 @@ int main(void)
 	test_buffer_sigproc[0] = 1;
 	test_buffer_afe[0] = 1;
 
+	state_machine_init();
+
 	init_ble_handler();
 
 	while(1) {
@@ -145,5 +149,3 @@ int main(void)
 	return 0;
 }
 
-// TBD
-//SYS_INIT(network_gpio_allow, PRE_KERNEL_1, CONFIG_KERNEL_INIT_PRIORITY_OBJECTS);
