@@ -13,10 +13,12 @@
 
 extern "C" {
 #include <ble_handler.h>
+#include <state_machine.h>
 }
 
 #include <nrf.h>
 #include <nrfx.h>
+#include <zephyr/logging/log.h>
 
 #include <stdlib.h>
 
@@ -27,6 +29,8 @@ LOG_MODULE_REGISTER(eegals_app_core, LOG_LEVEL_DBG);
 int main(void)
 {
 	LOG_INF("Hello world from %s", CONFIG_BOARD);
+
+	state_machine_init();
 
 	init_ble_handler();
 

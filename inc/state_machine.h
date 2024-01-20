@@ -1,0 +1,1 @@
+void state_machine_init();
