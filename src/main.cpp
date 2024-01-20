@@ -7,6 +7,12 @@
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/init.h>
+#include <zephyr/smf.h>
+
+extern "C" {
+#include <ble_handler.h>
+}
+
 #include <nrf.h>
 #include <nrfx.h>
 
@@ -94,6 +100,32 @@ static void test_arm_rfft_f32_real(const uint32_t *input, const uint32_t *ref, s
 	test_arm_rfft_f32_real_backend(false, input, ref, length);
 }
 
+/** @brief Allow access to specific GPIOs for the network core.
+ *
+ * Function is executed very early during system initialization to make sure
+ * that the network core is not started yet. More pins can be added if the
+ * network core needs them.
+ */
+static int network_gpio_allow(void)
+{
+	// TBD
+	// uint32_t start_pin = (IS_ENABLED(CONFIG_SOC_ENABLE_LFXO) ? 2 : 0);
+
+	// /* Allow the network core to use all GPIOs. */
+	// for (uint32_t i = start_pin; i < P0_PIN_NUM; i++) {
+	// 	NRF_P0_S->PIN_CNF[i] = (GPIO_PIN_CNF_MCUSEL_NetworkMCU <<
+	// 				GPIO_PIN_CNF_MCUSEL_Pos);
+	// }
+
+	// for (uint32_t i = 0; i < P1_PIN_NUM; i++) {
+	// 	NRF_P1_S->PIN_CNF[i] = (GPIO_PIN_CNF_MCUSEL_NetworkMCU <<
+	// 				GPIO_PIN_CNF_MCUSEL_Pos);
+	// }
+
+
+	return 0;
+}
+
 int main(void)
 {
 	/* Power off RAM and suspend CPU */
@@ -103,44 +135,15 @@ int main(void)
 	test_buffer_sigproc[0] = 1;
 	test_buffer_afe[0] = 1;
 
-	size_t fft_length = 100;
-	uint32_t fft_input[fft_length] = { 0 };
-	uint32_t fft_output[fft_length] = { 0 };
+	init_ble_handler();
 
-	test_arm_rfft_f32_real(fft_input, fft_output, fft_length);
+	while(1) {
+		LOG_DBG("main thread up time: %u ms", k_uptime_get_32());
+		k_msleep(LOG_DELAY_MS);
+	}
 
 	return 0;
 }
 
-/** @brief Allow access to specific GPIOs for the network core.
- *
- * Function is executed very early during system initialization to make sure
- * that the network core is not started yet. More pins can be added if the
- * network core needs them.
- */
-static int network_gpio_allow(void)
-{
-
-	/* When the use of the low frequency crystal oscillator (LFXO) is
-	 * enabled, do not modify the configuration of the pins P0.00 (XL1)
-	 * and P0.01 (XL2), as they need to stay configured with the value
-	 * Peripheral.
-	 */
-	uint32_t start_pin = (IS_ENABLED(CONFIG_SOC_ENABLE_LFXO) ? 2 : 0);
-
-	/* Allow the network core to use all GPIOs. */
-	for (uint32_t i = start_pin; i < P0_PIN_NUM; i++) {
-		NRF_P0_S->PIN_CNF[i] = (GPIO_PIN_CNF_MCUSEL_NetworkMCU <<
-					GPIO_PIN_CNF_MCUSEL_Pos);
-	}
-
-	for (uint32_t i = 0; i < P1_PIN_NUM; i++) {
-		NRF_P1_S->PIN_CNF[i] = (GPIO_PIN_CNF_MCUSEL_NetworkMCU <<
-					GPIO_PIN_CNF_MCUSEL_Pos);
-	}
-
-
-	return 0;
-}
-
-SYS_INIT(network_gpio_allow, PRE_KERNEL_1, CONFIG_KERNEL_INIT_PRIORITY_OBJECTS);
+// TBD
+//SYS_INIT(network_gpio_allow, PRE_KERNEL_1, CONFIG_KERNEL_INIT_PRIORITY_OBJECTS);
