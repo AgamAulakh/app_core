@@ -15,13 +15,11 @@ target_sources(app PRIVATE
   src/ble_server.c
   src/ble_handler.c
   src/state_machine.c
+  src/led_handler.c
 )
 # NORDIC SDK APP END
 
-# COMPILER AND LINKER OPTIONS
-
 # Add project directories
-
 include_directories(inc)
 
 zephyr_library_include_directories(.)

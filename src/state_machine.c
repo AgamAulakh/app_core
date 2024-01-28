@@ -6,18 +6,19 @@
 #include <inttypes.h>
 #include <zephyr/smf.h>
 #include <zephyr/logging/log.h>
+#include <led_handler.h>
+
+LOG_MODULE_REGISTER(state_machine, LOG_LEVEL_INF);
 
 #define THREAD_STATE_SIZE 1028 // arbitrary for now
 
-#define Button1 DT_ALIAS(sw0)
+#define Button1 DT_ALIAS(sw0) // Button for initiating or cancelling test
 #if !DT_NODE_HAS_STATUS(Button1, okay)
 #error "Unsupported board: sw0 devicetree alias is not defined"
 #endif
 
 /* List of events */
 #define EVENT_BTN_PRESS BIT(0)
-
-LOG_MODULE_REGISTER(state_machine, LOG_LEVEL_INF);
 
 static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET_OR(Button1, gpios, {0});
 static struct gpio_callback button_cb_data;
@@ -40,6 +41,7 @@ struct s_object {
 static void init_run(void *obj) {
     // Setup threads
     LOG_DBG("init run state");
+
     smf_set_state(SMF_CTX(&s_obj), &dev_states[IDLE]);
 }
 
@@ -56,7 +58,7 @@ static void idle_run(void *obj) {
 
     struct s_object *s = (struct s_object *)obj;
 
-    LOG_DBG("Button press value in idle run%d", EVENT_BTN_PRESS);
+    LOG_DBG("Button press value in idle run %ld", EVENT_BTN_PRESS);
 
     if (s->events & EVENT_BTN_PRESS) {
         smf_set_state(SMF_CTX(&s_obj), &dev_states[TEST]);
@@ -89,11 +91,12 @@ static void test_run(void *obj) {
 static void test_exit(void *obj) {
     // Stop test - stop data collection
     LOG_DBG("test exit state");
+
     /* If the user wants to terminate the test, stop
     data processing and discard data */
-    // if (smf_ == CANCEL) {
-    //     // stop data processing
-    // }
+    if (s_obj.ctx.current == &dev_states[CANCEL]) {
+        // stop data processing
+    }
 }
 
 static void process_entry(void *obj) {
@@ -120,12 +123,12 @@ static void process_exit(void *obj) {
 
     /* If the user wants to terminate the test, discard data
     and results */
-    // if (dev_states == CANCEL) {
-    //     // discard data, do not send results out
-    // }
-    // else {
-    //     // Send results to LCD and potentially to radio handler
-    // }
+    if (s_obj.ctx.current == &dev_states[CANCEL]) {
+        // discard data, do not send results out
+    }
+    else {
+        // Send results to LCD and potentially to radio handler
+    }
 }
 
 static void complete_entry (void *obj) {
@@ -183,35 +186,53 @@ void button_press(const struct device *dev,
                 struct gpio_callback *cb, uint32_t pins)
 {
     /* Generate Button Press Event */
-    LOG_DBG("Button press %d", EVENT_BTN_PRESS);
+    LOG_DBG("Button press %ld", EVENT_BTN_PRESS);
     k_event_post(&s_obj.button_press_event, EVENT_BTN_PRESS);
-    LOG_DBG("Button press after %d", EVENT_BTN_PRESS);
+    LOG_DBG("Button press after %ld", EVENT_BTN_PRESS);
 }
 
-void state_machine_init()
-{	
-    int32_t err;
+uint8_t button_init() {
+    uint8_t err;
 
+    // Check that button is ready
     if (!gpio_is_ready_dt(&button)) {
-        printk("Error: button device %s is not ready\n", button.port->name);
-        return;
+        LOG_ERR("Error: button device %s is not ready\n", button.port->name);
+        return ENOTSUP;
     }
 
+    // Configure button
     err = gpio_pin_configure_dt(&button, GPIO_INPUT);
     if (err != 0) {
-        printk("Error %d: failed to configure %s pin %d\n", err, button.port->name, button.pin);
-        return;
+        LOG_ERR("Error %d: failed to configure %s pin %d\n", err, button.port->name, button.pin);
+        return err;
     }
 
     err = gpio_pin_interrupt_configure_dt(&button,GPIO_INT_EDGE_TO_ACTIVE);
     if (err != 0) {
-        printk("Error %d: failed to configure interrupt on %s pin %d\n",
+        LOG_ERR("Error %d: failed to configure interrupt on %s pin %d\n",
                 err, button.port->name, button.pin);
-        return;
+        return err;
     }
 
     gpio_init_callback(&button_cb_data, button_press, BIT(button.pin));
     gpio_add_callback(button.port, &button_cb_data);
+}
+
+void state_machine_init()
+{	
+    uint8_t err;
+
+    err = button_init;
+    if (!err) {
+        LOG_ERR("Error: init_button %d", err);
+        return;
+    }
+
+    err = led_init;
+    if (!err) {
+        LOG_ERR("Error: init_led %d", err);
+        return;
+    }
 
     /* Initialize the event */
     k_event_init(&s_obj.button_press_event);
@@ -221,9 +242,11 @@ void state_machine_init()
 
     /* Run the state machine */
     while(1) {
-        /* Block until an event is detected */
-        s_obj.events = k_event_wait(&s_obj.button_press_event, EVENT_BTN_PRESS, true, K_FOREVER);
-        
+        if (s_obj.ctx.current == &dev_states[IDLE]) {
+            /* Sit in IDLE state until a button event is detected */
+            s_obj.events = k_event_wait(&s_obj.button_press_event, EVENT_BTN_PRESS, true, K_FOREVER);
+        }
+
         /* State machine terminates if a non-zero value is returned */
         err = smf_run_state(SMF_CTX(&s_obj));
         if (err) {
