@@ -28,19 +28,29 @@
 #define ADS1299_H__
  
 #include <stdint.h>
-#include "nrf_drv_spi.h"
+#include <zephyr/device.h>
+#include <zephyr/drivers/spi.h>
+#include <zephyr/logging/log.h>
 
-#ifdef __cplusplus
-	extern "C" {
-#endif
+// #ifdef __cplusplus
+// 	extern "C" {
+// #endif
+
 /**@SPI STUFF*/
-#ifdef BOARD_PCA10028
+#define BOARD_NRF53_DEV
+#ifdef BOARD_NRF53_DEV
+    #define ADS1299_SPI_SCLK_PIN DT_GPIO_PIN(DT_ALIAS(spi0_sck), gpios)
+    #define ADS1299_SPI_CS_PIN DT_GPIO_PIN(DT_ALIAS(spi0_cs), gpios)
+    #define ADS1299_SPI_MOSI_PIN DT_GPIO_PIN(DT_ALIAS(spi0_mosi), gpios)
+	#define ADS1299_SPI_MISO_PIN DT_GPIO_PIN(DT_ALIAS(spi0_miso), gpios)
+	#define ADS1299_SPI_FREQUENCY_HZ 1000000
+#elif defined(BOARD_PCA10028)
 	#define ADS1299_SPI_SCLK_PIN		10
 	#define ADS1299_SPI_CS_PIN			11
 	#define ADS1299_SPI_MOSI_PIN		14 //MASTER (nRF) OUT; SLAVE (ADS) DIN
 	#define ADS1299_SPI_MISO_PIN		 9 //MASTER (nRF) IN ; SLAVE (ADS) DOUT
 	#define ADS1299_PWDN_RST_PIN		12
-	#define ADS1299_DRDY_PIN				 8
+	#define ADS1299_DRDY_PIN			8
 #elif defined(BOARD_NRF_BREAKOUT)
 		//BOARD_CUSTOM BOARD_NRF_BREAKOUT
 	#define ADS1299_SPI_SCLK_PIN		 9
@@ -67,12 +77,12 @@
  *
  * Consult the ADS1291/2 datasheet and user's guide for more information.
  */
-#define	ADS1299_REGADDR_ID			 				0x00			///< Chip ID register. Read-only.
+#define	ADS1299_REGADDR_ID			 			0x00			///< Chip ID register. Read-only.
 #define	ADS1299_REGADDR_CONFIG1		 			0x01			///< Configuration register 1. Controls conversion mode and data rate.
 #define	ADS1299_REGADDR_CONFIG2		 			0x02			///< Configuration register 2. Controls LOFF comparator, reference, CLK pin, and test signal.
 #define ADS1299_REGADDR_CONFIG3					0x03			
-#define	ADS1299_REGADDR_LOFF		 				0x04			///< Lead-off control register. Controls lead-off frequency, magnitude, and threshold.
-#define	ADS1299_REGADDR_CH1SET		 			0x05					///< Channel 1 settings register. Controls channel 1 input mux, gain, and power-down.
+#define	ADS1299_REGADDR_LOFF		 			0x04			///< Lead-off control register. Controls lead-off frequency, magnitude, and threshold.
+#define	ADS1299_REGADDR_CH1SET		 			0x05			///< Channel 1 settings register. Controls channel 1 input mux, gain, and power-down.
 #define	ADS1299_REGADDR_CH2SET		 			0x06			///< Channel 2 settings register (ADS1292x only). Controls channel 2 input mux, gain, and power-down.
 #define	ADS1299_REGADDR_CH3SET		 			0x07
 #define	ADS1299_REGADDR_CH4SET		 			0x08
@@ -80,16 +90,16 @@
 #define	ADS1299_REGADDR_CH6SET		 			0x0A
 #define	ADS1299_REGADDR_CH7SET		 			0x0B
 #define	ADS1299_REGADDR_CH8SET		 			0x0C
-#define	ADS1299_REGADDR_BIAS_SENSP	 		0x0D			///< RLD sense selection. Controls PGA chop frequency, RLD buffer, and channels for RLD derivation.
-#define	ADS1299_REGADDR_BIAS_SENSN	 		0x0E
-#define	ADS1299_REGADDR_LOFF_SENSP	 		0x0F			///< Lead-off sense selection. Controls current direction and selects channels that will use lead-off detection.
-#define	ADS1299_REGADDR_LOFF_SENSN	 		0x10
-#define	ADS1299_REGADDR_LOFF_FLIP	 			0x11
-#define	ADS1299_REGADDR_LOFF_STATP 			0x12			///< Lead-off status register. Bit 6 controls clock divider. For bits 4:0, 0: lead on, 1: lead off.
-#define	ADS1299_REGADDR_LOFF_STATN	 		0x13
-#define	ADS1299_REGADDR_GPIO		 				0x14			///< GPIO register. Controls state and direction of the ADS1291_2 GPIO pins.
-#define	ADS1299_REGADDR_MISC1		 				0x15			///< Respiration 1 (ADS1292R only). See datasheet.
-#define	ADS1299_REGADDR_MISC2		 				0x16			///< Respiration 2. Controls offset calibration, respiration modulator freq, and RLDREF signal source.
+#define	ADS1299_REGADDR_BIAS_SENSP	 			0x0D			///< RLD sense selection. Controls PGA chop frequency, RLD buffer, and channels for RLD derivation.
+#define	ADS1299_REGADDR_BIAS_SENSN		 		0x0E
+#define	ADS1299_REGADDR_LOFF_SENSP		 		0x0F			///< Lead-off sense selection. Controls current direction and selects channels that will use lead-off detection.
+#define	ADS1299_REGADDR_LOFF_SENSN		 		0x10
+#define	ADS1299_REGADDR_LOFF_FLIP		 		0x11
+#define	ADS1299_REGADDR_LOFF_STATP	 			0x12			///< Lead-off status register. Bit 6 controls clock divider. For bits 4:0, 0: lead on, 1: lead off.
+#define	ADS1299_REGADDR_LOFF_STATN		 		0x13
+#define	ADS1299_REGADDR_GPIO		 			0x14			///< GPIO register. Controls state and direction of the ADS1291_2 GPIO pins.
+#define	ADS1299_REGADDR_MISC1		 			0x15			///< Respiration 1 (ADS1292R only). See datasheet.
+#define	ADS1299_REGADDR_MISC2		 			0x16			///< Respiration 2. Controls offset calibration, respiration modulator freq, and RLDREF signal source.
 #define ADS1299_REGADDR_CONFIG4					0x17
 
 /**
@@ -114,7 +124,7 @@
 #define	ADS1299_OPC_WREG		 					0x40			///< Write register value.
 
 
- /**********************************/
+/**********************************/
 
 /* ID REGISTER ********************************************************************/
 
@@ -124,7 +134,7 @@
 
 #define ADS1299_4_DEVICE_ID					    0x1C	//Device ID [0bvvv11100] Where vvv is the version bits
 #define ADS1299_6_DEVICE_ID					    0x1D	//Device ID [0bvvv11101]
-#define ADS1299_DEVICE_ID								0x1E	//Device ID [0bvvv11101] 
+#define ADS1299_DEVICE_ID						0x1E	//Device ID [0bvvv11101] 
 
 /* DEFAULT REGISTER VALUES ********************************************************/
 
@@ -146,7 +156,7 @@
 #define	ADS1299_REGDEFAULT_LOFF_SENSP	 		0x00			///<
 #define	ADS1299_REGDEFAULT_LOFF_SENSN	 		0x00
 #define	ADS1299_REGDEFAULT_LOFF_FLIP	 		0x00
-#define	ADS1299_REGDEFAULT_LOFF_STATP 		0x00			///<
+#define	ADS1299_REGDEFAULT_LOFF_STATP 			0x00			///<
 #define	ADS1299_REGDEFAULT_LOFF_STATN	 		0x00
 #define	ADS1299_REGDEFAULT_GPIO		 				0x0F			///<
 #define	ADS1299_REGDEFAULT_MISC1		 			0x20			///<
@@ -164,46 +174,53 @@
 // 0x06 = 8000SPS
 // 
 
-/**@TYPEDEFS: */
+/* typedefs */
 typedef int16_t body_voltage_t;
 
+class ADS1299Driver {
+public:
+	/* structs */
+	static device *spi_dev;
+	static spi_config spi_cfg;
 /**************************************************************************************************************************************************
 *              Function Prototypes ADS1299-x 																																																			*
 **************************************************************************************************************************************************/
-void ads_spi_init(void);
 
+	static void ads_spi_init(void);
 
-void init_buf(uint8_t * const p_tx_buffer,
-                     uint8_t * const p_rx_buffer,
-                     const uint16_t  len);
+	static void init_buf(uint8_t * const p_tx_buffer,
+						uint8_t * const p_rx_buffer,
+						const uint16_t  len);
 
-/**
- *	\brief Initialize the ADS1299-x.
- *
- * This function performs the power-on reset and initialization procedure documented on page 61 of the
- * ADS1299 datasheet, up to "Send SDATAC Command."
- */
-void ads1299_powerup_reset(void);
+	/**
+	 *	\brief Initialize the ADS1299-x.
+	*
+	* This function performs the power-on reset and initialization procedure documented on page 61 of the
+	* ADS1299 datasheet, up to "Send SDATAC Command."
+	*/
+	static void ads1299_spi_transfer(uint8_t* tx_data, size_t tx_len, uint8_t* rx_data, size_t rx_len);
 
-void ads1299_init_regs(void);
+	static void ads1299_powerup_reset(void);
 
-void ads1299_powerdn(void);
+	static void ads1299_init_regs(void);
 
-void ads1299_powerup(void);
+	static void ads1299_powerdn(void);
 
-void ads1299_standby(void);
+	static void ads1299_powerup(void);
 
-void ads1299_wake(void);
+	static void ads1299_standby(void);
 
-void ads1299_soft_start_conversion(void);
+	static void ads1299_wake(void);
 
-void ads1299_stop_rdatac(void);
+	static void ads1299_soft_start_conversion(void);
 
-void ads1299_start_rdatac(void);
+	static void ads1299_stop_rdatac(void);
 
-void ads1299_check_id(void);
+	static void ads1299_start_rdatac(void);
 
-void get_eeg_voltage_samples (int32_t *eeg1, int32_t *eeg2, int32_t *eeg3, int32_t *eeg4);
+	static void ads1299_check_id(void);
 
+	static void get_eeg_voltage_samples(int32_t *eeg1, int32_t *eeg2, int32_t *eeg3, int32_t *eeg4);
+};
 
 #endif // ADS1299_H__

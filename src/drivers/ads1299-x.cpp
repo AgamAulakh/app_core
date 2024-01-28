@@ -20,16 +20,14 @@
  */
 
 #include "ads1299-x.h"
-#include "app_error.h"
-#include "nrf_drv_spi.h"
-#include "nrf_gpio.h"
-#include "app_util_platform.h"
-#include "nrf_log.h"
-#include "nrf_delay.h"
-/**@headers for µs delay:*/
-#include <stdio.h> 
-#include "compiler_abstraction.h"
-#include "nrf.h"
+#include <stdio.h>
+#include <string.h>
+// #include "compiler_abstraction.h"
+// #include "nrf.h"
+
+LOG_MODULE_REGISTER(ads1299_driver, LOG_LEVEL_DBG);
+
+#define SPI_DEV DT_NODELABEL(spi_afe)
 
 /**@TX,RX Stuff: */
 #define TX_RX_MSG_LENGTH         				7
@@ -94,40 +92,22 @@ uint8_t ads1299_default_registers[] = {
 		ADS1299_REGDEFAULT_CONFIG4
 };
 
-/**@SPI HANDLERS:
- * @brief SPI user event handler.
- * @param event
- */
-void spi_event_handler(nrf_drv_spi_evt_t const * p_event)
-{
-		/*switch (p_event->type) {
-				case NRF_DRV_SPI_EVENT_DONE:
-					break;
-				default:
-					break;
-		}*/
-    //NRF_LOG_PRINTF(" >>> Transfer completed.\r\n");
-}
+struct device *ADS1299Driver::spi_dev = nullptr;
+struct spi_config spi_cfg = {
+    .frequency = ADS1299_SPI_FREQUENCY_HZ,
+    .operation = (SPI_OP_MODE_MASTER | SPI_TRANSFER_MSB | SPI_WORD_SET(8)),
+    .slave = 0,  // Set the slave number
+};
 
 /**@INITIALIZE SPI INSTANCE */
-static const nrf_drv_spi_t spi = NRF_DRV_SPI_INSTANCE(0); //SPI INSTANCE
-void ads_spi_init(void) {
-		nrf_drv_spi_config_t spi_config = NRF_DRV_SPI_DEFAULT_CONFIG(0);
-		spi_config.bit_order						= NRF_DRV_SPI_BIT_ORDER_MSB_FIRST;
-		//SCLK = 1MHz is right speed because fCLK = (1/2)*SCLK, and fMOD = fCLK/4, and fMOD MUST BE 128kHz. Do the math.
-		spi_config.frequency						= NRF_DRV_SPI_FREQ_1M;
-		spi_config.irq_priority					= APP_IRQ_PRIORITY_LOW;
-		spi_config.mode									= NRF_DRV_SPI_MODE_1; //CPOL = 0 (Active High); CPHA = TRAILING (1)
-		spi_config.miso_pin 						= ADS1299_SPI_MISO_PIN;
-		spi_config.sck_pin 							= ADS1299_SPI_SCLK_PIN;
-		spi_config.mosi_pin 						= ADS1299_SPI_MOSI_PIN;
-		spi_config.ss_pin								= ADS1299_SPI_CS_PIN;
-		spi_config.orc									= 0x55;
-		APP_ERROR_CHECK(nrf_drv_spi_init(&spi, &spi_config, spi_event_handler));
-		NRF_LOG_PRINTF(" SPI Initialized..\r\n");
-}
+void ADS1299Driver::ads_spi_init(void) {
+	spi_dev = const_cast<struct device *>(DEVICE_DT_GET(SPI_DEV));
+	if(!device_is_ready(spi_dev)) {
+		printk("SPI master device not ready!\n");
+	}
+};
 
-/**@SPI-CLEARS BUFFER
+/**@SPI-UTIL CLEARS BUFFER
  * @brief The function initializes TX buffer to values to be sent and clears RX buffer.
  *
  * @note Function clears RX and TX buffers.
@@ -136,48 +116,70 @@ void ads_spi_init(void) {
  * @param[out] p_rx_data    A pointer to a buffer RX.
  * @param[in] len           A length of the data buffers.
  */
-void init_buf(uint8_t * const p_tx_buffer,
+void ADS1299Driver::init_buf(uint8_t * const p_tx_buffer,
                      uint8_t * const p_rx_buffer,
                      const uint16_t  len)
 {
-    uint16_t i;
+	memset(p_tx_buffer, 0, len * sizeof(p_tx_buffer[0]));
+	memset(p_rx_buffer, 0, len * sizeof(p_rx_buffer[0]));
 
-    for (i = 0; i < len; i++)
-    {
-        p_tx_buffer[i] = 0;
-        p_rx_buffer[i] = 0;
-    }
-		NRF_LOG_PRINTF(" SPI Buffer Cleared..\r\n");
-}
+	LOG_DBG(" SPI Buffer Cleared..\r\n");
+};
 /**************************************************************************************************************************************************
  *               Function Definitions                                                                                                              *
  **************************************************************************************************************************************************/
+/*
+ * SPI Transceive Wrapper:
+ */
+void ADS1299Driver::ads1299_spi_transfer(uint8_t* tx_data, size_t tx_len, uint8_t* rx_data, size_t rx_len) {
+	// current behaviour: function will continue to transmit despite errors in tx/rx buf
+	struct spi_buf tx_buf = { .buf = NULL, .len = 0 };
+	struct spi_buf rx_buf = { .buf = NULL, .len = 0 };
+
+	struct spi_buf_set tx_buf_set = { .buffers = NULL, .count = 0,};
+    struct spi_buf_set rx_buf_set = { .buffers = NULL, .count = 0,};
+
+	if (tx_data != NULL && tx_len > 0) {
+		tx_buf.buf = tx_data;
+		tx_buf.len = tx_len;
+		tx_buf_set.buffers = &tx_buf;
+	}
+	if (rx_data != NULL && rx_len > 0) {
+		rx_buf.buf = rx_data;
+		rx_buf.len = rx_len;
+		rx_buf_set.buffers = &rx_buf;
+	}
+
+    int ret = spi_transceive(spi_dev, &spi_cfg, &tx_buf_set, &rx_buf_set);
+    if (ret) {
+        LOG_ERR("SPI transfer failed with error %d", ret);
+        return;
+    }
+};
 
 /*
  * ADS1299 CONTROL FUNCTIONS:
  */
-void ads1299_init_regs(void) {
-	uint8_t err_code;
-	uint8_t num_registers = 23;
-	uint8_t txrx_size = num_registers+2;
-	uint8_t tx_data_spi[txrx_size]; //Size = 14 bytes
-	uint8_t rx_data_spi[txrx_size]; //Size = 14 bytes
-	uint8_t wreg_init_opcode = 0x41;
-	for (int i = 0; i < txrx_size; ++i) {
-		tx_data_spi[i] = 0;
-		rx_data_spi[i] = 0;
-	}
-	tx_data_spi[0] = wreg_init_opcode;
-	tx_data_spi[1] = num_registers - 1;
-	for (int j = 0; j < num_registers; ++j) {
-		tx_data_spi[j+2] = ads1299_default_registers[j];
-	}
-	err_code = nrf_drv_spi_transfer(&spi, tx_data_spi, num_registers+2, rx_data_spi, num_registers+2);
-	nrf_delay_ms(150);
-	NRF_LOG_PRINTF(" Power-on reset and initialization procedure.. EC: %d \r\n",err_code);
-}
+void ADS1299Driver::ads1299_init_regs(void) {
+    uint8_t num_registers = 23;
+    uint8_t txrx_size = num_registers + 2;
+    uint8_t wreg_init_opcode = 0x41;
+    uint8_t tx_data_spi[txrx_size] = { 0 };
+    uint8_t rx_data_spi[txrx_size] = { 0 };
 
-void ads1299_powerup_reset(void)
+    tx_data_spi[0] = wreg_init_opcode;
+    tx_data_spi[1] = num_registers - 1;
+
+    for (int j = 0; j < num_registers; ++j) {
+        tx_data_spi[j + 2] = ads1299_default_registers[j];
+    }
+
+    ads1299_spi_transfer(tx_data_spi, txrx_size, rx_data_spi, txrx_size);
+    k_msleep(150);
+    LOG_INF("Power-on reset and initialization procedure..");
+};
+
+void ADS1299Driver::ads1299_powerup_reset(void)
 {
 	#if defined(BOARD_PCA10028) | defined(BOARD_NRF_BREAKOUT)
 		nrf_gpio_pin_clear(ADS1299_PWDN_RST_PIN);
@@ -186,11 +188,11 @@ void ads1299_powerup_reset(void)
 		nrf_gpio_pin_clear(ADS1299_RESET_PIN);
 		nrf_gpio_pin_clear(ADS1299_PWDN_PIN);
 	#endif
-	nrf_delay_ms(50);
-	NRF_LOG_PRINTF(" ADS1299-x POWERED UP AND RESET..\r\n");
-}
+	k_msleep(50);
+	LOG_DBG(" ADS1299-x POWERED UP AND RESET..\r\n");
+};
 
-void ads1299_powerdn(void)
+void ADS1299Driver::ads1299_powerdn(void)
 {
 	#if defined(BOARD_PCA10028) | defined(BOARD_NRF_BREAKOUT)
 		nrf_gpio_pin_clear(ADS1299_PWDN_RST_PIN);
@@ -199,11 +201,11 @@ void ads1299_powerdn(void)
 		nrf_gpio_pin_clear(ADS1299_RESET_PIN);
 		nrf_gpio_pin_clear(ADS1299_PWDN_PIN);
 	#endif
-	nrf_delay_us(20);
-	NRF_LOG_PRINTF(" ADS1299-x POWERED DOWN..\r\n");
-}
+	k_msleep(20);
+	LOG_DBG(" ADS1299-x POWERED DOWN..\r\n");
+};
 
-void ads1299_powerup(void)
+void ADS1299Driver::ads1299_powerup(void)
 {
 	#if defined(BOARD_PCA10028) | defined(BOARD_NRF_BREAKOUT)
 		nrf_gpio_pin_set(ADS1299_PWDN_RST_PIN);
@@ -212,95 +214,88 @@ void ads1299_powerup(void)
 		nrf_gpio_pin_set(ADS1299_RESET_PIN);
 		nrf_gpio_pin_set(ADS1299_PWDN_PIN);
 	#endif
-	nrf_delay_ms(1000);		// Allow time for power-on reset
-	NRF_LOG_PRINTF(" ADS1299-x POWERED UP...\r\n");
-}
+	k_msleep(1000);		// Allow time for power-on reset
+	LOG_DBG(" ADS1299-x POWERED UP...\r\n");
+};
 
-void ads1299_standby(void) {
-	uint8_t tx_data_spi;
+void ADS1299Driver::ads1299_standby(void) {
+    uint8_t tx_data_spi = ADS1299_OPC_STANDBY;
+    uint8_t rx_data_spi;
+
+    ads1299_spi_transfer(&tx_data_spi, 1, &rx_data_spi, 1);
+    LOG_DBG("ADS1299-x placed in standby mode...");
+};
+
+void ADS1299Driver::ads1299_wake(void) {
+	uint8_t tx_data_spi = ADS1299_OPC_WAKEUP;
 	uint8_t rx_data_spi;
 
-	tx_data_spi = ADS1299_OPC_STANDBY;
+    ads1299_spi_transfer(&tx_data_spi, 1, &rx_data_spi, 1);
+	k_msleep(10); // Allow time to wake up - 10ms
+	LOG_DBG(" ADS1299-x Wakeup..");
+};
 
-	nrf_drv_spi_transfer(&spi, &tx_data_spi, 1, &rx_data_spi, 1);
-	NRF_LOG_PRINTF(" ADS1299-x placed in standby mode...\r\n");
-}
-
-void ads1299_wake(void) {
-	uint8_t tx_data_spi;
+void ADS1299Driver::ads1299_soft_start_conversion(void) {
+	uint8_t tx_data_spi = ADS1299_OPC_START;
 	uint8_t rx_data_spi;
 
-	tx_data_spi = ADS1299_OPC_WAKEUP;
+    ads1299_spi_transfer(&tx_data_spi, 1, &rx_data_spi, 1);
+	LOG_DBG(" Start ADC conversion..");
+};
 
-	nrf_drv_spi_transfer(&spi, &tx_data_spi, 1, &rx_data_spi, 1);
-	nrf_delay_ms(10);	// Allow time to wake up - 10ms
-	NRF_LOG_PRINTF(" ADS1299-x Wakeup..\r\n");
-}
-
-void ads1299_soft_start_conversion(void) {
-	uint8_t tx_data_spi;
+void ADS1299Driver::ads1299_stop_rdatac(void) {
+	uint8_t tx_data_spi = ADS1299_OPC_SDATAC;
 	uint8_t rx_data_spi;
 
-	tx_data_spi = ADS1299_OPC_START;
+    ads1299_spi_transfer(&tx_data_spi, 1, &rx_data_spi, 1);
+	LOG_DBG(" Continuous Data Output Disabled..");
+};
 
-	nrf_drv_spi_transfer(&spi, &tx_data_spi, 1, &rx_data_spi, 1);
-	NRF_LOG_PRINTF(" Start ADC conversion..\r\n");
-}
-
-void ads1299_stop_rdatac(void) {
-	uint8_t tx_data_spi;
+void ADS1299Driver::ads1299_start_rdatac(void) {
+	uint8_t tx_data_spi = ADS1299_OPC_RDATAC;
 	uint8_t rx_data_spi;
 
-	tx_data_spi = ADS1299_OPC_SDATAC;
+	ads1299_spi_transfer(&tx_data_spi, 1, &rx_data_spi, 1);
+	LOG_DBG(" Continuous Data Output Enabled..");
+};
 
-	nrf_drv_spi_transfer(&spi, &tx_data_spi, 1, &rx_data_spi, 1);
-	NRF_LOG_PRINTF(" Continuous Data Output Disabled..\r\n");
-}
-
-void ads1299_start_rdatac(void) {
-	uint8_t tx_data_spi;
-	uint8_t rx_data_spi;
-
-	tx_data_spi = ADS1299_OPC_RDATAC;
-
-	nrf_drv_spi_transfer(&spi, &tx_data_spi, 1, &rx_data_spi, 1);
-	NRF_LOG_PRINTF(" Continuous Data Output Enabled..\r\n");
-}
-
-void ads1299_check_id(void) {
+void ADS1299Driver::ads1299_check_id(void) {
 	uint8_t device_id_reg_value;
 	uint8_t tx_data_spi[3];
 	uint8_t rx_data_spi[7];
 	tx_data_spi[0] = 0x20;	//Request Device ID
 	tx_data_spi[1] = 0x01;	//Intend to read 1 byte
 	tx_data_spi[2] = 0x00;	//This will be replaced by Reg Data
-	nrf_drv_spi_transfer(&spi, tx_data_spi, 2+tx_data_spi[1], rx_data_spi, 2+tx_data_spi[1]);
-	nrf_delay_ms(20); //Wait for response:
+
+	ads1299_spi_transfer(tx_data_spi, 2+tx_data_spi[1], rx_data_spi, 2+tx_data_spi[1]);
+
+	k_msleep(20); //Wait for response:
 	device_id_reg_value = rx_data_spi[2];
-	bool is_ads_1299_4 = (device_id_reg_value & 0x1F) == (ADS1299_4_DEVICE_ID); 
+	bool is_ads_1299_4 = (device_id_reg_value & 0x1F) == (ADS1299_4_DEVICE_ID);
 	bool is_ads_1299_6 = (device_id_reg_value & 0x1F) == (ADS1299_6_DEVICE_ID);
-	bool is_ads_1299	 = (device_id_reg_value & 0x1F) == (ADS1299_DEVICE_ID); 
+	bool is_ads_1299	 = (device_id_reg_value & 0x1F) == (ADS1299_DEVICE_ID);
+
 	uint8_t revisionVersion = (device_id_reg_value & 0xE0)>>5;
 	if (is_ads_1299||is_ads_1299_6||is_ads_1299_4) {
-		NRF_LOG_PRINTF("Device Address Matches!\r\n");
+		LOG_DBG("Device Address Matches!");
 	} else {
-		NRF_LOG_PRINTF("********SPI I/O Error, Device Not Detected! *********** \r\n");
-		NRF_LOG_PRINTF("SPI Transfer Dump: \r\n");
-		NRF_LOG_PRINTF("ID[b0->2]: [0x%x | 0x%x | 0x%x] \r\n", rx_data_spi[0],rx_data_spi[1],rx_data_spi[2]);
-		NRF_LOG_PRINTF("ID[b3->6]: [0x%x | 0x%x | 0x%x | 0x%x] \r\n", rx_data_spi[3],rx_data_spi[4],rx_data_spi[5],rx_data_spi[6]);
+		LOG_DBG("********SPI I/O Error, Device Not Detected! ***********");
+		LOG_DBG("SPI Transfer Dump:");
+		LOG_DBG("ID[b0->2]: [0x%x | 0x%x | 0x%x]", rx_data_spi[0],rx_data_spi[1],rx_data_spi[2]);
+		LOG_DBG("ID[b3->6]: [0x%x | 0x%x | 0x%x | 0x%x]", rx_data_spi[3],rx_data_spi[4],rx_data_spi[5],rx_data_spi[6]);
 	}
 	if (is_ads_1299) {
-		NRF_LOG_PRINTF("Device Name: ADS1299 \r\n");
+		LOG_DBG("Device Name: ADS1299");
 	} else if (is_ads_1299_6) {
-		NRF_LOG_PRINTF("Device Name: ADS1299-6 \r\n");
+		LOG_DBG("Device Name: ADS1299-6");
 	} else if (is_ads_1299_4) {
-		NRF_LOG_PRINTF("Device Name: ADS1299-4 \r\n");
+		LOG_DBG("Device Name: ADS1299-4");
 	} 
 	if (is_ads_1299||is_ads_1299_6||is_ads_1299_4) {
-		NRF_LOG_PRINTF("Device Revision #%d\r\n",revisionVersion);
-		NRF_LOG_PRINTF("Device ID: 0x%x \r\n",device_id_reg_value);
+		LOG_DBG("Device Revision #%d",revisionVersion);
+		LOG_DBG("Device ID: 0x%x",device_id_reg_value);
 	}
-}
+};
 
 /* DATA RETRIEVAL FUNCTIONS **********************************************************************************************************************/
 
@@ -309,13 +304,17 @@ void ads1299_check_id(void) {
  * @details Uses SPI
  *          
  */
-void get_eeg_voltage_samples (int32_t *eeg1, int32_t *eeg2, int32_t *eeg3, int32_t *eeg4) {
-		uint8_t tx_rx_data[15] = {0x00, 0x00, 0x00,
-														0x00, 0x00, 0x00,
-														0x00, 0x00, 0x00,
-														0x00, 0x00, 0x00,
-														0x00, 0x00, 0x00};
-		nrf_drv_spi_transfer(&spi, tx_rx_data, 15, tx_rx_data, 15);
+void ADS1299Driver::get_eeg_voltage_samples(int32_t *eeg1, int32_t *eeg2, int32_t *eeg3, int32_t *eeg4) {
+		uint8_t tx_rx_data[15] = {
+			0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00
+		};
+	
+		ads1299_spi_transfer(tx_rx_data, 15, tx_rx_data, 15);
+
 		uint8_t cnt = 0;
 		do {
 			if(tx_rx_data[0]==0xC0){
@@ -326,11 +325,11 @@ void get_eeg_voltage_samples (int32_t *eeg1, int32_t *eeg2, int32_t *eeg3, int32
 				break;
 			}
 			cnt++;
-			nrf_delay_us(1);
+			k_msleep(1);
 		} while(cnt<255);
-		//NRF_LOG_PRINTF("B0-2 = [0x%x 0x%x 0x%x | cnt=%d]\r\n",tx_rx_data[0],tx_rx_data[1],tx_rx_data[2],cnt);
-		//NRF_LOG_PRINTF("DATA:[0x%x 0x%x 0x%x 0x%x]\r\n",*eeg1,*eeg2,*eeg3,*eeg4);
-}
+		//LOG_DBG("B0-2 = [0x%x 0x%x 0x%x | cnt=%d]\r\n",tx_rx_data[0],tx_rx_data[1],tx_rx_data[2],cnt);
+		//LOG_DBG("DATA:[0x%x 0x%x 0x%x 0x%x]\r\n",*eeg1,*eeg2,*eeg3,*eeg4);
+};
 
 // // // // // //
 // End of File //

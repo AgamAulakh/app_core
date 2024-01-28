@@ -33,16 +33,16 @@ void DataAcquisitionThread::Initialize() {
 void DataAcquisitionThread::Run() {
     uint8_t message = 0;
     while (true) {
-        // if (message_queue.get(message)) {
-        //     switch (static_cast<DataAcquisitionThreadMessage>(message)) {
-        //         case STOP_READING_AFE:
-        //         case START_READING_AFE:
-        //         case INVALID:
-        //         default:
-        //             break;
-        //     }
-        // }
-		LOG_DBG("DataAcq::%s -- up time %u ms", __FUNCTION__, k_uptime_get_32());
-		k_msleep(2000);
+        if (message_queue.get(message)) {
+            switch (static_cast<DataAcquisitionThreadMessage>(message)) {
+                case STOP_READING_AFE:
+                case START_READING_AFE:
+                case INVALID:
+                default:
+                    break;
+            }
+        }
+		// LOG_DBG("DataAcq::%s -- up time %u ms", __FUNCTION__, k_uptime_get_32());
+		// k_msleep(2000);
     }
 }

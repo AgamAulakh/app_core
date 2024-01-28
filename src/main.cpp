@@ -16,6 +16,7 @@
 
 #include "arm_math.h"
 #include "DataAcquisitionThread.h"
+#include "drivers/ads1299-x.h"
 
 LOG_MODULE_REGISTER(eegals_app_core, LOG_LEVEL_DBG);
 
@@ -27,10 +28,12 @@ int main(void)
 
 	DataAcquisitionThread::GetInstance().Initialize();
 
+	ADS1299Driver::ads_spi_init();
+
 	while(1) {
 		LOG_DBG("main thread up time: %u ms", k_uptime_get_32());
 		k_msleep(LOG_DELAY_MS);
 	}
 
 	return 0;
-}
+};

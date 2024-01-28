@@ -4,3 +4,4 @@ target_sources(app PRIVATE ${APP_SOURCES})
 
 # Add the core directory
 add_subdirectory(core)
+add_subdirectory(drivers)
