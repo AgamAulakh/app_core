@@ -1,8 +1,17 @@
 #include "DataBufferManager.h"
+// log level declaration
+LOG_MODULE_REGISTER(data_buffer_manager, LOG_LEVEL_DBG);
 
-struct Semaphore DataBufferManager::eeg_buffer_semaphore;
-eeg_sample DataBufferManager::dma_buffer[max_samples];
-size_t DataBufferManager::buffer_index;
+struct dma_config DataBufferManager::dma_cfg = {
+    .channel_direction = PERIPHERAL_TO_MEMORY,
+    .complete_callback_en = 1,
+    .source_burst_length = 1, // accept 1 sample at a time
+    .dma_callback = DMATransfer,
+};
+
+// struct Semaphore DataBufferManager::eeg_buffer_semaphore;
+// eeg_sample DataBufferManager::dma_buffer[max_samples];
+// size_t DataBufferManager::buffer_index;
 
 void DataBufferManager::Write() {
 
@@ -12,29 +21,40 @@ void DataBufferManager::Read() {
 
 }
 
-void DataBufferManager::spi_dma_setup() {
-    // IF NOT SET UP, CONTINUE; ELSE ERR
-    // // Configure SPI CS pin as GPIO output
-    // const struct device *cs_dev = device_get_binding(DT_GPIO_LABEL(DT_NODELABEL(spi0), cs_gpios));
-    // gpio_pin_configure(cs_dev, SPI_CS_PIN, GPIO_OUTPUT_ACTIVE);
+void DataBufferManager::DMASetup(device* spi_dev) {
+    // set up basic source buffer for dma
+    dma_block_cfg.dest_address = (uintptr_t)source_buffer;
+    dma_block_cfg.source_address = (uintptr_t)&spi_dev->data;
 
-    // // Configure SPI device
-    // struct spi_config spi_cfg = {
-    //     .frequency = 500000,  // Set your desired frequency
-    //     .operation = SPI_OP_MODE_MASTER | SPI_TRANSFER_MSB | SPI_WORD_SET(8),
-    //     .cs = NULL,
-    // };
+    if (dma_config(dma_dev, AFE_DMA_CHANNEL, &dma_cfg)) {
+        LOG_ERR("Failed to configure DMA");
+        // TODO: error handling :D
+        return;
+    }
 
-    // // Set up SPI device
-    // if (spi_configure(spi_dev, &spi_cfg) != 0) {
-    //     printk("SPI configuration failed\n");
-    //     return;
-    // }
-
-    // printk("SPI configured successfully\n");
-
+    if (dma_start(dma_dev, AFE_DMA_CHANNEL)) {
+        LOG_ERR("Failed to start DMA transfer");
+        // TODO: error handling
+    }
 }
 
-void DataBufferManager::spi_sensor_read_and_transfer() {
-    
+void DataBufferManager::DMATransfer(const struct device *dev, void *user_data, uint32_t channel, int status) {
+    if (status == 0) {
+        LOG_DBG("DMA transfer complete success");
+        for (size_t i = 0; i < AFE_DMA_BLOCK_SIZE; i++) {
+            LOG_INF("Sample[%u]: %d", i, source_buffer[i]);
+        }
+        ResetBuffer();
+        // Perform any post-transfer processing or signal completion
+        
+    } else {
+        LOG_ERR("DMA transfer failed with status %d", status);
+        // TODO: error handling
+    }
+
+    // in either case, start the DMA again
+    if (dma_start(dma_dev, AFE_DMA_CHANNEL)) {
+        LOG_ERR("Failed to start DMA transfer");
+        // TODO: error handling
+    }
 }
