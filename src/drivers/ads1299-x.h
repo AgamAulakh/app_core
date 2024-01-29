@@ -32,10 +32,6 @@
 #include <zephyr/drivers/spi.h>
 #include <zephyr/logging/log.h>
 
-// #ifdef __cplusplus
-// 	extern "C" {
-// #endif
-
 /**@SPI STUFF*/
 #define BOARD_NRF53_DEV
 #ifdef BOARD_NRF53_DEV
@@ -112,19 +108,16 @@
  
 #define	ADS1299_OPC_WAKEUP		 				0x02			///< Wake up from standby.
 #define	ADS1299_OPC_STANDBY		 				0x04			///< Enter standby.
-#define	ADS1299_OPC_RESET		 					0x06			///< Reset all registers.	
-#define	ADS1299_OPC_START		 					0x08			///< Start data conversions.
-#define	ADS1299_OPC_STOP		 					0x0A			///< Stop data conversions.
+#define	ADS1299_OPC_RESET		 				0x06			///< Reset all registers.	
+#define	ADS1299_OPC_START		 				0x08			///< Start data conversions.
+#define	ADS1299_OPC_STOP		 				0x0A			///< Stop data conversions.
 #define	ADS1299_OPC_OFFSETCAL					0x1A			///< Calibrate channel offset. RESP2.CALIB_ON must be 1. Execute after every PGA gain change.
 #define	ADS1299_OPC_RDATAC		 				0x10			///< Read data continuously (registers cannot be read or written in this mode).
 #define	ADS1299_OPC_SDATAC		 				0x11			///< Stop continuous data read.
-#define	ADS1299_OPC_RDATA		 					0x12			///< Read single data value.
+#define	ADS1299_OPC_RDATA		 				0x12			///< Read single data value.
 
-#define	ADS1299_OPC_RREG		 					0x20			///< Read register value. System must not be in RDATAC mode.
-#define	ADS1299_OPC_WREG		 					0x40			///< Write register value.
-
-
-/**********************************/
+#define	ADS1299_OPC_RREG		 				0x20			///< Read register value. System must not be in RDATAC mode.
+#define	ADS1299_OPC_WREG		 				0x40			///< Write register value.
 
 /* ID REGISTER ********************************************************************/
 
@@ -142,15 +135,15 @@
 #define	ADS1299_REGDEFAULT_CONFIG1		 		0xB6			///< Configuration register 1. Controls conversion mode and data rate.
 #define	ADS1299_REGDEFAULT_CONFIG2		 		0xD2			///< Configuration register 2. Controls LOFF comparator, reference, CLK pin, and test signal.
 #define ADS1299_REGDEFAULT_CONFIG3				0xEC
-#define	ADS1299_REGDEFAULT_LOFF		 				0x02			///< Lead-off control register. Controls lead-off frequency, magnitude, and threshold.
-#define	ADS1299_REGDEFAULT_CH1SET		 			0x60			///< Channel 1 settings register. Controls channel 1 input mux, gain, and power-down.
-#define	ADS1299_REGDEFAULT_CH2SET		 			0x60			///<
-#define	ADS1299_REGDEFAULT_CH3SET		 			0x60
-#define	ADS1299_REGDEFAULT_CH4SET		 			0x60
-#define	ADS1299_REGDEFAULT_CH5SET		 			0xF1
-#define	ADS1299_REGDEFAULT_CH6SET		 			0xF1
-#define	ADS1299_REGDEFAULT_CH7SET		 			0xF1
-#define	ADS1299_REGDEFAULT_CH8SET		 			0xF1
+#define	ADS1299_REGDEFAULT_LOFF		 			0x02			///< Lead-off control register. Controls lead-off frequency, magnitude, and threshold.
+#define	ADS1299_REGDEFAULT_CH1SET		 		0x60			///< Channel 1 settings register. Controls channel 1 input mux, gain, and power-down.
+#define	ADS1299_REGDEFAULT_CH2SET		 		0x60			///<
+#define	ADS1299_REGDEFAULT_CH3SET		 		0x60
+#define	ADS1299_REGDEFAULT_CH4SET		 		0x60
+#define	ADS1299_REGDEFAULT_CH5SET		 		0xF1
+#define	ADS1299_REGDEFAULT_CH6SET		 		0xF1
+#define	ADS1299_REGDEFAULT_CH7SET		 		0xF1
+#define	ADS1299_REGDEFAULT_CH8SET		 		0xF1
 #define	ADS1299_REGDEFAULT_BIAS_SENSP	 		0x0F			///<
 #define	ADS1299_REGDEFAULT_BIAS_SENSN	 		0x0F
 #define	ADS1299_REGDEFAULT_LOFF_SENSP	 		0x00			///<
@@ -158,39 +151,31 @@
 #define	ADS1299_REGDEFAULT_LOFF_FLIP	 		0x00
 #define	ADS1299_REGDEFAULT_LOFF_STATP 			0x00			///<
 #define	ADS1299_REGDEFAULT_LOFF_STATN	 		0x00
-#define	ADS1299_REGDEFAULT_GPIO		 				0x0F			///<
-#define	ADS1299_REGDEFAULT_MISC1		 			0x20			///<
-#define	ADS1299_REGDEFAULT_MISC2		 			0x00			///<
+#define	ADS1299_REGDEFAULT_GPIO		 			0x0F			///<
+#define	ADS1299_REGDEFAULT_MISC1		 		0x20			///<
+#define	ADS1299_REGDEFAULT_MISC2		 		0x00			///<
 #define ADS1299_REGDEFAULT_CONFIG4				0x00
 
-
-//
-// 0x00 =  125SPS
-// 0x01 =  250SPS
-// 0x02 =  500SPS
-// 0x03 = 1000SPS
-// 0x04 = 2000SPS
-// 0x05 = 4000SPS
-// 0x06 = 8000SPS
-// 
-
-/* typedefs */
-typedef int16_t body_voltage_t;
+/* SUPPORTED DATA RATES ********************************************************/
+#define ADS1299_ODR_125_SPS 					0x00
+#define ADS1299_ODR_250_SPS 					0x01
+#define ADS1299_ODR_500_SPS 					0x02
+#define ADS1299_ODR_1000_SPS 					0x03
+#define ADS1299_ODR_2000_SPS 					0x04
+#define ADS1299_ODR_4000_SPS 					0x05
+#define ADS1299_ODR_8000_SPS 					0x06
 
 class ADS1299Driver {
+private:
+	/* spi structs */
+	// Both are created and managed outside, should not be deleted here
+	// consider shared ptr?
+	const device* spi_dev;
+	const spi_config* spi_cfg;
+
 public:
-	/* structs */
-	static device *spi_dev;
-	static spi_config spi_cfg;
-/**************************************************************************************************************************************************
-*              Function Prototypes ADS1299-x 																																																			*
-**************************************************************************************************************************************************/
-
-	static void ads_spi_init(void);
-
-	static void init_buf(uint8_t * const p_tx_buffer,
-						uint8_t * const p_rx_buffer,
-						const uint16_t  len);
+	explicit ADS1299Driver(device* spi, spi_config* cfg) : spi_dev(spi), spi_cfg(cfg) {};
+	~ADS1299Driver() {}; // do nothing
 
 	/**
 	 *	\brief Initialize the ADS1299-x.
@@ -198,29 +183,29 @@ public:
 	* This function performs the power-on reset and initialization procedure documented on page 61 of the
 	* ADS1299 datasheet, up to "Send SDATAC Command."
 	*/
-	static void ads1299_spi_transfer(uint8_t* tx_data, size_t tx_len, uint8_t* rx_data, size_t rx_len);
+	void ads1299_spi_transfer(uint8_t* tx_data, size_t tx_len, uint8_t* rx_data, size_t rx_len);
 
-	static void ads1299_powerup_reset(void);
+	void ads1299_powerup_reset(void);
 
-	static void ads1299_init_regs(void);
+	void ads1299_init_regs(void);
 
-	static void ads1299_powerdn(void);
+	void ads1299_powerdn(void);
 
-	static void ads1299_powerup(void);
+	void ads1299_powerup(void);
 
-	static void ads1299_standby(void);
+	void ads1299_standby(void);
 
-	static void ads1299_wake(void);
+	void ads1299_wake(void);
 
-	static void ads1299_soft_start_conversion(void);
+	void ads1299_soft_start_conversion(void);
 
-	static void ads1299_stop_rdatac(void);
+	void ads1299_stop_rdatac(void);
 
-	static void ads1299_start_rdatac(void);
+	void ads1299_start_rdatac(void);
 
-	static void ads1299_check_id(void);
+	void ads1299_check_id(void);
 
-	static void get_eeg_voltage_samples(int32_t *eeg1, int32_t *eeg2, int32_t *eeg3, int32_t *eeg4);
+	void get_eeg_voltage_samples(int32_t *eeg1, int32_t *eeg2, int32_t *eeg3, int32_t *eeg4);
 };
 
 #endif // ADS1299_H__

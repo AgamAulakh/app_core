@@ -16,7 +16,7 @@ public:
     };
     ~MessageQueue() = default;
 
-    bool push(const element_type& msg) {
+    bool push(element_type& msg) {
         if (k_msgq_put(&queue, static_cast<void*>(&msg), K_NO_WAIT) != 0) {
             // TODO: uart debug message send failed
             return false;
@@ -24,7 +24,7 @@ public:
         return true;
     };
 
-    bool push_with_timeout(const element_type& msg, int64_t ticks) {
+    bool push_with_timeout(element_type& msg, int64_t ticks) {
         if (k_msgq_put(&queue, static_cast<void*>(&msg), k_timeout_t(ticks)) != 0) {
             return false;
         }
@@ -37,10 +37,17 @@ public:
             return false;
         }
         return true;
-    }
+    };
 
     bool get_with_timeout(element_type& msg, int64_t ticks) {
         if (k_msgq_get(&queue, static_cast<void*>(&msg), k_timeout_t(ticks)) != 0) {
+            return false;
+        }
+        return true;
+    };
+
+    bool get_with_blocking_wait(element_type& msg) {
+        if (k_msgq_get(&queue, static_cast<void*>(&msg), K_FOREVER) != 0) {
             return false;
         }
         return true;

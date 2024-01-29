@@ -27,8 +27,6 @@
 
 LOG_MODULE_REGISTER(ads1299_driver, LOG_LEVEL_DBG);
 
-#define SPI_DEV DT_NODELABEL(spi_afe)
-
 /**@TX,RX Stuff: */
 #define TX_RX_MSG_LENGTH         				7
 
@@ -92,42 +90,6 @@ uint8_t ads1299_default_registers[] = {
 		ADS1299_REGDEFAULT_CONFIG4
 };
 
-struct device *ADS1299Driver::spi_dev = nullptr;
-struct spi_config spi_cfg = {
-    .frequency = ADS1299_SPI_FREQUENCY_HZ,
-    .operation = (SPI_OP_MODE_MASTER | SPI_TRANSFER_MSB | SPI_WORD_SET(8)),
-    .slave = 0,  // Set the slave number
-};
-
-/**@INITIALIZE SPI INSTANCE */
-void ADS1299Driver::ads_spi_init(void) {
-	spi_dev = const_cast<struct device *>(DEVICE_DT_GET(SPI_DEV));
-	if(!device_is_ready(spi_dev)) {
-		printk("SPI master device not ready!\n");
-	}
-};
-
-/**@SPI-UTIL CLEARS BUFFER
- * @brief The function initializes TX buffer to values to be sent and clears RX buffer.
- *
- * @note Function clears RX and TX buffers.
- *
- * @param[out] p_tx_data    A pointer to a buffer TX.
- * @param[out] p_rx_data    A pointer to a buffer RX.
- * @param[in] len           A length of the data buffers.
- */
-void ADS1299Driver::init_buf(uint8_t * const p_tx_buffer,
-                     uint8_t * const p_rx_buffer,
-                     const uint16_t  len)
-{
-	memset(p_tx_buffer, 0, len * sizeof(p_tx_buffer[0]));
-	memset(p_rx_buffer, 0, len * sizeof(p_rx_buffer[0]));
-
-	LOG_DBG(" SPI Buffer Cleared..\r\n");
-};
-/**************************************************************************************************************************************************
- *               Function Definitions                                                                                                              *
- **************************************************************************************************************************************************/
 /*
  * SPI Transceive Wrapper:
  */
@@ -150,7 +112,7 @@ void ADS1299Driver::ads1299_spi_transfer(uint8_t* tx_data, size_t tx_len, uint8_
 		rx_buf_set.buffers = &rx_buf;
 	}
 
-    int ret = spi_transceive(spi_dev, &spi_cfg, &tx_buf_set, &rx_buf_set);
+    int ret = spi_transceive(spi_dev, spi_cfg, &tx_buf_set, &rx_buf_set);
     if (ret) {
         LOG_ERR("SPI transfer failed with error %d", ret);
         return;

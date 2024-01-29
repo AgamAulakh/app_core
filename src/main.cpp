@@ -27,8 +27,9 @@ int main(void)
 	LOG_INF("Hello world from %s", CONFIG_BOARD);
 
 	DataAcquisitionThread::GetInstance().Initialize();
-
-	ADS1299Driver::ads_spi_init();
+	DataAcquisitionThread::GetInstance().SendMessage(
+		DataAcquisitionThread::START_READING_AFE
+	);
 
 	while(1) {
 		LOG_DBG("main thread up time: %u ms", k_uptime_get_32());

@@ -3,6 +3,7 @@
 #include <zephyr/logging/log_ctrl.h>
 #include <zephyr/logging/log.h>
 #include "core/Thread.h"
+#include "TIFrontEndWrapper.h"
 
 #define DATA_ACQ_THREAD_STACK_SIZE_B 4096
 #define DATA_ACQ_THREAD_PRIORITY 4 // max based on prj config
@@ -10,6 +11,7 @@
 
 class DataAcquisitionThread : public Thread<DATA_ACQ_THREAD_MSG_Q_DEPTH> {
 private:
+    TIFrontEndWrapper AFEWrapper;
     DataAcquisitionThread();
     ~DataAcquisitionThread() = default;
 
