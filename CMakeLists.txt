@@ -22,5 +22,7 @@ target_sources(app PRIVATE
 # Add project directories
 include_directories(inc)
 
+zephyr_library_include_directories(.)
+
 # Add CMSIS library from nrfSDK
 # include_directories(..\\..\\..\\..\\modules\\hal\\cmsis\\CMSIS\\DSP\\Include)

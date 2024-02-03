@@ -32,8 +32,6 @@ int main(void)
 
 	state_machine_init();
 
-	init_ble_handler();
-
 	while(1) {
 		LOG_DBG("main thread up time: %u ms", k_uptime_get_32());
 		k_msleep(LOG_DELAY_MS);
