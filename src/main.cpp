@@ -13,9 +13,10 @@
 
 extern "C" {
 #include <ble_handler.h>
-#include <state_machine.h>
+// #include <state_machine.h>
 }
 
+#include <state_machine.h>
 #include <nrf.h>
 #include <nrfx.h>
 #include <zephyr/logging/log.h>
@@ -33,7 +34,7 @@ int main(void)
 	state_machine_init();
 
 	while(1) {
-		LOG_DBG("main thread up time: %u ms", k_uptime_get_32());
+		//LOG_DBG("main thread up time: %u ms", k_uptime_get_32());
 		k_msleep(LOG_DELAY_MS);
 	}
 

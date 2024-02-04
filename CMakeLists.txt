@@ -13,9 +13,9 @@ project(app_core)
 target_sources(app PRIVATE
   src/main.cpp
   src/ble_server.c
-  src/ble_handler.c
-  src/state_machine.c
-  src/led_handler.c
+  # src/ble_handler.c
+  src/led_handler.cpp
+  src/state_machine.cpp
 )
 # NORDIC SDK APP END
 

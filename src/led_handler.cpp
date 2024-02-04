@@ -5,7 +5,7 @@
 #include <zephyr/drivers/pwm.h>
 #include <led_handler.h>
 
-LOG_MODULE_REGISTER(led_handelr, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(led_handler, LOG_LEVEL_INF);
 
 #define LED1 DT_ALIAS(led0) // LED indicating powered on, error has occured, or low battery
 #define LED2 DT_ALIAS(led0) // LED indicating state of device
@@ -119,7 +119,7 @@ void set_led_blue_white(bool low_battery) {
         err = pwm_set_pulse_dt(&white_pwm_led, STEP_SIZE);
         if (err != 0) {
             printk("Error %d: white write failed\n", err);
-            return 0;
+            return;
         }
 
         k_sleep(K_MSEC(1000));
@@ -128,30 +128,32 @@ void set_led_blue_white(bool low_battery) {
         if (err != 0) {
             printk("Error %d: blue write failed\n",
                     err);
-            return 0;
+            return;
         }
     }
 }
 
-uint8_t led_init() {
+void led_init() {
     uint8_t err;
 
     // Check that led's are ready
     if (!gpio_is_ready_dt(&power_led) || !gpio_is_ready_dt(&state_led)) {
         LOG_ERR("Error: button LED %s is not ready", state_led.port->name);
-		return ENOTSUP;
+		return;
 	}
 
     // Configure LED's
     err = gpio_pin_configure_dt(&power_led, GPIO_OUTPUT_ACTIVE);
 	if (err < 0) {
 		LOG_ERR("Error %d: failed to configure %s pin %d", err, power_led.port->name, power_led.pin);
-        return err;
+        return;
 	}
 
     err = gpio_pin_configure_dt(&state_led, GPIO_OUTPUT_ACTIVE);
 	if (err < 0) {
 		LOG_ERR("Error %d: failed to configure %s pin %d", err, state_led.port->name, state_led.pin);
-        return err;
+        return;
 	}
+
+    return;
 }
