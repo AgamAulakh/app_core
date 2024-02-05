@@ -165,8 +165,6 @@ void set_led_blue_white(bool low_battery) {
 }
 
 void led_init() {
-    uint8_t err;
-
     // Check that led's are ready
     if (!device_is_ready(red_pwm_led.dev) || !device_is_ready(green_pwm_led.dev) || !device_is_ready(blue_pwm_led.dev)) {
         LOG_ERR("Error: LED is not ready");

@@ -236,8 +236,6 @@ void state_machine_init()
 
     button_init();
 
-    led_init();
-
     /* Initialize the event */
     k_event_init(&s_obj.button_press_event);
 
@@ -246,11 +244,6 @@ void state_machine_init()
 
     /* Run the state machine */
     while(1) {
-        // if (s_obj.ctx.current == &dev_states[IDLE]) {
-        //     /* Sit in IDLE state until a button event is detected */
-        //     s_obj.events = k_event_wait(&s_obj.button_press_event, EVENT_BTN_PRESS, true, K_FOREVER);
-        // }
-
         /* State machine terminates if a non-zero value is returned */
         err = smf_run_state(SMF_CTX(&s_obj));
         if (err) {

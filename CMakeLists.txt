@@ -12,7 +12,7 @@ project(app_core)
 # NORDIC SDK APP START
 target_sources(app PRIVATE
   src/main.cpp
-  src/ble_server.c
+  # src/ble_server.c
   # src/ble_handler.c
   src/led_handler.cpp
   src/state_machine.cpp

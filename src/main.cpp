@@ -13,17 +13,18 @@
 
 extern "C" {
 #include <ble_handler.h>
-// #include <state_machine.h>
 }
 
 #include <state_machine.h>
+#include <led_handler.h>
+
 #include <nrf.h>
 #include <nrfx.h>
 #include <zephyr/logging/log.h>
 
 #include <stdlib.h>
 
-LOG_MODULE_REGISTER(eegals_app_core, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(app_core_main, LOG_LEVEL_INF);
 
 #define LOG_DELAY_MS 1000
 
@@ -33,8 +34,10 @@ int main(void)
 
 	state_machine_init();
 
+	led_init();
+
 	while(1) {
-		//LOG_DBG("main thread up time: %u ms", k_uptime_get_32());
+		LOG_DBG("main thread up time: %u ms", k_uptime_get_32());
 		k_msleep(LOG_DELAY_MS);
 	}
 
