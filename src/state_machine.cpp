@@ -101,7 +101,6 @@ static void test_exit(void *obj) {
     /* If the user wants to terminate the test, stop
     data processing and discard data */
     if (s_obj.ctx.current == &dev_states[CANCEL]) {
-        LOG_DBG("Current state? %d", s_obj.ctx.current);
         // stop data processing
     }
 }
