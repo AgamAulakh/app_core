@@ -14,26 +14,39 @@
 
 #include <stdlib.h>
 
-#include "arm_math.h"
+// #include "arm_math.h"
 #include "DataAcquisitionThread.h"
 #include "drivers/ads1299-x.h"
 
+// temporary
+#include <zephyr/drivers/pwm.h>
+
 LOG_MODULE_REGISTER(eegals_app_core, LOG_LEVEL_DBG);
 
-#define LOG_DELAY_MS 1000
+static const struct pwm_dt_spec pwm_led0 = PWM_DT_SPEC_GET(DT_ALIAS(pwm_led0));
+
+#define LOG_DELAY_MS 500
+#define LED_PERIOD 1000
+#define LED_OFF 0
+#define LED_CHANNEL 0
+#define LED_BLUE_PULSE_WIDTH 1000
+
 
 int main(void)
 {
 	LOG_INF("Hello world from %s", CONFIG_BOARD);
 
-	DataAcquisitionThread::GetInstance().Initialize();
-	DataAcquisitionThread::GetInstance().SendMessage(
-		DataAcquisitionThread::START_READING_AFE
-	);
+	// DataAcquisitionThread::GetInstance().Initialize();
 
 	while(1) {
 		LOG_DBG("main thread up time: %u ms", k_uptime_get_32());
+		pwm_set_dt(&pwm_led0, LED_PERIOD, LED_BLUE_PULSE_WIDTH);
 		k_msleep(LOG_DELAY_MS);
+		pwm_set_dt(&pwm_led0, LED_PERIOD, LED_OFF);
+		k_msleep(LOG_DELAY_MS);
+		// DataAcquisitionThread::GetInstance().SendMessage(
+		// 	DataAcquisitionThread::START_READING_AFE
+		// );
 	}
 
 	return 0;

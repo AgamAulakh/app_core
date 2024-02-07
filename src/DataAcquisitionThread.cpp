@@ -37,10 +37,10 @@ void DataAcquisitionThread::Run() {
 		    LOG_DBG("DataAcq::%s -- received message at %u ms", __FUNCTION__, k_uptime_get_32());
             switch (static_cast<DataAcquisitionThreadMessage>(message)) {
                 case STOP_READING_AFE:
-                    AFEWrapper.Stop();
+                    // AFEWrapper.Stop();
                     break;
                 case START_READING_AFE:
-                    AFEWrapper.Start();
+                    // AFEWrapper.Start();
                     break;
                 case INVALID:
                 default:
