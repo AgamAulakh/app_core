@@ -14,7 +14,7 @@
 
 #include <stdlib.h>
 
-// #include "arm_math.h"
+#include "ArmMatrixWrapper.h"
 #include "DataAcquisitionThread.h"
 #include "drivers/ads1299-x.h"
 
