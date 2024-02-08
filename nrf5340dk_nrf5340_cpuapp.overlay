@@ -5,9 +5,9 @@
 &pinctrl {
     pwm0_default: pwm0_default {
 		group1 {
-			psels = <NRF_PSEL(PWM_OUT0, 0, 27)>, // Channel 0 
-					<NRF_PSEL(PWM_OUT1, 0, 26)>, // Channel 1
-					<NRF_PSEL(PWM_OUT2, 0, 25)>; // Channel 2
+			psels = <NRF_PSEL(PWM_OUT0, 0, 3)>, // Channel 0, green line 
+					<NRF_PSEL(PWM_OUT1, 0, 4)>, // Channel 1, blue line
+					<NRF_PSEL(PWM_OUT2, 0, 5)>; // Channel 2, red line
 			nordic,invert;
 		};
 	};
@@ -15,25 +15,26 @@
 
 / {
     aliases {
-        red-pwm-led = &red_pwm_led;
+        pwm-led0 = &green_pwm_led;
         green-pwm-led = &green_pwm_led;
         blue-pwm-led = &blue_pwm_led;
+        red-pwm-led = &red_pwm_led;
     };
 
     pwmleds {
         compatible = "pwm-leds";
 
         // pwm0 Ch 0
-        red_pwm_led: red_pwm_led {
-            pwms = <&pwm0 2 15625000 PWM_POLARITY_INVERTED>;
+        green_pwm_led: green_pwm_led {
+            pwms = <&pwm0 0 15625000 PWM_POLARITY_INVERTED>;
         };
         // pwm0 Ch 1
-        green_pwm_led: green_pwm_led {
+        blue_pwm_led: blue_pwm_led {
             pwms = <&pwm0 1 15625000 PWM_POLARITY_INVERTED>;
         };
         // pwm0 Ch 2
-        blue_pwm_led: blue_pwm_led {
-            pwms = <&pwm0 0 15625000 PWM_POLARITY_INVERTED>;
+        red_pwm_led: red_pwm_led {
+            pwms = <&pwm0 2 15625000 PWM_POLARITY_INVERTED>;
         };
     };
 

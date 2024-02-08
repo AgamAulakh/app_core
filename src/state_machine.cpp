@@ -52,7 +52,7 @@ static void idle_entry(void *obj) {
 
 static void idle_run(void *obj) {
     LOG_DBG("idle run state");
-
+    set_led_yellow();
     /* If the button is pressed the user wants to start a test,
     move to TEST state */
     s_obj.events = k_event_wait(&s_obj.button_press_event, EVENT_BTN_PRESS, true, K_FOREVER);

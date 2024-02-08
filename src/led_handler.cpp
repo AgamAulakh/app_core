@@ -7,7 +7,7 @@
 
 LOG_MODULE_REGISTER(led_handler, LOG_LEVEL_INF);
 
-#define STEP_SIZE PWM_USEC(2000)
+#define STEP_SIZE PWM_USEC(1000)
 
 static const struct pwm_dt_spec red_pwm_led =
 	PWM_DT_SPEC_GET(DT_ALIAS(red_pwm_led));
