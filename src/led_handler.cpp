@@ -5,24 +5,40 @@
 #include <zephyr/drivers/pwm.h>
 #include <led_handler.h>
 
-LOG_MODULE_REGISTER(led_handler, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(led_handler, LOG_LEVEL_DBG);
 
-#define STEP_SIZE PWM_USEC(1000)
+#define STEP_SIZE PWM_USEC(2000)
 
 static const struct pwm_dt_spec red_pwm_led =
-	PWM_DT_SPEC_GET(DT_ALIAS(red_pwm_led));
+	PWM_DT_SPEC_GET(DT_ALIAS(redled));
 static const struct pwm_dt_spec green_pwm_led =
-	PWM_DT_SPEC_GET(DT_ALIAS(green_pwm_led));
+	PWM_DT_SPEC_GET(DT_ALIAS(greenled));
 static const struct pwm_dt_spec blue_pwm_led =
-	PWM_DT_SPEC_GET(DT_ALIAS(blue_pwm_led));
+	PWM_DT_SPEC_GET(DT_ALIAS(blueled));
 
 
 // IDLE state LED
 void set_led_blue() {
-    uint8_t err;
+    int err;
 
+    LOG_DBG("set LED to blue");
+
+    // Turn on blue LED
     err = pwm_set_pulse_dt(&blue_pwm_led, STEP_SIZE);
-    if (!err) {
+    if (err) {
+        printk("Error %d: blue write failed\n", err);
+        return;
+    }
+
+    // Turn off green and red LED's
+    err = pwm_set_pulse_dt(&red_pwm_led, 0);
+    if (err) {
+        printk("Error %d: blue write failed\n", err);
+        return;
+    }
+
+    err = pwm_set_pulse_dt(&green_pwm_led, 0);
+    if (err) {
         printk("Error %d: blue write failed\n", err);
         return;
     }
@@ -30,30 +46,64 @@ void set_led_blue() {
 
 // TEST state LED
 void set_led_yellow() {
-    uint8_t err;
+    int err;
 
-    // Turn on red and green for yellow
+    LOG_DBG("set LED to yellow");
+
+    // Turn on red and green LED's for yellow
     err = pwm_set_pulse_dt(&green_pwm_led, STEP_SIZE);
-    if (!err) {
+    if (err) {
         printk("Error %d: solid green write failed\n", err);
         return;
     }
 
-    err = pwm_set_pulse_dt(&red_pwm_led, STEP_SIZE);
-    if (!err) {
+    err = pwm_set_pulse_dt(&red_pwm_led, STEP_SIZE+(STEP_SIZE*1.5));
+    if (err) {
         printk("Error %d: solid red write failed\n", err);
+        return;
+    }
+    
+    // Turn off blue LED
+    err = pwm_set_pulse_dt(&blue_pwm_led, 0);
+    if (err) {
+        printk("Error %d: blue write failed\n", err);
         return;
     }
 }
 
 // PROCESS state LED
 void set_led_flash_green() {
-    uint8_t err;
+    int err;
     uint32_t flash_green;
 
-    for (flash_green = 0U; flash_green <= green_pwm_led.period; flash_green += STEP_SIZE) {
-        err = pwm_set_pulse_dt(&green_pwm_led, flash_green);
-        if (!err) {
+    LOG_DBG("set LED to flashing green");
+
+    // Turn off red and blue LED's
+    err = pwm_set_pulse_dt(&red_pwm_led, 0);
+    if (err) {
+        printk("Error %d: solid red write failed\n", err);
+        return;
+    }
+    
+    err = pwm_set_pulse_dt(&blue_pwm_led, 0);
+    if (err) {
+        printk("Error %d: blue write failed\n", err);
+        return;
+    }
+
+    // Turn on green LED flashing
+   for (flash_green = 0U; flash_green <= green_pwm_led.period; flash_green += STEP_SIZE) {
+        // Change loop to run forever in LED thread until state is changed // set interrupt
+        err = pwm_set_pulse_dt(&green_pwm_led, STEP_SIZE);
+        if (err) {
+            printk("Error %d: flash green write failed\n", err);
+            return;
+        }
+
+        k_sleep(K_MSEC(1000));
+
+        err = pwm_set_pulse_dt(&green_pwm_led, 0);
+        if (err) {
             printk("Error %d: flash green write failed\n", err);
             return;
         }
@@ -62,43 +112,93 @@ void set_led_flash_green() {
 
 // COMPLETE state LED
 void set_led_solid_green() {
-    uint8_t err;
+    int err;
 
+    LOG_DBG("set LED to solid green");
+
+    // Turn on green LED
     err = pwm_set_pulse_dt(&green_pwm_led, STEP_SIZE);
-    if (!err) {
+    if (err) {
         printk("Error %d: solid green write failed\n", err);
+        return;
+    }
+
+    // Turn off red and blue LED's
+    err = pwm_set_pulse_dt(&red_pwm_led, 0);
+    if (err) {
+        printk("Error %d: solid red write failed\n", err);
+        return;
+    }
+    
+    err = pwm_set_pulse_dt(&blue_pwm_led, 0);
+    if (err) {
+        printk("Error %d: blue write failed\n", err);
         return;
     }
 }
 
 // CANCEL state LED
 void set_led_flash_red() {
-    uint8_t err;
+    int err;
     uint32_t flash_red;
 
+    LOG_DBG("set LED to flashing red");
+
+    // Turn on red flashing LED
     for (flash_red = 0U; flash_red <= red_pwm_led.period; flash_red += STEP_SIZE) {
         err = pwm_set_pulse_dt(&red_pwm_led, flash_red);
-        if (!err) {
+        if (err) {
             printk("Error %d: flash red write failed\n", err);
             return;
         }
+    }
+
+    // Turn off green and blue LED's
+    err = pwm_set_pulse_dt(&green_pwm_led, 0);
+    if (err) {
+        printk("Error %d: solid green write failed\n", err);
+        return;
+    }
+    
+    err = pwm_set_pulse_dt(&blue_pwm_led, 0);
+    if (err) {
+        printk("Error %d: blue write failed\n", err);
+        return;
     }
 }
 
 // ERROR INDICATION LED
 void set_led_solid_red() {
-    uint8_t err;
+    int err;
 
+    LOG_DBG("set LED to solid red");
+
+    // Turn on red LED
     err = pwm_set_pulse_dt(&red_pwm_led, STEP_SIZE);
-    if (!err) {
+    if (err) {
         printk("Error %d: solid red write failed\n", err);
+        return;
+    }
+
+    // Turn off green and blue LED's
+    err = pwm_set_pulse_dt(&green_pwm_led, 0);
+    if (err) {
+        printk("Error %d: solid green write failed\n", err);
+        return;
+    }
+    
+    err = pwm_set_pulse_dt(&blue_pwm_led, 0);
+    if (err) {
+        printk("Error %d: blue write failed\n", err);
         return;
     }
 }
 
 // POWER ON LED
 void set_led_white() {
-    uint8_t err;
+    int err;
+
+    LOG_DBG("set LED to white");
 
     // Turn on blue, red, and green for white
     err = pwm_set_pulse_dt(&blue_pwm_led, STEP_SIZE);
@@ -109,13 +209,13 @@ void set_led_white() {
         }
 
     err = pwm_set_pulse_dt(&green_pwm_led, STEP_SIZE);
-    if (!err) {
+    if (err) {
         printk("Error %d: solid green write failed\n", err);
         return;
     }
 
     err = pwm_set_pulse_dt(&red_pwm_led, STEP_SIZE);
-    if (!err) {
+    if (err) {
         printk("Error %d: solid red write failed\n", err);
         return;
     }
@@ -123,7 +223,9 @@ void set_led_white() {
 
 // LOW BATTERY INDICATION LED
 void set_led_blue_white(bool low_battery) {
-    uint8_t err;
+    int err;
+
+    LOG_DBG("set LED to blue and white alternating");
 
     while (low_battery) {
 
@@ -136,13 +238,13 @@ void set_led_blue_white(bool low_battery) {
             }
 
         err = pwm_set_pulse_dt(&green_pwm_led, STEP_SIZE);
-        if (!err) {
+        if (err) {
             printk("Error %d: solid green write failed\n", err);
             return;
         }
 
         err = pwm_set_pulse_dt(&red_pwm_led, STEP_SIZE);
-        if (!err) {
+        if (err) {
             printk("Error %d: solid red write failed\n", err);
             return;
         }
@@ -150,14 +252,14 @@ void set_led_blue_white(bool low_battery) {
         k_sleep(K_MSEC(10000));
 
         // Turn off red and green for blue only
-                err = pwm_set_pulse_dt(&green_pwm_led, 0);
-        if (!err) {
+        err = pwm_set_pulse_dt(&green_pwm_led, 0);
+        if (err) {
             printk("Error %d: solid green write failed\n", err);
             return;
         }
 
         err = pwm_set_pulse_dt(&red_pwm_led, 0);
-        if (!err) {
+        if (err) {
             printk("Error %d: solid red write failed\n", err);
             return;
         }

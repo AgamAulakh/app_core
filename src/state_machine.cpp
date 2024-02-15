@@ -12,15 +12,15 @@ LOG_MODULE_REGISTER(state_machine, LOG_LEVEL_DBG);
 
 #define THREAD_STATE_SIZE 1028 // arbitrary for now
 
-#define Button1 DT_ALIAS(sw0) // Button for initiating or cancelling test
-#if !DT_NODE_HAS_STATUS(Button1, okay)
-#error "Unsupported board: sw0 devicetree alias is not defined"
+#define DATA_ENABLE DT_ALIAS(databutton) // Button for initiating or cancelling test P1.00
+#if !DT_NODE_HAS_STATUS(DATA_ENABLE, okay)
+#error "Unsupported board: DATA_ENABLE devicetree alias is not defined"
 #endif
 
 /* List of events */
 #define EVENT_BTN_PRESS BIT(0)
 
-static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET_OR(Button1, gpios, {0});
+static const struct gpio_dt_spec data_enable_button = GPIO_DT_SPEC_GET_OR(DATA_ENABLE, gpios, {0});
 static struct gpio_callback button_cb_data;
 
 /* Forward declaration of state table */
@@ -47,12 +47,12 @@ static void init_run(void *obj) {
 
 static void idle_entry(void *obj) {
     LOG_DBG("idle entry state");
-    // Set LED2 to blue
+    set_led_blue();
 }
 
 static void idle_run(void *obj) {
     LOG_DBG("idle run state");
-    set_led_yellow();
+
     /* If the button is pressed the user wants to start a test,
     move to TEST state */
     s_obj.events = k_event_wait(&s_obj.button_press_event, EVENT_BTN_PRESS, true, K_FOREVER);
@@ -64,8 +64,8 @@ static void idle_run(void *obj) {
 }
 
 static void test_entry(void *obj) {
-    // Set LED2 to yellow
     LOG_DBG("test entry state");
+    set_led_yellow();
 }
 
 static void test_run(void *obj) {
@@ -106,8 +106,8 @@ static void test_exit(void *obj) {
 }
 
 static void process_entry(void *obj) {
-    // Set LED2 to flashing green
     LOG_DBG("process entry state");
+    set_led_flash_green();
 }
 
 static void process_run(void *obj) {
@@ -144,13 +144,14 @@ static void process_exit(void *obj) {
 }
 
 static void complete_entry (void *obj) {
-    // Set LED2 to solid green
     LOG_DBG("complete entry state");
+    set_led_solid_green();
 }
 
 static void complete_run(void *obj) {
     // Display results on LCD
     LOG_DBG("complete run state");
+
     // Delay
     k_sleep(K_MSEC(1000));
 
@@ -159,15 +160,15 @@ static void complete_run(void *obj) {
 }
 
 static void complete_exit(void *obj) {
-    // Move back to idle
+    // Move back to IDLE state
     LOG_DBG("complete exit state");
 }
 
 static void cancel_entry(void *obj) {
     // verify any testing or processing has been stopped
     // verify data has been thrown out data
-    // Set LED2 to solid red
     LOG_DBG("cancel entry state");
+    set_led_solid_red();
 }
 
 static void cancel_run(void *obj) {
@@ -206,27 +207,27 @@ void button_init() {
     uint8_t err;
 
     // Check that button is ready
-    if (!gpio_is_ready_dt(&button)) {
-        LOG_ERR("Error: button device %s is not ready\n", button.port->name);
+    if (!gpio_is_ready_dt(&data_enable_button)) {
+        LOG_ERR("Error: data_enable_button device %s is not ready\n", data_enable_button.port->name);
         return;
     }
 
     // Configure button
-    err = gpio_pin_configure_dt(&button, GPIO_INPUT);
+    err = gpio_pin_configure_dt(&data_enable_button, GPIO_INPUT);
     if (err != 0) {
-        LOG_ERR("Error %d: failed to configure %s pin %d\n", err, button.port->name, button.pin);
+        LOG_ERR("Error %d: failed to configure %s pin %d\n", err, data_enable_button.port->name, data_enable_button.pin);
         return;
     }
 
-    err = gpio_pin_interrupt_configure_dt(&button,GPIO_INT_EDGE_TO_ACTIVE);
+    err = gpio_pin_interrupt_configure_dt(&data_enable_button,GPIO_INT_EDGE_TO_ACTIVE);
     if (err != 0) {
         LOG_ERR("Error %d: failed to configure interrupt on %s pin %d\n",
-                err, button.port->name, button.pin);
+                err, data_enable_button.port->name, data_enable_button.pin);
         return;
     }
 
-    gpio_init_callback(&button_cb_data, button_press, BIT(button.pin));
-    gpio_add_callback(button.port, &button_cb_data);
+    gpio_init_callback(&button_cb_data, button_press, BIT(data_enable_button.pin));
+    gpio_add_callback(data_enable_button.port, &button_cb_data);
     return;
 }
 
