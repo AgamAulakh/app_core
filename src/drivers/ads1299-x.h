@@ -106,6 +106,7 @@
  * The command is completed with a second byte 000n nnnn, where n nnnn is (# registers to read) - 1.
  */
  
+#define ADS1299_ID_REG                  	 	0x00			///< ID Regisiter
 #define	ADS1299_OPC_WAKEUP		 				0x02			///< Wake up from standby.
 #define	ADS1299_OPC_STANDBY		 				0x04			///< Enter standby.
 #define	ADS1299_OPC_RESET		 				0x06			///< Reset all registers.	

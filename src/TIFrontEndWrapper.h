@@ -8,7 +8,17 @@
 #include "AnalogFrontEndWrapper.h"
 #include "DataBufferManager.h"
 
-#define AFE_SPI DT_NODELABEL(spi_afe)
+#define AFE_SPI DT_NODELABEL(afespi)
+#define AFE_RESET DT_NODELABEL(led1)
+#define AFE_RESET_DEV DT_PHANDLE(AFE_RESET, gpios)
+#define AFE_RESET_PIN DT_PHA(AFE_RESET, gpios, pin)
+#define AFE_RESET_FLAGS DT_PHA(AFE_RESET, gpios, flags)
+
+// #define AFE_RESET DT_NODELABEL(led1)
+
+// #define AFE_RESET_NODE DT_ALIAS(led1)
+// #define AFE_RESET DT_NODELABEL(AFE_RESET_NODE)
+// #define AFE_RESET_PIN DT_GPIO_PIN(AFE_RESET_NODE, gpios)
 
 class TIFrontEndWrapper : public AnalogFrontEndWrapper {
 private:

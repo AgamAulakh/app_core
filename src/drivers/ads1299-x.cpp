@@ -101,22 +101,33 @@ void ADS1299Driver::ads1299_spi_transfer(uint8_t* tx_data, size_t tx_len, uint8_
 	struct spi_buf_set tx_buf_set = { .buffers = NULL, .count = 0,};
     struct spi_buf_set rx_buf_set = { .buffers = NULL, .count = 0,};
 
+    LOG_INF("set up empty structs");
 	if (tx_data != NULL && tx_len > 0) {
 		tx_buf.buf = tx_data;
 		tx_buf.len = tx_len;
 		tx_buf_set.buffers = &tx_buf;
+		tx_buf_set.count = 1;
+		for (size_t i = 0; i < tx_len; i++){
+			LOG_DBG("TX BUFFER: %u", tx_data[i]);
+		}
 	}
 	if (rx_data != NULL && rx_len > 0) {
 		rx_buf.buf = rx_data;
 		rx_buf.len = rx_len;
 		rx_buf_set.buffers = &rx_buf;
+		rx_buf_set.count = 1;
 	}
 
     int ret = spi_transceive(spi_dev, spi_cfg, &tx_buf_set, &rx_buf_set);
+
     if (ret) {
         LOG_ERR("SPI transfer failed with error %d", ret);
         return;
     }
+
+	for (size_t i = 0; i < rx_len; i++){
+		LOG_DBG("RX BUFFER: %u", rx_data[i]);
+	}
 };
 
 /*
@@ -150,7 +161,15 @@ void ADS1299Driver::ads1299_powerup_reset(void)
 		nrf_gpio_pin_clear(ADS1299_RESET_PIN);
 		nrf_gpio_pin_clear(ADS1299_PWDN_PIN);
 	#endif
-	k_msleep(50);
+	#if defined(BOARD_NRF53_DEV)
+		uint8_t tx_data_spi = ADS1299_OPC_RESET;
+		uint8_t rx_data_spi;
+
+		LOG_DBG("SENDING RESET COMMAND");
+		ads1299_spi_transfer(&tx_data_spi, 1, &rx_data_spi, 1);
+		LOG_DBG("DONE SENDING RESET COMMAND");
+	#endif
+	k_msleep(1000);
 	LOG_DBG(" ADS1299-x POWERED UP AND RESET..\r\n");
 };
 
@@ -164,7 +183,7 @@ void ADS1299Driver::ads1299_powerdn(void)
 		nrf_gpio_pin_clear(ADS1299_PWDN_PIN);
 	#endif
 	k_msleep(20);
-	LOG_DBG(" ADS1299-x POWERED DOWN..\r\n");
+	LOG_DBG(" ADS1299-x POWERED DOWN NOT IMPLEMENTED..\r\n");
 };
 
 void ADS1299Driver::ads1299_powerup(void)
@@ -222,6 +241,24 @@ void ADS1299Driver::ads1299_start_rdatac(void) {
 };
 
 void ADS1299Driver::ads1299_check_id(void) {
+	// uint8_t data = 0;
+    // uint8_t readCmd[4] = {0};
+    // uint8_t rx[4] = {0};
+
+    // readCmd[0] = ADS1299_OPC_RREG | ADS1299_ID_REG;
+    // readCmd[1] = 0x00;
+    // readCmd[2] = 0x00;
+    // readCmd[3] = 0x00;
+
+	// ads1299_spi_transfer(readCmd, 4, rx, 4);
+
+    // data = rx[2];
+	
+    // LOG_INF("The value of data is: %u", data);
+    // LOG_INF("The value of rev ID is: %u", (data & 0xE0) >> 5);
+    // LOG_INF("The value of dev ID is: %u", (data & 0x0C) >> 2);
+    // LOG_INF("The value of num Channels is: %u", (data & 0x03));
+
 	uint8_t device_id_reg_value;
 	uint8_t tx_data_spi[3];
 	uint8_t rx_data_spi[7];
@@ -274,7 +311,7 @@ void ADS1299Driver::get_eeg_voltage_samples(int32_t *eeg1, int32_t *eeg2, int32_
 			0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00
 		};
-	
+		// RDATA command, not RDATAC	
 		ads1299_spi_transfer(tx_rx_data, 15, tx_rx_data, 15);
 
 		uint8_t cnt = 0;

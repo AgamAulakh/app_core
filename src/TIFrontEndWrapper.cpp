@@ -15,9 +15,12 @@ TIFrontEndWrapper::TIFrontEndWrapper() :
 
 void TIFrontEndWrapper::Initialize() {
     // set up AFE
-    afe_driver.ads1299_powerup_reset();
+    LOG_ERR("TIFE::%s -- !", __FUNCTION__);
+    // afe_driver.ads1299_powerup_reset();
     afe_driver.ads1299_check_id();
-    afe_driver.ads1299_init_regs();
+
+	LOG_INF("init done");
+    // afe_driver.ads1299_init_regs();
 }
 
 void TIFrontEndWrapper::Start() {
