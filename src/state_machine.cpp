@@ -196,8 +196,7 @@ const struct smf_state dev_states[] = {
 };
 
 void button_press(const struct device *dev,
-                struct gpio_callback *cb, uint32_t pins)
-{
+                struct gpio_callback *cb, uint32_t pins) {
     /* Generate Button Press Event */
     LOG_DBG("Button press");
     k_event_post(&s_obj.button_press_event, EVENT_BTN_PRESS);
@@ -231,8 +230,7 @@ void button_init() {
     return;
 }
 
-void state_machine_init()
-{	
+void state_machine_init() {	
     uint8_t err;
 
     button_init();
