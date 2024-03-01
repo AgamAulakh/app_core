@@ -2,6 +2,8 @@
 #include <cstring>
 #include "arm_math.h"
 
+
+
 template <uint32_t MaxRows, uint32_t MaxCols>
 class ArmMatrixWrapper {
 private:
@@ -282,5 +284,72 @@ public:
 
     }
 
-  
+    // Computes the single-sided Band Power given the single-sided FFT of a channel,
+    // Pwelch of specified channel and specific band power range type
+    float32_t singleSideBandPower(uint32_t channel, uint32_t sampleFreq, uint32_t bandSelect, const ArmMatrixWrapper& PWelch,) const {
+        
+        // The frequency resolution or frequency bin width
+        float32_t freqRes = sampleFreq / MaxRows;
+
+        // The following band limits: delta band, theta band, alpha band, beta band
+        float32_t bandRanges[] = {1,3,4,7,8,12,13,30};
+
+        // Low and high limit for specified band range of frequencies
+        uint32_t lowLimit = 0;
+        uint32_t highLimit = 0;
+
+        switch(bandSelect){
+
+            // delta band (Note: make an enum for the different band types)
+            case 0:{
+                lowLimit = (uint32_t)(floor(bandRanges[0] / freqRes));  
+                highLimit = (uint32_t)(ceil(bandRanges[1] / freqRes));
+                break;
+            } 
+            // theta band
+            case 1:{
+                lowLimit = (uint32_t)(floor(bandRanges[2] / freqRes));
+                highLimit = (uint32_t)(ceil(bandRanges[3] / freqRes));
+                break;
+            }
+            // alpha band
+            case 2:{
+                lowLimit = (uint32_t)(floor(bandRanges[4] / freqRes));
+                highLimit = (uint32_t)(ceil(bandRanges[5] / freqRes));
+                break;
+            }
+            // beta band
+            case 3:{
+                lowLimit = (uint32_t)(floor(bandRanges[6] / freqRes));
+                highLimit = (uint32_t)(ceil(bandRanges[7] / freqRes));
+                break;
+            }
+            default:{
+                break;
+            }
+
+        }
+
+        // Calculating the band power for specified band range of frequnencies
+        float32_t bandPower = 0;
+        for(uint32_t i = lowLimit; i < highLimit; lowLimit++){
+            bandPower += (PWelch.data[i] * freqRes);
+        }
+        return bandPower;
+    }
+
+    // Computes the single-sided Relative Band Power given the specified channel and
+    // specified band power 
+    float32_t singleSideRelativeBandPower(uint32_t channel, float32_t bandPower){
+        
+        // Calculate summation of total power 
+        float32_t totalPower = 0;
+        for(uint32_t i = 0; i < MaxRows/2; i++){
+            totalPower += singleSidePower(channel).data[i];
+        }
+        // Calculate relative band power relative to the total power
+        float32_t relativeBandpower = bandPower / totalPower;
+        return  relativeBandpower;
+    }
+
 };
