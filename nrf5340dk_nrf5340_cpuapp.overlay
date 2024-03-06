@@ -43,6 +43,7 @@
         redled = &red_pwm_led; // 0.05
         databutton = &button_data_en; // 1.00
         afespi = &spi0;
+        afereset = &led1;
     };
 
     pwmleds {
@@ -80,7 +81,6 @@
         compatible = "gpio-leds";
         afereset: led_1 {
             label="AFE Reset";
-            gpios = <&gpio0 13 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
         };
     };
 };
@@ -113,13 +113,17 @@
     status = "disabled";
 };
 
+&spi0 {
+	status = "okay";
+};
+
 afespi: &spi0 {
 	compatible = "nordic,nrf-spim";
     status = "okay";
     cs-gpios = <&gpio1 8 (GPIO_PULL_DOWN)>;
     pinctrl-0 = <&spi0_default>;
 	pinctrl-names = "default";
-    max-frequency = <DT_FREQ_M(1)>;
+    max-frequency = <DT_FREQ_M(2)>;
     easydma-maxcnt-bits = <16>;
 };
 
@@ -135,4 +139,8 @@ afespi: &spi0 {
 };
 &qspi {
     status = "disabled";
+};
+
+afereset: &led1 {
+    gpios = <&gpio0 13 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 };

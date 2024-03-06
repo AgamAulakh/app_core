@@ -241,59 +241,80 @@ void ADS1299Driver::ads1299_start_rdatac(void) {
 };
 
 void ADS1299Driver::ads1299_check_id(void) {
-	// uint8_t data = 0;
-    // uint8_t readCmd[4] = {0};
-    // uint8_t rx[4] = {0};
+	uint8_t data = 0;
+    uint8_t readCmd[4] = {0};
+    uint8_t rx[4] = {0};
 
-    // readCmd[0] = ADS1299_OPC_RREG | ADS1299_ID_REG;
-    // readCmd[1] = 0x00;
-    // readCmd[2] = 0x00;
-    // readCmd[3] = 0x00;
+    readCmd[0] = ADS1299_OPC_RREG | ADS1299_ID_REG;
+    readCmd[1] = 0x00;
+    readCmd[2] = 0x00;
+    readCmd[3] = 0x00;
 
-	// ads1299_spi_transfer(readCmd, 4, rx, 4);
+	uint8_t first_byte = ADS1299_OPC_RREG | ADS1299_ID_REG;
+	uint8_t first_byte_response = 0;
+	ads1299_spi_transfer(&first_byte, 1, &first_byte_response, 1);
+	LOG_INF("first byte response: 0x%x", first_byte_response);
+	k_usleep(2);
 
+	uint8_t second_byte = 0x01;
+	uint8_t second_byte_response = 0;
+	ads1299_spi_transfer(&second_byte, 1, &second_byte_response, 1);
+	LOG_INF("second byte response: 0x%x", second_byte_response);
+	k_usleep(2);
+
+	uint8_t third_byte = 0x00;
+	uint8_t third_byte_response = 0;
+	ads1299_spi_transfer(&third_byte, 1, &third_byte_response, 1);
+	LOG_INF("third byte response: 0x%x", third_byte_response);
+	k_usleep(2);
+
+	uint8_t fourth_byte = 0x00;
+	uint8_t fourth_byte_response = 0;
+	ads1299_spi_transfer(&fourth_byte, 1, &fourth_byte_response, 1);
+	LOG_INF("fourth byte response: 0x%x", fourth_byte_response);
+	// ads1299_spi_transfer(readCmd, 1, rx, 1);
     // data = rx[2];
 	
-    // LOG_INF("The value of data is: %u", data);
+    // LOG_INF("The value of data is: %x", data);
     // LOG_INF("The value of rev ID is: %u", (data & 0xE0) >> 5);
     // LOG_INF("The value of dev ID is: %u", (data & 0x0C) >> 2);
     // LOG_INF("The value of num Channels is: %u", (data & 0x03));
 
-	uint8_t device_id_reg_value;
-	uint8_t tx_data_spi[3];
-	uint8_t rx_data_spi[7];
-	tx_data_spi[0] = 0x20;	//Request Device ID
-	tx_data_spi[1] = 0x01;	//Intend to read 1 byte
-	tx_data_spi[2] = 0x00;	//This will be replaced by Reg Data
+	// uint8_t device_id_reg_value;
+	// uint8_t tx_data_spi[3];
+	// uint8_t rx_data_spi[7];
+	// tx_data_spi[0] = 0x20;	//Request Device ID
+	// tx_data_spi[1] = 0x01;	//Intend to read 1 byte
+	// tx_data_spi[2] = 0x00;	//This will be replaced by Reg Data
 
-	ads1299_spi_transfer(tx_data_spi, 2+tx_data_spi[1], rx_data_spi, 2+tx_data_spi[1]);
+	// ads1299_spi_transfer(tx_data_spi, 2+tx_data_spi[1], rx_data_spi, 2+tx_data_spi[1]);
 
-	k_msleep(20); //Wait for response:
-	device_id_reg_value = rx_data_spi[2];
-	bool is_ads_1299_4 = (device_id_reg_value & 0x1F) == (ADS1299_4_DEVICE_ID);
-	bool is_ads_1299_6 = (device_id_reg_value & 0x1F) == (ADS1299_6_DEVICE_ID);
-	bool is_ads_1299	 = (device_id_reg_value & 0x1F) == (ADS1299_DEVICE_ID);
+	// k_msleep(20); //Wait for response:
+	// device_id_reg_value = rx_data_spi[2];
+	// bool is_ads_1299_4 = (device_id_reg_value & 0x1F) == (ADS1299_4_DEVICE_ID);
+	// bool is_ads_1299_6 = (device_id_reg_value & 0x1F) == (ADS1299_6_DEVICE_ID);
+	// bool is_ads_1299	 = (device_id_reg_value & 0x1F) == (ADS1299_DEVICE_ID);
 
-	uint8_t revisionVersion = (device_id_reg_value & 0xE0)>>5;
-	if (is_ads_1299||is_ads_1299_6||is_ads_1299_4) {
-		LOG_DBG("Device Address Matches!");
-	} else {
-		LOG_DBG("********SPI I/O Error, Device Not Detected! ***********");
-		LOG_DBG("SPI Transfer Dump:");
-		LOG_DBG("ID[b0->2]: [0x%x | 0x%x | 0x%x]", rx_data_spi[0],rx_data_spi[1],rx_data_spi[2]);
-		LOG_DBG("ID[b3->6]: [0x%x | 0x%x | 0x%x | 0x%x]", rx_data_spi[3],rx_data_spi[4],rx_data_spi[5],rx_data_spi[6]);
-	}
-	if (is_ads_1299) {
-		LOG_DBG("Device Name: ADS1299");
-	} else if (is_ads_1299_6) {
-		LOG_DBG("Device Name: ADS1299-6");
-	} else if (is_ads_1299_4) {
-		LOG_DBG("Device Name: ADS1299-4");
-	} 
-	if (is_ads_1299||is_ads_1299_6||is_ads_1299_4) {
-		LOG_DBG("Device Revision #%d",revisionVersion);
-		LOG_DBG("Device ID: 0x%x",device_id_reg_value);
-	}
+	// uint8_t revisionVersion = (device_id_reg_value & 0xE0)>>5;
+	// if (is_ads_1299||is_ads_1299_6||is_ads_1299_4) {
+	// 	LOG_DBG("Device Address Matches!");
+	// } else {
+	// 	LOG_DBG("********SPI I/O Error, Device Not Detected! ***********");
+	// 	LOG_DBG("SPI Transfer Dump:");
+	// 	LOG_DBG("ID[b0->2]: [0x%x | 0x%x | 0x%x]", rx_data_spi[0],rx_data_spi[1],rx_data_spi[2]);
+	// 	LOG_DBG("ID[b3->6]: [0x%x | 0x%x | 0x%x | 0x%x]", rx_data_spi[3],rx_data_spi[4],rx_data_spi[5],rx_data_spi[6]);
+	// }
+	// if (is_ads_1299) {
+	// 	LOG_DBG("Device Name: ADS1299");
+	// } else if (is_ads_1299_6) {
+	// 	LOG_DBG("Device Name: ADS1299-6");
+	// } else if (is_ads_1299_4) {
+	// 	LOG_DBG("Device Name: ADS1299-4");
+	// } 
+	// if (is_ads_1299||is_ads_1299_6||is_ads_1299_4) {
+	// 	LOG_DBG("Device Revision #%d",revisionVersion);
+	// 	LOG_DBG("Device ID: 0x%x",device_id_reg_value);
+	// }
 };
 
 /* DATA RETRIEVAL FUNCTIONS **********************************************************************************************************************/

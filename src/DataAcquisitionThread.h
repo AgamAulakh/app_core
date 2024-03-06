@@ -1,12 +1,9 @@
 #pragma once
 
-#include <zephyr/device.h>
 #include <zephyr/logging/log_ctrl.h>
 #include <zephyr/logging/log.h>
-#include <zephyr/drivers/gpio.h>
 #include "core/Thread.h"
-#include "TIFrontEndWrapper.h"
-#include "drivers/ads1299-x.h"
+#include "TIBareMetalWrapper.h"
 
 #define DATA_ACQ_THREAD_STACK_SIZE_B 4096
 #define DATA_ACQ_THREAD_PRIORITY 4 // max based on prj config
@@ -24,13 +21,16 @@ private:
     DataAcquisitionThread(const DataAcquisitionThread &) = delete;
     DataAcquisitionThread& operator=(const DataAcquisitionThread&) = delete;
 
-    ADS1299Driver afe_driver;
+    // ADS1299Driver afe_driver;
+    TIBareMetalWrapper AFEWrapper;
     void ResetSPI();
+    void ResetSPIBareMetal();
     void TestSPI();
 public:
     enum DataAcquisitionThreadMessage : uint8_t {
         STOP_READING_AFE = 0,
         START_READING_AFE,
+        RESET_AFE,
         INVALID,
     };
 

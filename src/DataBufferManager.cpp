@@ -2,6 +2,11 @@
 // log level declaration
 LOG_MODULE_REGISTER(data_buffer_manager, LOG_LEVEL_DBG);
 
+void cool::foo() {
+    int i = 0;
+    i++;
+};
+
 struct dma_config DataBufferManager::dma_cfg = {
     .channel_direction = PERIPHERAL_TO_MEMORY,
     .complete_callback_en = 1,

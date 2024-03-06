@@ -3,36 +3,31 @@
 LOG_MODULE_REGISTER(eegals_app_core_daq, LOG_LEVEL_DBG);
 K_THREAD_STACK_DEFINE(data_acq_stack_area, DATA_ACQ_THREAD_STACK_SIZE_B);
 struct k_thread data_acq_thread_data;
-device* afe_spi_device = const_cast<struct device *>(DEVICE_DT_GET(AFE_SPI));
-spi_config afe_spi_config = {
-    ADS1299_SPI_FREQUENCY_HZ,
-    (SPI_OP_MODE_MASTER | SPI_TRANSFER_MSB | SPI_WORD_SET(8)),
-    0
-};
 
-const struct device* afe_reset_device = const_cast<struct device *>(DEVICE_DT_GET(AFE_RESET_DEV));
+// const struct device* afe_reset_device = const_cast<struct device *>(DEVICE_DT_GET(AFE_RESET_DEV));
 // device* afe_reset_device = device_get_binding(DT_GPIO_LABEL(AFE_RESET, gpios));
 
-DataAcquisitionThread::DataAcquisitionThread() : afe_driver(afe_spi_device, &afe_spi_config) {
-    // AFEWrapper = TIFrontEndWrapper();
+DataAcquisitionThread::DataAcquisitionThread() {
+    AFEWrapper = TIBareMetalWrapper();
     // set up data manager to listen to AFE
     // DataBufferManager::spi_dma_setup(spi_dev);
-    if (!device_is_ready(afe_spi_device)) {
-        LOG_ERR("DataAcq::%s -- SPI device not ready!", __FUNCTION__);
-        return;
-    }
 
-    if (afe_reset_device == NULL || !device_is_ready(afe_reset_device)) {
-    LOG_ERR("AFE device doesnt exissst");
-    }
+    // if (!device_is_ready(afe_spi_global_device)) {
+    //     LOG_ERR("DataAcq::%s -- SPI device not ready!", __FUNCTION__);
+    //     return;
+    // }
 
-    int err = gpio_pin_configure(afe_reset_device, AFE_RESET_PIN, AFE_RESET_FLAGS);
-    if (err != 0) {
-        LOG_ERR("COULD NOT CONFIGURE AS GPIO");
-    }
+    // if (!gpio_is_ready_dt(&led)) {
+	// 	return;
+	// }
 
-    ResetSPI();
-    TestSPI();
+	// int ret = gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
+	// if (ret < 0) {
+	// 	return;
+	// }
+
+    // ResetSPI();
+    // TestSPI();
 }
 
 void DataAcquisitionThread::Initialize() {
@@ -56,30 +51,33 @@ void DataAcquisitionThread::Initialize() {
 
 void DataAcquisitionThread::ResetSPI() {
     // Get the GPIO device pointer for the LED pin
+    k_msleep(200); // tpor >= 150 ms
+    
+    // gpio_pin_toggle_dt(&led);
+    k_msleep(1); // trst >= 1 us
 
-    // afe_driver.ads1299_powerup_reset();
+    
+    // gpio_pin_toggle_dt(&led);
+    k_msleep(1); // t >= 9us
 
-    gpio_pin_set(afe_reset_device, AFE_RESET_PIN, 0);
-    k_msleep(1000);
-    gpio_pin_set(afe_reset_device, AFE_RESET_PIN, 1);
-    k_msleep(1000);
-    LOG_INF("reset afe with hardware pin");
+    LOG_INF("reset afe with hardware pin. afe in RDATAC mode. checking id...");
+    // afe_driver.ads1299_check_id();
+}
+
+void DataAcquisitionThread::ResetSPIBareMetal() {
+    AFEWrapper.Start();
 }
 
 void DataAcquisitionThread::TestSPI() {
-    afe_driver.ads1299_wake();
-    afe_driver.ads1299_check_id();
-    afe_driver.ads1299_init_regs();
-    afe_driver.ads1299_start_rdatac();
+    // afe_driver.ads1299_stop_rdatac();
+    // afe_driver.ads1299_check_id();
+    // afe_driver.ads1299_init_regs();
+    // afe_driver.ads1299_start_rdatac();
 }
 
 void DataAcquisitionThread::Run() {
     // set AFE in continuous read mode
     uint8_t message = 0;
-    int a = 0;
-    int b = 0;
-    int c = 0;
-    int d = 0;
     while (true) {
         if (message_queue.get_with_blocking_wait(message)) {
             uint8_t message_enum = static_cast<DataAcquisitionThreadMessage>(message);
@@ -89,14 +87,9 @@ void DataAcquisitionThread::Run() {
                     // AFEWrapper.Stop();
                     break;
                 case START_READING_AFE:
-                    a = 0;
-                    b = 0;
-                    c = 0;
-                    d = 0;        
-                    afe_driver.get_eeg_voltage_samples(&a, &b, &c, &d);
-                    LOG_INF("afe read: %d, %d, %d, %d", a, b, c, d);
-                    // AFEWrapper.Initialize();
-                    // AFEWrapper.Start();
+                    break;
+                case RESET_AFE:
+                    ResetSPIBareMetal();
                     break;
                 case INVALID:
                     break;

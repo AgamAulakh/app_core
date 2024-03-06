@@ -13,6 +13,10 @@
 #define AFE_DMA_BURST_NUM_SAMPLES 5
 #define AFE_DMA_BLOCK_SIZE 256
 
+namespace cool {
+    void foo();
+};
+
 class DataBufferManager {
 // NOTE: needs to be fully static, only one instance should exist
 private:
