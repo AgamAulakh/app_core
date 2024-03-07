@@ -1,6 +1,7 @@
 #pragma once
 
 #include <zephyr/sys/util.h>
+#include <devicetree_generated.h>
 #include "AnalogFrontEndWrapper.h"
 #include "DataBufferManager.h"
 #include "AFEConfig.h"

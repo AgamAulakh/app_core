@@ -6,6 +6,8 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/led.h>
 
+#define ZEPHYR_USER_NODE DT_PATH(zephyr_user)
+
 // TODO: protect in namespace
 // AFE defines/device
 #define AFE_SPI DT_NODELABEL(afespi)
@@ -14,6 +16,7 @@
 
 // AFE RESET
 #define LED1_NODE DT_ALIAS(afereset)
+#define AFERESET_NODE DT_NODELABEL(ZEPHYR_USER_NODE)
 #define LED1_PIN DT_GPIO_PIN(LED1_NODE, gpios)
 
 struct ads1299_config {

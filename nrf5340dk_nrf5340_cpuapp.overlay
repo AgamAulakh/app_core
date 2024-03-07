@@ -15,6 +15,7 @@
 #include <zephyr/dt-bindings/pwm/pwm.h>
 #include <zephyr/dt-bindings/input/input-event-codes.h>
 #include <zephyr/dt-bindings/spi/spi.h>
+#include <zephyr/dt-bindings/gpio/gpio.h>
 
 &pinctrl {
     pwm0_default: pwm0_default {
@@ -43,7 +44,6 @@
         redled = &red_pwm_led; // 0.05
         databutton = &button_data_en; // 1.00
         afespi = &spi0;
-        afereset = &led1;
     };
 
     pwmleds {
@@ -77,11 +77,8 @@
 		};
     };
 
-    leds {
-        compatible = "gpio-leds";
-        afereset: led_1 {
-            label="AFE Reset";
-        };
+    zephyr,user {
+        afereset-gpios = <&gpio0 13 GPIO_PULL_UP>;
     };
 };
 
@@ -113,10 +110,6 @@
     status = "disabled";
 };
 
-&spi0 {
-	status = "okay";
-};
-
 afespi: &spi0 {
 	compatible = "nordic,nrf-spim";
     status = "okay";
@@ -141,6 +134,19 @@ afespi: &spi0 {
     status = "disabled";
 };
 
-afereset: &led1 {
-    gpios = <&gpio0 13 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+&gpiote {
+    status = "okay";
+};
+/ {
+    zephyr,user {
+        /delete-property/ afereset-gpios;
+    };
+};
+
+&led1 {
+    gpios = <&gpio0 13 0>;
+};
+
+&led1 {
+    gpios = <&gpio0 13 GPIO_PULL_UP>;
 };
