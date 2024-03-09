@@ -10,16 +10,18 @@ ads1299_t TIBareMetalWrapper::afe_driver{
 };
 
 // Devicetree fields
-device* led_reset_device = const_cast<struct device *>(DEVICE_DT_GET(LED1_RESET_DEV));
-// gpio_dt_spec afe_reset_spec = GPIO_DT_SPEC_GET(ZEPHYR_USER_NODE, afereset_gpios);
+gpio_dt_spec afe_reset_spec = GPIO_DT_SPEC_GET(ZEPHYR_USER_NODE, afereset_gpios);
 gpio_dt_spec afe_indicate_spec = GPIO_DT_SPEC_GET(ZEPHYR_USER_NODE, afeindicator_gpios);
 
 device* afe_spi_global_device = const_cast<struct device *>(DEVICE_DT_GET(AFE_SPI));
 spi_config afe_spi_global_config = {
-    SPI_FREQUENCY_HZ,
-    (SPI_OP_MODE_MASTER | SPI_TRANSFER_MSB | SPI_WORD_SET(8)),
-    0,
-    0,
+    .frequency = SPI_FREQUENCY_HZ,
+    .operation = (SPI_OP_MODE_MASTER | SPI_TRANSFER_MSB | SPI_WORD_SET(8)),
+    .cs = 
+    {
+        .gpio = GPIO_DT_SPEC_GET(AFE_SPI, cs_gpios),
+        .delay = 0,
+    },
 };
 
 TIBareMetalWrapper::TIBareMetalWrapper() {
@@ -28,19 +30,13 @@ TIBareMetalWrapper::TIBareMetalWrapper() {
         // todo: error handling
     }
 
-    // int err = gpio_pin_configure_dt(&afe_reset_spec, GPIO_OUTPUT_INACTIVE);
-    // if (err != 0) {
-    //     LOG_ERR("COULD NOT CONFIGURE AFE RESET AS GPIO");
-    // }
-
-    // old LED-based gpio reset:
-    if (led_reset_device == NULL || !device_is_ready(led_reset_device)) {
-        LOG_ERR("AFE device doesnt exissst");
-    }
-    int err = gpio_pin_configure(led_reset_device, LED1_RESET_PIN, LED1_RESET_FLAGS);
+    int err = gpio_pin_configure_dt(&afe_reset_spec, GPIO_OUTPUT_INACTIVE);
     if (err != 0) {
-        LOG_ERR("COULD NOT CONFIGURE AS GPIO");
+        LOG_ERR("COULD NOT CONFIGURE AFE RESET AS GPIO");
     }
+
+    bool is_cs_gpio = spi_cs_is_gpio(&afe_spi_global_config);
+    LOG_INF("CS IS: %d", is_cs_gpio);
 
     ADS1299_Init(&afe_driver);
     LOG_INF("finished ads1299 init");
@@ -49,12 +45,14 @@ TIBareMetalWrapper::TIBareMetalWrapper() {
 // callbacks needed for driver
 void TIBareMetalWrapper::SetCS(uint8_t state){
     if (state) {
-        int err_code = gpio_pin_set(afe_spi_global_device, SPI_CS_PIN, 1);
+        LOG_INF("IN AFE CS -- SET CS HIGH");
+        int err_code = gpio_pin_set_dt(&afe_spi_global_config.cs.gpio, 1);
         if (err_code != 0) {
             LOG_ERR("TIBareMetalWrapper::%s could not set chip select", __FUNCTION__);
         }
     } else {
-        int err_code = gpio_pin_set(afe_spi_global_device, SPI_CS_PIN, 0);
+        LOG_INF("IN AFE CS -- SET CS LOW");
+        int err_code = gpio_pin_set_dt(&afe_spi_global_config.cs.gpio, 0);
         if (err_code != 0) {
             LOG_ERR("TIBareMetalWrapper::%s could not reset chip select", __FUNCTION__);
         }
@@ -99,20 +97,18 @@ void TIBareMetalWrapper::Transfer(uint8_t tx[], uint8_t rx[], uint16_t len) {
 
 void TIBareMetalWrapper::SetReset(uint8_t state) {
     if (state) {
-        LOG_ERR("IN AFE RESET -- SET HIGH");
+        LOG_INF("IN AFE RESET -- SET HIGH");
         // old LED-based gpio reset:
-        int err_code = gpio_pin_set(led_reset_device, LED1_RESET_PIN, 1);
-        // int err_code = gpio_pin_set_dt(&afe_reset_spec, 1);
+        int err_code = gpio_pin_set_dt(&afe_reset_spec, 1);
         err_code |= gpio_pin_set_dt(&afe_indicate_spec, 1);
 
         if (err_code != 0) {
             LOG_ERR("TIBareMetalWrapper::%s could not set afe reset", __FUNCTION__);
         }
     } else {
-        LOG_ERR("IN AFE RESET -- SET LOW");
+        LOG_INF("IN AFE RESET -- SET LOW");
         // old LED-based gpio reset:
-        int err_code = gpio_pin_set(led_reset_device, LED1_RESET_PIN, 0);
-        // int err_code = gpio_pin_set_dt(&afe_reset_spec, 0);
+        int err_code = gpio_pin_set_dt(&afe_reset_spec, 0);
         err_code |= gpio_pin_set_dt(&afe_indicate_spec, 0);
 
         if (err_code != 0) {

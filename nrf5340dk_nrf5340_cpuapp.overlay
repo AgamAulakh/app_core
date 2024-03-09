@@ -78,18 +78,10 @@
     };
 
     zephyr,user {
-        // afereset-gpios = <&gpio0 13 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
-        // afereset-label = "AFE Reset";
-        afeindicator-gpios = <&gpio0 2 0>;
+        afereset-gpios = <&gpio0 29 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+        afereset-label = "AFE Reset";
+        afeindicator-gpios = <&gpio0 30 0>;
         afeindicator-label = "AFE Indicator LED";
-    };
-
-    leds {
-        compatible = "gpio-leds";
-        afereset: led_1 {
-            label="AFE Reset";
-            gpios = <&gpio0 13 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
-        };
     };
 };
 
@@ -124,7 +116,7 @@
 afespi: &spi0 {
     compatible = "nordic,nrf-spim";
     status = "okay";
-    cs-gpios = <&gpio1 8 (GPIO_PULL_DOWN)>;
+    cs-gpios = <&gpio0 28 (GPIO_PULL_DOWN)>;
     pinctrl-0 = <&spi0_default>;
     pinctrl-names = "default";
     max-frequency = <DT_FREQ_M(2)>;

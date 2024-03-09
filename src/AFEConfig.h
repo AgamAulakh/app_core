@@ -8,7 +8,8 @@
 
 // AFE SPI
 #define AFE_SPI DT_NODELABEL(afespi)
-#define SPI_CS_PIN 8
+#define SPI_CS_DEV DT_PHANDLE(AFE_SPI, cs_gpios)
+#define SPI_CS_PIN DT_PHA(AFE_SPI, cs_gpios, pin)
 #define SPI_FREQUENCY_HZ 2000000
 
 // AFE RESET PIN
