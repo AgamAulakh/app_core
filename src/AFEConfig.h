@@ -6,19 +6,26 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/led.h>
 
-#define ZEPHYR_USER_NODE DT_PATH(zephyr_user)
-
-// TODO: protect in namespace
-// AFE defines/device
+// AFE SPI
 #define AFE_SPI DT_NODELABEL(afespi)
 #define SPI_CS_PIN 8
 #define SPI_FREQUENCY_HZ 2000000
 
-// AFE RESET
-#define LED1_NODE DT_ALIAS(afereset)
-#define AFERESET_NODE DT_NODELABEL(ZEPHYR_USER_NODE)
-#define LED1_PIN DT_GPIO_PIN(LED1_NODE, gpios)
+// AFE RESET PIN
+#define ZEPHYR_USER_NODE DT_PATH(zephyr_user)
+#define AFE_RESET_NODE DT_NODELABEL(ZEPHYR_USER_NODE)
+#define AFE_RESET_DEV DT_PROP(ZEPHYR_USER_NODE, afereset_gpios)
 
+#define AFE_INDICATE_NODE DT_NODELABEL(ZEPHYR_USER_NODE)
+#define AFE_INDICATE_DEV DT_PROP(ZEPHYR_USER_NODE, afeindicator_gpios)
+
+// AFE RESET LED METHOD
+#define LED1_RESET DT_NODELABEL(led1)
+#define LED1_RESET_DEV DT_PHANDLE(LED1_RESET, gpios)
+#define LED1_RESET_PIN DT_PHA(LED1_RESET, gpios, pin)
+#define LED1_RESET_FLAGS DT_PHA(LED1_RESET, gpios, flags)
+
+// EXTRA: doesn't work, isnt being used
 struct ads1299_config {
 	struct spi_dt_spec bus;
 #if CONFIG_ADC_ASYNC

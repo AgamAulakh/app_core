@@ -4,9 +4,17 @@
 // log level declaration
 LOG_MODULE_REGISTER(TI_bare_metal_wrapper, LOG_LEVEL_DBG);
 
-device* afe_spi_global_device = const_cast<struct device *>(DEVICE_DT_GET(AFE_SPI));
-// spi_dt_spec* afe_spi_bus = const_cast<struct spi_dt_spec*>(DT_BUS(AFE_SPI));
+// Static fields
+ads1299_t TIBareMetalWrapper::afe_driver{
+    &DelayMs, &DelayUs, &Transfer, &SetCS, &SetReset, &SetStart, &SetPWDN
+};
 
+// Devicetree fields
+device* led_reset_device = const_cast<struct device *>(DEVICE_DT_GET(LED1_RESET_DEV));
+// gpio_dt_spec afe_reset_spec = GPIO_DT_SPEC_GET(ZEPHYR_USER_NODE, afereset_gpios);
+gpio_dt_spec afe_indicate_spec = GPIO_DT_SPEC_GET(ZEPHYR_USER_NODE, afeindicator_gpios);
+
+device* afe_spi_global_device = const_cast<struct device *>(DEVICE_DT_GET(AFE_SPI));
 spi_config afe_spi_global_config = {
     SPI_FREQUENCY_HZ,
     (SPI_OP_MODE_MASTER | SPI_TRANSFER_MSB | SPI_WORD_SET(8)),
@@ -14,59 +22,27 @@ spi_config afe_spi_global_config = {
     0,
 };
 
-
-// #define LED1_NODE DT_ALIAS(led1)
-// static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED1_NODE, gpios);
-// static const struct device *led_dev = DEVICE_DT_GET(LED1_NODE);
-
-#define AFE_SPI DT_NODELABEL(afespi)
-#define AFE_RESET DT_NODELABEL(led1)
-#define AFE_RESET_DEV DT_PHANDLE(AFE_RESET, gpios)
-#define AFE_RESET_PIN DT_PHA(AFE_RESET, gpios, pin)
-#define AFE_RESET_FLAGS DT_PHA(AFE_RESET, gpios, flags)
-
-const struct device* afe_reset_device = const_cast<struct device *>(DEVICE_DT_GET(AFE_RESET_DEV));
-
-// static const struct gpio_dt_spec spec = GPIO_DT_SPEC_GET(LED1_NODE, gpios);
-// const struct gpio_dt_spec signal = GPIO_DT_SPEC_GET(ZEPHYR_USER_NODE, signal_gpios);
-
 TIBareMetalWrapper::TIBareMetalWrapper() {
-
-    LOG_INF("start ads1299 init");
-    afe_driver = new ads1299_t();
-    afe_driver->DelayMs = &DelayMs;
-    afe_driver->DelayUs = &DelayUs;
-    afe_driver->Transfer = &Transfer;
-    afe_driver->SetCS = &SetCS;
-    afe_driver->SetReset = &SetReset;
-    afe_driver->SetStart = &SetStart;
-    afe_driver->SetPWDN = &SetPWDN;
-
     if (!device_is_ready(afe_spi_global_device)) {
         LOG_ERR("TIBM::%s -- SPI device not ready!", __FUNCTION__);
         // todo: error handling
     }
 
-    // if (!gpio_is_ready_dt(&led)) {
-	// 	return;
-	// }
+    // int err = gpio_pin_configure_dt(&afe_reset_spec, GPIO_OUTPUT_INACTIVE);
+    // if (err != 0) {
+    //     LOG_ERR("COULD NOT CONFIGURE AFE RESET AS GPIO");
+    // }
 
-	// int ret = gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
-	// if (ret < 0) {
-    //     LOG_ERR("cant config reset pin");
-	// 	return;
-	// }
-
-    if (afe_reset_device == NULL || !device_is_ready(afe_reset_device)) {
+    // old LED-based gpio reset:
+    if (led_reset_device == NULL || !device_is_ready(led_reset_device)) {
         LOG_ERR("AFE device doesnt exissst");
     }
-
-    int err = gpio_pin_configure(afe_reset_device, AFE_RESET_PIN, AFE_RESET_FLAGS);
+    int err = gpio_pin_configure(led_reset_device, LED1_RESET_PIN, LED1_RESET_FLAGS);
     if (err != 0) {
         LOG_ERR("COULD NOT CONFIGURE AS GPIO");
     }
 
-    ADS1299_Init(afe_driver);
+    ADS1299_Init(&afe_driver);
     LOG_INF("finished ads1299 init");
 }
 
@@ -114,20 +90,31 @@ void TIBareMetalWrapper::Transfer(uint8_t tx[], uint8_t rx[], uint16_t len) {
 
     int ret = spi_transceive(afe_spi_global_device, &afe_spi_global_config, &tx_buf_set, &rx_buf_set);
     if (ret) {
-        LOG_ERR("TIBareMetalWrapper::%s SPI transfer failed with error %i", __FUNCTION__, ret);
+        LOG_ERR("TIBareMetalWrapper::%s SPI transfer failed with error %i", 
+            __FUNCTION__,
+            ret
+        );
     }
 }
 
 void TIBareMetalWrapper::SetReset(uint8_t state) {
     if (state) {
         LOG_ERR("IN AFE RESET -- SET HIGH");
-        int err_code = gpio_pin_set(afe_reset_device, AFE_RESET_PIN, 1);
+        // old LED-based gpio reset:
+        int err_code = gpio_pin_set(led_reset_device, LED1_RESET_PIN, 1);
+        // int err_code = gpio_pin_set_dt(&afe_reset_spec, 1);
+        err_code |= gpio_pin_set_dt(&afe_indicate_spec, 1);
+
         if (err_code != 0) {
             LOG_ERR("TIBareMetalWrapper::%s could not set afe reset", __FUNCTION__);
         }
     } else {
         LOG_ERR("IN AFE RESET -- SET LOW");
-        int err_code = gpio_pin_set(afe_reset_device, AFE_RESET_PIN, 0);
+        // old LED-based gpio reset:
+        int err_code = gpio_pin_set(led_reset_device, LED1_RESET_PIN, 0);
+        // int err_code = gpio_pin_set_dt(&afe_reset_spec, 0);
+        err_code |= gpio_pin_set_dt(&afe_indicate_spec, 0);
+
         if (err_code != 0) {
             LOG_ERR("TIBareMetalWrapper::%s could not reset afe reset", __FUNCTION__);
         }
@@ -147,8 +134,13 @@ void TIBareMetalWrapper::Initialize() {
 }
 
 void TIBareMetalWrapper::Start() {
-    ADS1299_GetIdState(afe_driver);
-    LOG_DBG("TIBareMetalWrapper::%s revid: %d devid: %d numch: %d", __FUNCTION__, afe_driver->id.revId, afe_driver->id.devId, afe_driver->id.nuCh);
+    ADS1299_GetIdState(&afe_driver);
+    LOG_DBG("TIBareMetalWrapper::%s rev id: %u, dev id: %u, num channels: %u",
+        __FUNCTION__,
+        afe_driver.id.revId, // dont know/care
+        afe_driver.id.devId, // should be 3
+        afe_driver.id.nuCh   // should be 2 (for 8 channel ADS)
+    );
 }
 
 void TIBareMetalWrapper::Wakeup() {

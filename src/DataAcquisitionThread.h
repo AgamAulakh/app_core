@@ -23,8 +23,7 @@ private:
 
     // ADS1299Driver afe_driver;
     TIBareMetalWrapper AFEWrapper;
-    void ResetSPI();
-    void ResetSPIBareMetal();
+    void CheckAFE();
     void TestSPI();
 public:
     enum DataAcquisitionThreadMessage : uint8_t {

@@ -40,8 +40,8 @@ void TIFrontEndWrapper::Stop() {
 }
 
 void TIFrontEndWrapper::ReadData() {
-    int32_t channel_1, channel_2, channel_3, channel_4;
+    // int32_t channel_1, channel_2, channel_3, channel_4;
 
     // afe_driver.get_eeg_voltage_samples(&channel_1, &channel_2, &channel_3, &channel_4);
-	LOG_DBG("TIFE::%s -- Read samples: %d, %d, %d, %d", __FUNCTION__, channel_1, channel_2, channel_3, channel_4);
+	// LOG_DBG("TIFE::%s -- Read samples: %d, %d, %d, %d", __FUNCTION__, channel_1, channel_2, channel_3, channel_4);
 }
