@@ -16,6 +16,7 @@
 
 #include "ArmMatrixWrapper.h"
 #include "DataAcquisitionThread.h"
+#include "AFESlaveThread.h"
 #include "drivers/ads1299-x.h"
 
 // temporary
@@ -25,7 +26,7 @@ LOG_MODULE_REGISTER(eegals_app_core, LOG_LEVEL_DBG);
 
 static const struct pwm_dt_spec blue_pwm_led = PWM_DT_SPEC_GET(DT_ALIAS(blueled));
 
-#define LOG_DELAY_MS 5000
+#define LOG_DELAY_MS 500
 #define LED_PERIOD 1000
 #define LED_OFF 0
 #define LED_CHANNEL 0
@@ -37,6 +38,7 @@ int main(void)
 	LOG_INF("Hello world from %s", CONFIG_BOARD);
 
 	DataAcquisitionThread::GetInstance().Initialize();
+	AFESlaveThread::GetInstance().Initialize();
 
 	while(1) {
 		LOG_DBG("main thread up time: %u ms", k_uptime_get_32());
