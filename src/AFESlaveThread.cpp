@@ -5,10 +5,13 @@ K_THREAD_STACK_DEFINE(afe_slave_stack_area, AFE_SLAVE_THREAD_STACK_SIZE_B);
 struct k_thread afe_slave_thread_data;
 
 // SPI slave defines
-const struct device *spi_slave_dev;
-static struct k_poll_signal spi_slave_done_sig = K_POLL_SIGNAL_INITIALIZER(spi_slave_done_sig);
-
-static const struct spi_config spi_slave_cfg = {
+uint8_t AFESlaveThread::slave_counter = 0;
+k_poll_signal AFESlaveThread::spi_slave_done_sig = K_POLL_SIGNAL_INITIALIZER(spi_slave_done_sig);
+const device* AFESlaveThread::spi_slave_dev = 
+    static_cast<const device*>(
+        DEVICE_DT_GET(AFE_SLAVE_SPI)
+    );
+spi_config AFESlaveThread::spi_slave_cfg = {
 	.frequency = AFE_SPI_FREQUENCY_HZ,
 	.operation = SPI_WORD_SET(8) | SPI_TRANSFER_MSB |
 				 SPI_MODE_CPOL | SPI_MODE_CPHA | SPI_OP_MODE_SLAVE,
@@ -16,7 +19,6 @@ static const struct spi_config spi_slave_cfg = {
 };
  
 AFESlaveThread::AFESlaveThread() {
-	spi_slave_dev = DEVICE_DT_GET(AFE_SLAVE_SPI);
 	if(!device_is_ready(spi_slave_dev)) {
 		printk("SPI slave device not ready!\n");
 	}

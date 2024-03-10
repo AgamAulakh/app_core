@@ -30,7 +30,7 @@ void DataAcquisitionThread::Initialize() {
 }
 
 void DataAcquisitionThread::CheckAFE() {
-    AFEWrapper.Start();
+    AFEWrapper.TestLoopbackSlave();
 }
 
 void DataAcquisitionThread::TestSPI() {

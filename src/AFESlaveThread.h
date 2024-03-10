@@ -18,10 +18,13 @@ private:
     AFESlaveThread(const AFESlaveThread &) = delete;
     AFESlaveThread& operator=(const AFESlaveThread&) = delete;
 
+    static k_poll_signal spi_slave_done_sig;
+    static const device* spi_slave_dev;
+    static spi_config spi_slave_cfg;
+
+    static uint8_t slave_counter;
     uint8_t slave_tx_buffer[2];
     uint8_t slave_rx_buffer[2];
-    uint8_t slave_counter;
-
 public:
     enum AFESlaveThreadMessage : uint8_t {
         TEST_WRITE,
