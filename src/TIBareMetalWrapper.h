@@ -10,6 +10,12 @@
 class TIBareMetalWrapper : public AnalogFrontEndWrapper {
 private:
     static ads1299_t afe_driver;
+    static struct gpio_dt_spec afe_reset_spec;
+    static struct gpio_dt_spec afe_indicate_spec;
+
+    static const struct device* spi_dev;
+    static struct spi_config spi_cfg;
+    static struct k_poll_signal spi_done_sig;
 
     static void DelayMs(uint32_t delay);
     static void DelayUs(uint32_t delay);

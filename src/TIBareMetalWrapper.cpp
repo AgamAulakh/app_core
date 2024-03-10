@@ -5,26 +5,25 @@
 LOG_MODULE_REGISTER(TI_bare_metal_wrapper, LOG_LEVEL_DBG);
 
 // Static fields
+uint8_t TIBareMetalWrapper::master_counter = 0;
+gpio_dt_spec TIBareMetalWrapper::afe_reset_spec = GPIO_DT_SPEC_GET(ZEPHYR_USER_NODE, afereset_gpios);
+gpio_dt_spec TIBareMetalWrapper::afe_indicate_spec = GPIO_DT_SPEC_GET(ZEPHYR_USER_NODE, afeindicator_gpios);
+k_poll_signal TIBareMetalWrapper::spi_done_sig = K_POLL_SIGNAL_INITIALIZER(spi_done_sig);
+const device* TIBareMetalWrapper::spi_dev = 
+    static_cast<const device*>(
+        DEVICE_DT_GET(AFE_SPI)
+    );
+spi_config TIBareMetalWrapper::spi_cfg = {
+    .frequency = AFE_SPI_FREQUENCY_HZ,
+    .operation = SPI_WORD_SET(8) | SPI_TRANSFER_MSB | SPI_MODE_CPOL | SPI_MODE_CPHA,
+    .slave = 0,
+    .cs = {.gpio = AFE_SPI_CS_DT_SPEC, .delay = 0},
+};
 ads1299_t TIBareMetalWrapper::afe_driver{
     &DelayMs, &DelayUs, &Transfer, &SetCS, &SetReset, &SetStart, &SetPWDN
 };
-uint8_t TIBareMetalWrapper::master_counter = 0;
-
-// Devicetree fields
-const struct gpio_dt_spec afe_reset_spec = GPIO_DT_SPEC_GET(ZEPHYR_USER_NODE, afereset_gpios);
-const struct gpio_dt_spec afe_indicate_spec = GPIO_DT_SPEC_GET(ZEPHYR_USER_NODE, afeindicator_gpios);
-
-const struct device *spi_dev;
-static struct k_poll_signal spi_done_sig = K_POLL_SIGNAL_INITIALIZER(spi_done_sig);
-static struct spi_config spi_cfg = {
-	.frequency = AFE_SPI_FREQUENCY_HZ,
-	.operation = SPI_WORD_SET(8) | SPI_TRANSFER_MSB | SPI_MODE_CPOL | SPI_MODE_CPHA,
-	.slave = 0,
-	.cs = {.gpio = AFE_SPI_CS_DT_SPEC, .delay = 0},
-};
 
 TIBareMetalWrapper::TIBareMetalWrapper() {
-    spi_dev = DEVICE_DT_GET(AFE_SPI);
     if(!device_is_ready(spi_dev)) {
         printk("SPI master device not ready!\n");
     }
