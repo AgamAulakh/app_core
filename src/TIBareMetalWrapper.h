@@ -19,6 +19,8 @@ private:
     static void SetStart(uint8_t state);
     static void SetPWDN(uint8_t state);
 
+    static uint8_t master_counter;
+
 public:
     TIBareMetalWrapper();
     ~TIBareMetalWrapper() = default;
@@ -32,4 +34,5 @@ public:
     void Stop() override;
     void ReadData() override;
 
+    void TestLoopbackSlave();
 };

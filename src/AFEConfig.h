@@ -7,9 +7,11 @@
 #include <zephyr/drivers/led.h>
 
 // AFE SPI
-#define AFE_SPI DT_NODELABEL(afespi)
-#define SPI_CS_PIN 8
-#define SPI_FREQUENCY_HZ 2000000
+#define AFE_SPI DT_NODELABEL(afe_spi)
+#define AFE_SPI_CS_DEV DT_PHANDLE(AFE_SPI, cs_gpios)
+#define AFE_SPI_CS_PIN DT_PHA(AFE_SPI, cs_gpios, pin)
+#define AFE_SPI_CS_DT_SPEC SPI_CS_GPIOS_DT_SPEC_GET(DT_NODELABEL(reg_afe_spi))
+#define AFE_SPI_FREQUENCY_HZ 2000000
 
 // AFE RESET PIN
 #define ZEPHYR_USER_NODE DT_PATH(zephyr_user)
@@ -24,15 +26,5 @@
 #define LED1_RESET_DEV DT_PHANDLE(LED1_RESET, gpios)
 #define LED1_RESET_PIN DT_PHA(LED1_RESET, gpios, pin)
 #define LED1_RESET_FLAGS DT_PHA(LED1_RESET, gpios, flags)
-
-// EXTRA: doesn't work, isnt being used
-struct ads1299_config {
-	struct spi_dt_spec bus;
-#if CONFIG_ADC_ASYNC
-	k_thread_stack_t *stack;
-#endif
-	const struct gpio_dt_spec gpio_reset;
-	const struct gpio_dt_spec gpio_data_ready;
-};
 
 #endif
