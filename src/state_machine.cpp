@@ -95,27 +95,33 @@ void StateMachine::test_exit(void *obj) {
 
 void StateMachine::process_entry(void *obj) {
     LOG_DBG("process entry state");
-    LED1::set_flash_green();
 };
 
 void StateMachine::process_run(void *obj) {
     // Run signal processing
     LOG_DBG("process run state");
 
+    // Remove once sigproc can signal to state machine to change states
+    static uint8_t tempCounter = 5;
+
+    LED1::set_flash_green();
+
     /* We need to wait for either a button press to cancel or callback from sigproc
     data collection so we know which state to go to */
     // s_obj.events = k_event_wait(&s_obj.button_press_event, EVENT_BTN_PRESS, true, K_FOREVER);
-
+    LOG_DBG("button press %ld",(s_obj.events & EVENT_BTN_PRESS));
     if (s_obj.events & EVENT_BTN_PRESS) {
         /* If the button is pressed the user wants to terminate
         the test, move to CANCEL state */
         LOG_DBG("cancel processing");
         smf_set_state(SMF_CTX(&s_obj), &dev_states[CANCEL]);
     }
-    else {
+    else if (tempCounter == 0) {
         /* Otherwise if sigproc is done move to COMPLETE state */
         smf_set_state(SMF_CTX(&s_obj), &dev_states[COMPLETE]);
     }
+
+    tempCounter--;
 };
 
 void StateMachine::process_exit(void *obj) {
@@ -223,6 +229,7 @@ void TestButton::init() {
 void state_machine_init() {	
     uint8_t err;
 
+    LED1::init();
     TestButton::init();
 
     /* Initialize the event */
