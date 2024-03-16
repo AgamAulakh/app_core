@@ -29,17 +29,6 @@ void DataAcquisitionThread::Initialize() {
     }
 }
 
-void DataAcquisitionThread::CheckAFE() {
-    AFEWrapper.Start();
-}
-
-void DataAcquisitionThread::TestSPI() {
-    // afe_driver.ads1299_stop_rdatac();
-    // afe_driver.ads1299_check_id();
-    // afe_driver.ads1299_init_regs();
-    // afe_driver.ads1299_start_rdatac();
-}
-
 void DataAcquisitionThread::Run() {
     // set AFE in continuous read mode
     uint8_t message = 0;
@@ -51,10 +40,17 @@ void DataAcquisitionThread::Run() {
                 case STOP_READING_AFE:
                     // AFEWrapper.Stop();
                     break;
-                case START_READING_AFE:
+                case START_READING_AFE_CONTINUOUS:
+                    break;
+                case READ_AFE_SAMPLE:
+                    AFEWrapper.ReadOneSample();
                     break;
                 case RESET_AFE:
-                    CheckAFE();
+                    break;
+                case CHECK_AFE_ID:
+                    AFEWrapper.CheckID();
+                    AFEWrapper.CheckConfigRegs();
+                    AFEWrapper.CheckChannels();
                     break;
                 case INVALID:
                     break;

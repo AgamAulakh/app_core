@@ -361,6 +361,8 @@ void ADS1299_SetCh7SetState(ads1299_t * ads1299, uint8_t regVal);
 void ADS1299_SetCh8SetState(ads1299_t * ads1299, uint8_t regVal);
 void ADS1299_SetLoffSensPState(ads1299_t * ads1299, uint8_t regVal);
 void ADS1299_SetLoffSensNState(ads1299_t * ads1299, uint8_t regVal);
+void ADS1299_SetBiasSensPState(ads1299_t * ads1299, uint8_t regVal);
+void ADS1299_SetBiasSensNState(ads1299_t * ads1299, uint8_t regVal);
 /* --------------------------------------------------------- */
 
 

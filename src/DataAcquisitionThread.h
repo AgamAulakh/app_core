@@ -23,13 +23,13 @@ private:
 
     // ADS1299Driver afe_driver;
     TIBareMetalWrapper AFEWrapper;
-    void CheckAFE();
-    void TestSPI();
 public:
     enum DataAcquisitionThreadMessage : uint8_t {
         STOP_READING_AFE = 0,
-        START_READING_AFE,
+        START_READING_AFE_CONTINUOUS,
+        READ_AFE_SAMPLE,
         RESET_AFE,
+        CHECK_AFE_ID,
         INVALID,
     };
 

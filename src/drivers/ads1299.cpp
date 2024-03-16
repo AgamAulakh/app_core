@@ -983,4 +983,22 @@ void ADS1299_SetLoffSensNState(ads1299_t * ads1299, uint8_t regVal)
 	ADS1299_WriteReg(ads1299, ADS1299_LOFF_SENSN_REG, regVal);
 }
 
+/*!
+\brief Function for setting : Positive Bias Sense Register value
+\param [in] regVal Value of register to set
+*/
+void ADS1299_SetBiasSensPState(ads1299_t * ads1299, uint8_t regVal)
+{    
+    ADS1299_WriteReg(ads1299, ADS1299_BIAS_SENSP_REG, regVal);
+}
+
+/*!
+\brief Function for setting : Negative Bias Sense Register value
+\param [in] regVal Value of register to set
+*/
+void ADS1299_SetBiasSensNState(ads1299_t * ads1299, uint8_t regVal)
+{
+    ADS1299_WriteReg(ads1299, ADS1299_BIAS_SENSN_REG, regVal);
+}
+
 /* ---------------------------------------------------------- */

@@ -25,7 +25,7 @@ LOG_MODULE_REGISTER(eegals_app_core, LOG_LEVEL_DBG);
 
 static const struct pwm_dt_spec blue_pwm_led = PWM_DT_SPEC_GET(DT_ALIAS(blueled));
 
-#define LOG_DELAY_MS 5000
+#define LOG_DELAY_MS 2000
 #define LED_PERIOD 1000
 #define LED_OFF 0
 #define LED_CHANNEL 0
@@ -38,10 +38,14 @@ int main(void)
 
 	DataAcquisitionThread::GetInstance().Initialize();
 
+	DataAcquisitionThread::GetInstance().SendMessage(
+		DataAcquisitionThread::CHECK_AFE_ID
+	);
+
 	while(1) {
 		LOG_DBG("main thread up time: %u ms", k_uptime_get_32());
 		DataAcquisitionThread::GetInstance().SendMessage(
-			DataAcquisitionThread::RESET_AFE
+			DataAcquisitionThread::READ_AFE_SAMPLE
 		);
 		pwm_set_dt(&blue_pwm_led, LED_PERIOD, LED_BLUE_PULSE_WIDTH);
 		k_msleep(LOG_DELAY_MS);

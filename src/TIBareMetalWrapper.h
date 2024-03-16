@@ -40,5 +40,11 @@ public:
     void Stop() override;
     void ReadData() override;
 
+    void CheckID();
+    void CheckChannels();
+    void CheckConfigRegs();
+    void CheckBiasSensPReg();
+    void CheckBiasSensNReg();
+    void ReadOneSample();
     void TestLoopbackSlave();
 };
