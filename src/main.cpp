@@ -34,7 +34,7 @@ int main(void)
 
 	state_machine_init();
 
-	led_init();
+	LED1::init();
 
 	while(1) {
 		LOG_DBG("main thread up time: %u ms", k_uptime_get_32());

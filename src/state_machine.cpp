@@ -1,27 +1,8 @@
-#include <zephyr/kernel.h>
-#include <zephyr/device.h>
-#include <zephyr/drivers/gpio.h>
-#include <zephyr/sys/util.h>
-#include <zephyr/sys/printk.h>
-#include <inttypes.h>
 #include <zephyr/smf.h>
-#include <zephyr/logging/log.h>
+#include <state_machine.h>
 #include <led_handler.h>
 
 LOG_MODULE_REGISTER(state_machine, LOG_LEVEL_DBG);
-
-#define THREAD_STATE_SIZE 1028 // arbitrary for now
-
-#define DATA_ENABLE DT_ALIAS(databutton) // Button for initiating or cancelling test P1.00
-#if !DT_NODE_HAS_STATUS(DATA_ENABLE, okay)
-#error "Unsupported board: DATA_ENABLE devicetree alias is not defined"
-#endif
-
-/* List of events */
-#define EVENT_BTN_PRESS BIT(0)
-
-static const struct gpio_dt_spec data_enable_button = GPIO_DT_SPEC_GET_OR(DATA_ENABLE, gpios, {0});
-static struct gpio_callback button_cb_data;
 
 /* Forward declaration of state table */
 extern const struct smf_state dev_states[];
@@ -38,37 +19,44 @@ struct s_object {
 
 } s_obj;
 
-static void init_run(void *obj) {
+void StateMachine::init_run(void *obj) {
     // Setup threads
     LOG_DBG("init run state");
 
     smf_set_state(SMF_CTX(&s_obj), &dev_states[IDLE]);
-}
+};
 
-static void idle_entry(void *obj) {
+void StateMachine::idle_entry(void *obj) {
     LOG_DBG("idle entry state");
-    set_led_blue();
-}
+    LED1::set_blue();
 
-static void idle_run(void *obj) {
+    // Clear any remaining button press if not yet cleared
+    if (s_obj.events & EVENT_BTN_PRESS) {
+        smf_set_state(SMF_CTX(&s_obj), &dev_states[TEST]);
+        s_obj.events = k_event_clear(&s_obj.button_press_event, EVENT_BTN_PRESS);
+    }
+};
+
+void StateMachine::idle_run(void *obj) {
     LOG_DBG("idle run state");
 
     /* If the button is pressed the user wants to start a test,
     move to TEST state */
     s_obj.events = k_event_wait(&s_obj.button_press_event, EVENT_BTN_PRESS, true, K_FOREVER);
 
+    // Clear button press
     if (s_obj.events & EVENT_BTN_PRESS) {
         smf_set_state(SMF_CTX(&s_obj), &dev_states[TEST]);
         s_obj.events = k_event_clear(&s_obj.button_press_event, EVENT_BTN_PRESS);
     }
-}
+};
 
-static void test_entry(void *obj) {
+void StateMachine::test_entry(void *obj) {
     LOG_DBG("test entry state");
-    set_led_yellow();
-}
+    LED1::set_yellow();
+};
 
-static void test_run(void *obj) {
+void StateMachine::test_run(void *obj) {
     // Start test - collect data
     // begin collecting data from AFE
     // begin data processing
@@ -92,9 +80,9 @@ static void test_run(void *obj) {
         // Once data collection is done move to PROCESS state
         smf_set_state(SMF_CTX(&s_obj), &dev_states[PROCESS]);
     }
-}
+};
 
-static void test_exit(void *obj) {
+void StateMachine::test_exit(void *obj) {
     // Stop test - stop data collection
     LOG_DBG("test exit state");
 
@@ -103,14 +91,14 @@ static void test_exit(void *obj) {
     if (s_obj.ctx.current == &dev_states[CANCEL]) {
         // stop data processing
     }
-}
+};
 
-static void process_entry(void *obj) {
+void StateMachine::process_entry(void *obj) {
     LOG_DBG("process entry state");
-    set_led_flash_green();
-}
+    LED1::set_flash_green();
+};
 
-static void process_run(void *obj) {
+void StateMachine::process_run(void *obj) {
     // Run signal processing
     LOG_DBG("process run state");
 
@@ -121,15 +109,17 @@ static void process_run(void *obj) {
     if (s_obj.events & EVENT_BTN_PRESS) {
         /* If the button is pressed the user wants to terminate
         the test, move to CANCEL state */
+        LOG_DBG("cancel processing");
         smf_set_state(SMF_CTX(&s_obj), &dev_states[CANCEL]);
     }
     else {
         /* Otherwise if sigproc is done move to COMPLETE state */
         smf_set_state(SMF_CTX(&s_obj), &dev_states[COMPLETE]);
     }
-}
+};
 
-static void process_exit(void *obj) {
+void StateMachine::process_exit(void *obj) {
+
     // Finish signal processing
     LOG_DBG("process exit state");
 
@@ -141,14 +131,14 @@ static void process_exit(void *obj) {
     else {
         // Send results to LCD and potentially to radio handler
     }
-}
+};
 
-static void complete_entry (void *obj) {
+void StateMachine::complete_entry (void *obj) {
     LOG_DBG("complete entry state");
-    set_led_solid_green();
-}
+    LED1::set_solid_green();
+};
 
-static void complete_run(void *obj) {
+void StateMachine::complete_run(void *obj) {
     // Display results on LCD
     LOG_DBG("complete run state");
 
@@ -157,21 +147,21 @@ static void complete_run(void *obj) {
 
     // Move to IDLE state
     smf_set_state(SMF_CTX(&s_obj), &dev_states[IDLE]);
-}
+};
 
-static void complete_exit(void *obj) {
+void StateMachine::complete_exit(void *obj) {
     // Move back to IDLE state
     LOG_DBG("complete exit state");
-}
+};
 
-static void cancel_entry(void *obj) {
+void StateMachine::cancel_entry(void *obj) {
     // verify any testing or processing has been stopped
     // verify data has been thrown out data
     LOG_DBG("cancel entry state");
-    set_led_solid_red();
-}
+    LED1::set_solid_red();
+};
 
-static void cancel_run(void *obj) {
+void StateMachine::cancel_run(void *obj) {
     // print error on LCD screen
     LOG_DBG("cancel run state");
     // Delay
@@ -179,30 +169,30 @@ static void cancel_run(void *obj) {
 
     // Move to IDLE state
     smf_set_state(SMF_CTX(&s_obj), &dev_states[IDLE]);
-}
-
-static void cancel_exit(void *obj) {
-    // move back to idle state
-    LOG_DBG("cancel exit state");
-}
-
-const struct smf_state dev_states[] = {
-    [INIT] = SMF_CREATE_STATE(NULL, init_run, NULL),
-    [IDLE] = SMF_CREATE_STATE(idle_entry, idle_run, NULL),
-    [TEST] = SMF_CREATE_STATE(test_entry, test_run, test_exit),
-    [PROCESS] = SMF_CREATE_STATE(process_entry, process_run, process_exit),
-    [COMPLETE] = SMF_CREATE_STATE(complete_entry, complete_run, complete_exit),
-    [CANCEL] = SMF_CREATE_STATE(cancel_entry, cancel_run, cancel_exit)
 };
 
-void button_press(const struct device *dev,
+void StateMachine::cancel_exit(void *obj) {
+    // move back to idle state
+    LOG_DBG("cancel exit state");
+};
+
+const struct smf_state dev_states[] = {
+    [INIT] = SMF_CREATE_STATE(NULL, StateMachine::init_run, NULL),
+    [IDLE] = SMF_CREATE_STATE(StateMachine::idle_entry, StateMachine::idle_run, NULL),
+    [TEST] = SMF_CREATE_STATE(StateMachine::test_entry, StateMachine::test_run, StateMachine::test_exit),
+    [PROCESS] = SMF_CREATE_STATE(StateMachine::process_entry, StateMachine::process_run, StateMachine::process_exit),
+    [COMPLETE] = SMF_CREATE_STATE(StateMachine::complete_entry, StateMachine::complete_run, StateMachine::complete_exit),
+    [CANCEL] = SMF_CREATE_STATE(StateMachine::cancel_entry, StateMachine::cancel_run, StateMachine::cancel_exit)
+};
+
+void TestButton::button_press(const struct device *dev,
                 struct gpio_callback *cb, uint32_t pins) {
     /* Generate Button Press Event */
     LOG_DBG("Button press");
     k_event_post(&s_obj.button_press_event, EVENT_BTN_PRESS);
-}
+};
 
-void button_init() {
+void TestButton::init() {
     uint8_t err;
 
     // Check that button is ready
@@ -225,15 +215,15 @@ void button_init() {
         return;
     }
 
-    gpio_init_callback(&button_cb_data, button_press, BIT(data_enable_button.pin));
-    gpio_add_callback(data_enable_button.port, &button_cb_data);
+    gpio_init_callback(&TestButton::button_cb_data, TestButton::button_press, BIT(data_enable_button.pin));
+    gpio_add_callback(data_enable_button.port, &TestButton::button_cb_data);
     return;
-}
+};
 
 void state_machine_init() {	
     uint8_t err;
 
-    button_init();
+    TestButton::init();
 
     /* Initialize the event */
     k_event_init(&s_obj.button_press_event);

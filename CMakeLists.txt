@@ -10,13 +10,9 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(app_core)
 
 # NORDIC SDK APP START
-target_sources(app PRIVATE
-  src/main.cpp
-  # src/ble_server.c
-  # src/ble_handler.c
-  src/led_handler.cpp
-  src/state_machine.cpp
-)
+file(GLOB_RECURSE APP_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+target_sources(app PRIVATE ${APP_SOURCES})
+
 # NORDIC SDK APP END
 
 # Add project directories
