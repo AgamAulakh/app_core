@@ -8,6 +8,7 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/logging/log_ctrl.h>
+#include <StateMachineThread.h>
 #include <zephyr/init.h>
 #include <nrf.h>
 #include <nrfx.h>
@@ -36,8 +37,10 @@ static const struct pwm_dt_spec blue_pwm_led = PWM_DT_SPEC_GET(DT_ALIAS(blueled)
 
 int main(void)
 {
-	// state_machine_init();
-	LED1::init();
+	// LED1::init();
+	LOG_INF("Hello world from %s", CONFIG_BOARD);
+
+	StateMachineThread::GetInstance().Initialize();
 
 	DataAcquisitionThread::GetInstance().Initialize();
 	SignalProcessingThread::GetInstance().Initialize();

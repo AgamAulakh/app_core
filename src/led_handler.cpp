@@ -66,7 +66,6 @@ void LED1::set_yellow() {
 // PROCESS state LED
 void LED1::set_flash_green() {
     int err;
-    uint32_t flash_green;
 
     LOG_DBG("set LED to flashing green");
 
@@ -84,24 +83,21 @@ void LED1::set_flash_green() {
     }
 
     // Turn on green LED flashing
-   for (flash_green = 0U; flash_green <= LED1::green_pwm_led.period; flash_green += (STEP_SIZE)) {
-        // Change loop to run forever in LED thread until state is changed // set interrupt
-        err = pwm_set_pulse_dt(&LED1::green_pwm_led, STEP_SIZE);
-        if (err) {
-            printk("Error %d: flash green write failed\n", err);
-            return;
-        }
-
-        k_sleep(K_MSEC(500));
-
-        err = pwm_set_pulse_dt(&LED1::green_pwm_led, 0);
-        if (err) {
-            printk("Error %d: flash green write failed\n", err);
-            return;
-        }
-
-        k_sleep(K_MSEC(500));
+    err = pwm_set_pulse_dt(&LED1::green_pwm_led, STEP_SIZE);
+    if (err) {
+        printk("Error %d: flash green write failed\n", err);
+        return;
     }
+
+    k_sleep(K_MSEC(400));
+
+    err = pwm_set_pulse_dt(&LED1::green_pwm_led, 0);
+    if (err) {
+        printk("Error %d: flash green write failed\n", err);
+        return;
+    }
+
+    k_sleep(K_MSEC(300));
 }
 
 // COMPLETE state LED
