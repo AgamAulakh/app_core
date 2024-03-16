@@ -8,8 +8,8 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/logging/log_ctrl.h>
+#include <StateMachineThread.h>
 #include <zephyr/init.h>
-#include <zephyr/smf.h>
 
 extern "C" {
 #include <ble_handler.h>
@@ -24,6 +24,7 @@ extern "C" {
 #include <zephyr/logging/log.h>
 
 #include <stdlib.h>
+#include "SignalProcessingThread.h"
 
 LOG_MODULE_REGISTER(app_core_main, LOG_LEVEL_INF);
 #include "ArmMatrixWrapper.h"
@@ -33,12 +34,12 @@ LOG_MODULE_REGISTER(app_core_main, LOG_LEVEL_INF);
 
 int main(void)
 {
-	LOG_INF("Hello world from %s", CONFIG_BOARD);
 
 	state_machine_init();
 
 	LED1::init();
 	// DataAcquisitionThread::GetInstance().Initialize();
+	SignalProcessingThread::GetInstance().Initialize();
 
 	// DataAcquisitionThread::GetInstance().SendMessage(
 	// 	DataAcquisitionThread::CHECK_AFE_ID
@@ -54,6 +55,10 @@ int main(void)
 		// );
 		LOG_DBG("main thread up time: %u ms", k_uptime_get_32());
 		k_msleep(LOG_DELAY_MS);
+
+		SignalProcessingThread::GetInstance().SendMessage(
+			SignalProcessingThread::COMPUTE_FFT_RESULTS
+		);
 
 		AFEWrapper.RunInternalSquareWaveTest();
 	}
