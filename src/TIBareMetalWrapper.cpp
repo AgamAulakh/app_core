@@ -91,6 +91,12 @@ void TIBareMetalWrapper::DelayUs(uint32_t delay) {
 void TIBareMetalWrapper::Transfer(uint8_t tx[], uint8_t rx[], uint16_t len) {
     // NOTE: sometimes len < sizeof(tx) or sizeof(rx)
     // So we have to manually set length in spi_buf
+    printk("SPI TX:");
+    for (size_t i = 0; i < len; i++) {
+        printk(" 0x%.2x", tx[i]);
+    }
+    printk("\n");
+
     const struct spi_buf tx_buf = {
         .buf = tx,
         .len = len * sizeof(tx[0])
@@ -129,9 +135,6 @@ void TIBareMetalWrapper::Transfer(uint8_t tx[], uint8_t rx[], uint16_t len) {
     printk("SPI RX:");
     for (size_t i = 0; i < len; i++) {
         printk(" 0x%.2x", rx[i]);
-        if (i % 27 == 0) {
-            printk("\n");
-        }
     }
     printk("\n");
     return;
@@ -147,18 +150,31 @@ void TIBareMetalWrapper::StartDMA(uint8_t rx[], uint16_t len) {
         .count = 1
     };
 
+    // Reset signal
+    k_poll_signal_reset(&spi_done_sig);
+
     // Start transaction
     LOG_INF("!!! read buffer start time: %u ms", k_uptime_get_32());
-    int error = spi_read(spi_dev, &spi_cfg, &rx_set);
+    int error = spi_read_async(spi_dev, &spi_cfg, &rx_set, &spi_done_sig);
     if(error != 0){
         LOG_ERR("TIBareMetalWrapper::%s transceive error: %i", __FUNCTION__, error);
         return;
     }
     LOG_INF("!!! read buffer end time: %u ms", k_uptime_get_32());
 
+    // Wait for the done signal to be raised and log the rx buffer
+    int spi_result;
+    unsigned int spi_signaled;
+    do{
+        k_poll_signal_check(&spi_done_sig, &spi_signaled, &spi_result);
+    } while(spi_signaled == 0);
+
     printk("SPI RX:");
     for (size_t i = 0; i < len; i++) {
         printk(" 0x%.2x", rx[i]);
+        if (i % 27 == 0) {
+            printk("\n");
+        }
     }
     printk("\n");
     return;
@@ -200,14 +216,9 @@ void TIBareMetalWrapper::HandleDRDY(const device *dev, gpio_callback *cb, uint32
 
 // parent functions to override
 void TIBareMetalWrapper::Initialize() {
-    ADS1299_Init(&afe_driver);
-    LOG_INF("finished ads1299 init");
-
-    CheckID();
-    CheckConfigRegs();
-    CheckChannels();
-    CheckBiasSensPReg();
-    CheckBiasSensNReg();
+    // NOTE: THIS APPARENTLY KILLS THE REGISTERS?
+    // ADS1299_Init(&afe_driver);
+    // LOG_INF("finished ads1299 init");
 
     uint8_t turn_on_channel = 0x4A;
     turn_on_channel = turn_on_channel >> 1;
@@ -222,6 +233,8 @@ void TIBareMetalWrapper::Initialize() {
 
     uint8_t enable_bias = 0xFF;
     ADS1299_SetBiasSensNState(&afe_driver, enable_bias);
+
+    Start();
 };
 
 void TIBareMetalWrapper::Start() {
@@ -232,6 +245,7 @@ void TIBareMetalWrapper::Start() {
     CheckBiasSensNReg();
 
     // Start ADC conversion
+    LOG_INF("TIBareMetalWrapper::%s Starting ADC Conversion", __FUNCTION__);
     ADS1299_StartAdc(&afe_driver);
 };
 
@@ -240,28 +254,28 @@ void TIBareMetalWrapper::ReadOneSample() {
     CheckBiasSensPReg();
     CheckBiasSensNReg();
 
-    // LOG_INF("enabling cont read");
-    // ADS1299_EnableContRead(&afe_driver);
+    LOG_INF("TIBareMetalWrapper::%s enabling continuous read", __FUNCTION__);
+    ADS1299_EnableContRead(&afe_driver);
 
-    // LOG_INF("enabled cont read");
-    // uint8_t rx_buffer[rx_buf_len] = {0};
-    // Read(rx_buffer, rx_buf_len);
+    LOG_INF("TIBareMetalWrapper::%s dma on", __FUNCTION__);
+    uint8_t rx_buffer[rx_buf_len] = {0};
+    StartDMA(rx_buffer, rx_buf_len);
 
-    // LOG_INF("disabling cont read");
-    // ADS1299_DisableContRead(&afe_driver);
+    LOG_INF("TIBareMetalWrapper::%s disabling continuous read", __FUNCTION__);
+    ADS1299_DisableContRead(&afe_driver);
 
-    ADS1299_ReadAdc(&afe_driver);
-    LOG_DBG("TIBareMetalWrapper::%s ch1: %f, ch2: %f, ch3: %f, ch4: %f, ch5: %f, ch6: %f, ch7: %f, ch8: %f",
-        __FUNCTION__,
-        afe_driver.sample.ch1,
-        afe_driver.sample.ch2,
-        afe_driver.sample.ch3,
-        afe_driver.sample.ch4,
-        afe_driver.sample.ch5,
-        afe_driver.sample.ch6,
-        afe_driver.sample.ch7,
-        afe_driver.sample.ch8
-    );
+    // ADS1299_ReadAdc(&afe_driver);
+    // LOG_DBG("TIBareMetalWrapper::%s ch1: %f, ch2: %f, ch3: %f, ch4: %f, ch5: %f, ch6: %f, ch7: %f, ch8: %f",
+    //     __FUNCTION__,
+    //     afe_driver.sample.ch1,
+    //     afe_driver.sample.ch2,
+    //     afe_driver.sample.ch3,
+    //     afe_driver.sample.ch4,
+    //     afe_driver.sample.ch5,
+    //     afe_driver.sample.ch6,
+    //     afe_driver.sample.ch7,
+    //     afe_driver.sample.ch8
+    // );
 };
 
 void TIBareMetalWrapper::CheckID() {

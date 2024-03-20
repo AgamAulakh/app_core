@@ -12,7 +12,7 @@ DataAcquisitionThread::DataAcquisitionThread() : AFEWrapper() {
 
 void DataAcquisitionThread::Initialize() {
     LOG_DBG("DataAcq::%s -- initializing AFE Wrapper", __FUNCTION__);
-    AFEWrapper.Initialize();
+    // AFEWrapper.Initialize();
 
     if (id == nullptr) {
         LOG_DBG("DataAcq::%s -- making thread", __FUNCTION__);
@@ -31,6 +31,7 @@ void DataAcquisitionThread::Initialize() {
 
 void DataAcquisitionThread::Run() {
     // set AFE in continuous read mode
+    AFEWrapper.Initialize();
     uint8_t message = 0;
     while (true) {
         if (message_queue.get_with_blocking_wait(message)) {
@@ -43,9 +44,6 @@ void DataAcquisitionThread::Run() {
                 case START_READING_AFE_CONTINUOUS:
                     break;
                 case READ_AFE_SAMPLE:
-                    // AFEWrapper.CheckID();
-                    // AFEWrapper.CheckConfigRegs();
-                    // AFEWrapper.CheckChannels();
                     AFEWrapper.ReadOneSample();
                     break;
                 case RESET_AFE:
