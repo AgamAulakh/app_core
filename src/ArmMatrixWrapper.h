@@ -2,6 +2,8 @@
 #include <cstring>
 #include "arm_math.h"
 
+
+
 template <uint32_t MaxRows, uint32_t MaxCols>
 class ArmMatrixWrapper {
 private:
@@ -210,13 +212,144 @@ public:
         return mseValue;
     };
 
-    // // TEMPORARY!!!
-    // // Fast Fourier Transform Wrapper (FFT)
-    // // Assumes input is real data row vector, and output will be complex row vector
-    // ArmMatrixWrapper<1, MaxCols> fft() const {
-    //     ArmMatrixWrapper<1, MaxCols> result;
-    //     arm_cfft_f32(&arm_cfft_sR_f32_len, reinterpret_cast<float32_t*>(data), 0, 1);
-    //     memcpy(result.data, data, MaxBufferSize * sizeof(float32_t));
-    //     return result;
-    // };
+    // Computes the raw FFT for specific channel given a number of samples 
+    ArmMatrixWrapper<MaxRows, 1> rawFFT(uint32_t channel) const {
+        
+        // Struct to store the output of the FFT for one channel 
+        ArmMatrixWrapper<MaxRows/2, 1> rawResult;
+
+        // Temporary arrays to store initial data and intermediate FFT values
+        float32_t inputFFT[matrix.numRows];
+        float32_t outputFFT[matrix.numRows];
+       
+        // O indicates FFT and 1 indicates inverse FFT (This flag will not change)
+        const uint32_t ifftFlag = 0;
+
+        // Initalize the instance with the specified number of rows
+        arm_rfft_fast_instance_f32 fft_instance;
+        arm_rfft_fast_init_f32(&fft_instance, matrix.numRows);
+        
+        for (uint32_t i = 0; i < matrix.numRows; i++)
+        {
+            inputFFT[i] = at(i, channel);
+        }
+
+        // Compute the FFT and store the outputs of the FFT in the array
+        arm_rfft_fast_f32(&fft_instance, inputFFT , outputFFT, ifftFlag);
+
+        // The first entry is the DC offset so simply set to 0
+        outputFFT[0] =  0;
+
+        // Copy output FFT to result
+        memcpy(rawResult.data, outputFFT, MaxBufferSize * sizeof(float32_t));
+        return rawResult;
+    };
+
+
+    // Computes the single-sided FFT for a specific channel given a number of samples
+    ArmMatrixWrapper<MaxRows/2, 1> singleSideFFT(uint32_t channel) const {
+
+        // Struct to store the output of the FFT for one channel 
+        ArmMatrixWrapper<MaxRows/2, 1> FFTResult;
+        
+        // Temporary arrays to store initial data and intermediate FFT values
+        float32_t outputFFTMag[matrix.numRows/2];
+
+        // Extract the magnitude values because FFT values are complex and have both a magnitude and phase.
+        // matrix.numRows/2 because we are looking at one-sided spectrum (# of magnitudes we want to look at)
+        arm_cmplx_mag_f32(rawFFT(channel).data, outputFFTMag, matrix.numRows/2);
+
+        // Copy the output to the result matrix
+        memcpy(FFTResult.data, outputFFTMag, MaxBufferSize * sizeof(float32_t));
+        return FFTResult;
+
+    }
+
+    // Computes the single-sided Power given the single-sided FFT of a channel
+    ArmMatrixWrapper<MaxRows/2, 1> singleSidePower(uint32_t channel) const {
+        
+        // Struct to store the output of the FFT for one channel 
+        ArmMatrixWrapper<MaxRows/2, 1> PowerResult;
+        
+        // Temporary arrays to store power FFT values
+        float32_t powerFFT[matrix.numRows/2];
+
+        // Compute the power of the FFT
+        arm_cmplx_mag_squared_f32(rawFFT(channel).data, powerFFT, matrix.numRows/2);
+        
+        // Check if the scaling is required for the above function
+        // Copy the output to the result matrix
+        memcpy(PowerResult.data, powerFFT, MaxBufferSize * sizeof(float32_t));
+        return PowerResult;
+
+    }
+
+    // Computes the single-sided Band Power given the single-sided FFT of a channel,
+    // Pwelch of specified channel and specific band power range type
+    float32_t singleSideBandPower(uint32_t channel, uint32_t sampleFreq, uint32_t bandSelect, const ArmMatrixWrapper& PWelch,) const {
+        
+        // The frequency resolution or frequency bin width
+        float32_t freqRes = sampleFreq / MaxRows;
+
+        // The following band limits: delta band, theta band, alpha band, beta band
+        float32_t bandRanges[] = {1,3,4,7,8,12,13,30};
+
+        // Low and high limit for specified band range of frequencies
+        uint32_t lowLimit = 0;
+        uint32_t highLimit = 0;
+
+        switch(bandSelect){
+
+            // delta band (Note: make an enum for the different band types)
+            case 0:{
+                lowLimit = (uint32_t)(floor(bandRanges[0] / freqRes));  
+                highLimit = (uint32_t)(ceil(bandRanges[1] / freqRes));
+                break;
+            } 
+            // theta band
+            case 1:{
+                lowLimit = (uint32_t)(floor(bandRanges[2] / freqRes));
+                highLimit = (uint32_t)(ceil(bandRanges[3] / freqRes));
+                break;
+            }
+            // alpha band
+            case 2:{
+                lowLimit = (uint32_t)(floor(bandRanges[4] / freqRes));
+                highLimit = (uint32_t)(ceil(bandRanges[5] / freqRes));
+                break;
+            }
+            // beta band
+            case 3:{
+                lowLimit = (uint32_t)(floor(bandRanges[6] / freqRes));
+                highLimit = (uint32_t)(ceil(bandRanges[7] / freqRes));
+                break;
+            }
+            default:{
+                break;
+            }
+
+        }
+
+        // Calculating the band power for specified band range of frequnencies
+        float32_t bandPower = 0;
+        for(uint32_t i = lowLimit; i < highLimit; lowLimit++){
+            bandPower += (PWelch.data[i] * freqRes);
+        }
+        return bandPower;
+    }
+
+    // Computes the single-sided Relative Band Power given the specified channel and
+    // specified band power 
+    float32_t singleSideRelativeBandPower(uint32_t channel, float32_t bandPower){
+        
+        // Calculate summation of total power 
+        float32_t totalPower = 0;
+        for(uint32_t i = 0; i < MaxRows/2; i++){
+            totalPower += singleSidePower(channel).data[i];
+        }
+        // Calculate relative band power relative to the total power
+        float32_t relativeBandpower = bandPower / totalPower;
+        return  relativeBandpower;
+    }
+
 };
