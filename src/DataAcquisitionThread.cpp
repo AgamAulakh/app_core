@@ -43,6 +43,9 @@ void DataAcquisitionThread::Run() {
                 case START_READING_AFE_CONTINUOUS:
                     break;
                 case READ_AFE_SAMPLE:
+                    AFEWrapper.CheckID();
+                    AFEWrapper.CheckConfigRegs();
+                    AFEWrapper.CheckChannels();
                     AFEWrapper.ReadOneSample();
                     break;
                 case RESET_AFE:
