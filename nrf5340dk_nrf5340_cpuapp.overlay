@@ -90,6 +90,8 @@
         afereset-label = "AFE Reset";
         afeindicator-gpios = <&gpio0 2 0>;
         afeindicator-label = "AFE Indicator LED";
+        afedrdy-gpios = <&gpio0 12 (GPIO_ACTIVE_LOW)>;
+        afedrdy-label = "AFE DRDY";
     };
 };
 
@@ -108,6 +110,7 @@
 afe_spi: &spi4 {
 	compatible = "nordic,nrf-spim";
 	status = "okay";
+    easydma-maxcnt-bits = <18>; // 2^18
 	pinctrl-0 = <&afe_spi_default>;
 	pinctrl-1 = <&afe_spi_sleep>;
 	pinctrl-names = "default", "sleep";

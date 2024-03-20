@@ -2,6 +2,7 @@
 #define DRV_ADS1299_ADS1299_H_
 
 #include <stdint.h>
+#include "arm_math.h"
 
 /* ____________________ DEFINE Section ____________________ */
 /* Register addresses */
@@ -101,6 +102,11 @@
 #define ADS1299_READ_REG_CMD             (0x20)
 #define ADS1299_WRITE_REG_CMD            (0x40)
 
+/* Data Conversion */
+#define ADS1299_VREF 					 (4.5f)
+#define ADS1299_GAIN					 (1.0f)
+#define ADS1299_FS						 (2.0f * ADS1299_VREF / ADS1299_GAIN)
+#define ADS1299_LSB_SIZE				 (ADS1299_FS / 16777216.0f)
 /* ________________________________________________________ */
 
 
@@ -290,6 +296,17 @@ typedef struct {
 } misc2_t;
 
 typedef struct {
+	float32_t ch1;
+	float32_t ch2;
+	float32_t ch3;
+	float32_t ch4;
+	float32_t ch5;
+	float32_t ch6;
+	float32_t ch7;
+	float32_t ch8;
+} sample_t;
+
+typedef struct {
     void (*DelayMs)(uint32_t delay);
     void (*DelayUs)(uint32_t delay);
     void (*Transfer)(uint8_t tx[], uint8_t rx[], uint16_t len);
@@ -323,6 +340,9 @@ typedef struct {
     misc2_t misc2;
     config4_t config4;
 
+	
+	sample_t sample;
+
 } ads1299_t;
 
 /* ________________________________________________________ */
@@ -337,13 +357,13 @@ void ADS1299_WakeUp(ads1299_t * ads1299);
 void ADS1299_StandBy(ads1299_t * ads1299);
 void ADS1299_StartAdc(ads1299_t * ads1299);
 void ADS1299_StopAdc(ads1299_t * ads1299);
-uint32_t ADS1299_ReadAdc(ads1299_t * ads1299);
+void ADS1299_ReadAdc(ads1299_t * ads1299);
+float32_t ADS1299_RawValueToFloat(uint8_t msb, uint8_t middle, uint8_t lsb);
 void ADS1299_EnableContRead(ads1299_t * ads1299);
 void ADS1299_DisableContRead(ads1299_t * ads1299);
 
 uint8_t ADS1299_ReadReg(ads1299_t * ads1299, uint8_t regAddress);
 void ADS1299_WriteReg(ads1299_t * ads1299, uint8_t regAddress, uint8_t data);
-
 
 /*          Setting Register Data Functions Section          */
 void ADS1299_SetConfig1State(ads1299_t * ads1299, uint8_t regVal);

@@ -1,13 +1,20 @@
 #include "TIBareMetalWrapper.h"
 #include <zephyr/drivers/gpio.h>
 
+// constants to be moved
+constexpr uint8_t num_bytes_per_sample = 3 * (8 + 1);
+constexpr uint16_t num_samples = 250;
+constexpr uint16_t rx_buf_len = num_bytes_per_sample * num_samples;
+
 // log level declaration
 LOG_MODULE_REGISTER(TI_bare_metal_wrapper, LOG_LEVEL_DBG);
 
 // Static fields
 uint8_t TIBareMetalWrapper::master_counter = 0;
 gpio_dt_spec TIBareMetalWrapper::afe_reset_spec = GPIO_DT_SPEC_GET(ZEPHYR_USER_NODE, afereset_gpios);
+gpio_dt_spec TIBareMetalWrapper::afe_drdy_spec = GPIO_DT_SPEC_GET(ZEPHYR_USER_NODE, afedrdy_gpios);
 gpio_dt_spec TIBareMetalWrapper::afe_indicate_spec = GPIO_DT_SPEC_GET(ZEPHYR_USER_NODE, afeindicator_gpios);
+gpio_callback TIBareMetalWrapper::afe_drdy_cb_data;
 k_poll_signal TIBareMetalWrapper::spi_done_sig = K_POLL_SIGNAL_INITIALIZER(spi_done_sig);
 const device* TIBareMetalWrapper::spi_dev = 
     static_cast<const device*>(
@@ -40,6 +47,20 @@ TIBareMetalWrapper::TIBareMetalWrapper() {
     if (err != 0) {
         LOG_ERR("COULD NOT CONFIGURE AFE RESET AS GPIO");
     }
+
+    // AFE DRDY
+    err = gpio_pin_configure_dt(&afe_drdy_spec, GPIO_INPUT);
+    if (err != 0) {
+        LOG_ERR("COULD NOT CONFIGURE AFE DRDY AS GPIO INPUT");
+    }
+
+    err = gpio_pin_interrupt_configure_dt(&afe_drdy_spec, GPIO_INT_EDGE_FALLING);
+    if (err != 0) {
+        LOG_ERR("COULD NOT CONFIGURE AFE DRDY INTERRUPT");
+    }
+
+    // gpio_init_callback(&afe_drdy_cb_data, HandleDRDY, BIT(afe_drdy_spec.pin));
+    // gpio_add_callback(afe_drdy_spec.port, &afe_drdy_cb_data);
 };
 
 // callbacks needed for driver
@@ -108,10 +129,41 @@ void TIBareMetalWrapper::Transfer(uint8_t tx[], uint8_t rx[], uint16_t len) {
     printk("SPI RX:");
     for (size_t i = 0; i < len; i++) {
         printk(" 0x%.2x", rx[i]);
+        if (i % 27 == 0) {
+            printk("\n");
+        }
     }
     printk("\n");
     return;
 };
+
+void TIBareMetalWrapper::StartDMA(uint8_t rx[], uint16_t len) {
+    struct spi_buf rx_buf = {
+        .buf = rx,
+        .len = len * sizeof(rx[0]),
+    };
+    const struct spi_buf_set rx_set = {
+        .buffers = &rx_buf,
+        .count = 1
+    };
+
+    // Start transaction
+    LOG_INF("!!! read buffer start time: %u ms", k_uptime_get_32());
+    int error = spi_read(spi_dev, &spi_cfg, &rx_set);
+    if(error != 0){
+        LOG_ERR("TIBareMetalWrapper::%s transceive error: %i", __FUNCTION__, error);
+        return;
+    }
+    LOG_INF("!!! read buffer end time: %u ms", k_uptime_get_32());
+
+    printk("SPI RX:");
+    for (size_t i = 0; i < len; i++) {
+        printk(" 0x%.2x", rx[i]);
+    }
+    printk("\n");
+    return;
+};
+
 
 void TIBareMetalWrapper::SetReset(uint8_t state) {
     if (state) {
@@ -139,6 +191,11 @@ void TIBareMetalWrapper::SetStart(uint8_t state){
 
 void TIBareMetalWrapper::SetPWDN(uint8_t state){
     LOG_ERR("TIBareMetalWrapper::%s not implemented", __FUNCTION__);
+};
+
+void TIBareMetalWrapper::HandleDRDY(const device *dev, gpio_callback *cb, uint32_t pins){
+    LOG_INF("TIBareMetalWrapper::%s got DRDY signal at %u ms", __FUNCTION__, k_uptime_get_32());
+    // int32_t result = ADS1299_ReadAdc(&afe_driver);
 };
 
 // parent functions to override
@@ -183,10 +240,27 @@ void TIBareMetalWrapper::ReadOneSample() {
     CheckBiasSensPReg();
     CheckBiasSensNReg();
 
-    int32_t result = ADS1299_ReadAdc(&afe_driver);
-    LOG_DBG("TIBareMetalWrapper::%s read sample (unparsed): %d",
+    // LOG_INF("enabling cont read");
+    // ADS1299_EnableContRead(&afe_driver);
+
+    // LOG_INF("enabled cont read");
+    // uint8_t rx_buffer[rx_buf_len] = {0};
+    // Read(rx_buffer, rx_buf_len);
+
+    // LOG_INF("disabling cont read");
+    // ADS1299_DisableContRead(&afe_driver);
+
+    ADS1299_ReadAdc(&afe_driver);
+    LOG_DBG("TIBareMetalWrapper::%s ch1: %f, ch2: %f, ch3: %f, ch4: %f, ch5: %f, ch6: %f, ch7: %f, ch8: %f",
         __FUNCTION__,
-        result
+        afe_driver.sample.ch1,
+        afe_driver.sample.ch2,
+        afe_driver.sample.ch3,
+        afe_driver.sample.ch4,
+        afe_driver.sample.ch5,
+        afe_driver.sample.ch6,
+        afe_driver.sample.ch7,
+        afe_driver.sample.ch8
     );
 };
 

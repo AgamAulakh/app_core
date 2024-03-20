@@ -1,5 +1,8 @@
 #include "ads1299.h"
 
+#include <zephyr/logging/log.h>
+LOG_MODULE_REGISTER(ADS1299_Driver, LOG_LEVEL_DBG);
+
 /*!
 \brief Reset ADS1299 by control RESET pin
 \param [out] ads1299 Initialized variable of type ads1299_t
@@ -174,48 +177,67 @@ void ADS1299_StopAdc(ads1299_t * ads1299)
 /*!
 \brief Function for reading the ADC value from the register.
 */
-uint32_t ADS1299_ReadAdc(ads1299_t * ads1299)
+void ADS1299_ReadAdc(ads1299_t * ads1299)
 {
-    int32_t msg = 0;
     uint8_t readCmd[28] = {0};
     uint8_t rx[28] = {0};
 
     readCmd[0] = ADS1299_RDATA_CMD;
-    readCmd[1] = 0x00;
-    readCmd[2] = 0x00;
-    readCmd[3] = 0x00;
-    readCmd[4] = 0x00;
-    readCmd[5] = 0x00;
-    readCmd[6] = 0x00;
-    readCmd[7] = 0x00;
-    readCmd[8] = 0x00;
-    readCmd[9] = 0x00;
-    readCmd[10] = 0x00;
-	readCmd[11] = 0x00;
-	readCmd[12] = 0x00;
-	readCmd[13] = 0x00;
-	readCmd[14] = 0x00;
-	readCmd[15] = 0x00;
-	readCmd[16] = 0x00;
-	readCmd[17] = 0x00;
-	readCmd[18] = 0x00;
-	readCmd[19] = 0x00;
-	readCmd[20] = 0x00;
-	readCmd[21] = 0x00;
-	readCmd[22] = 0x00;
-	readCmd[23] = 0x00;
-	readCmd[24] = 0x00;
-	readCmd[25] = 0x00;
-	readCmd[26] = 0x00;
-	readCmd[27] = 0x00;
+    readCmd[1] = 0x00;  // stat byte 1 (msb)
+    readCmd[2] = 0x00;  // stat byte 2
+    readCmd[3] = 0x00;  // stat byte 3
+    readCmd[4] = 0x00;  // ch1 byte 1
+    readCmd[5] = 0x00;  // ch1 byte 2
+    readCmd[6] = 0x00;  // ch1 byte 3
+    readCmd[7] = 0x00;  // ch2 byte 1
+    readCmd[8] = 0x00;  // ch2 byte 2
+    readCmd[9] = 0x00;  // ch2 byte 3
+    readCmd[10] = 0x00;  // ch3 byte 1
+	readCmd[11] = 0x00;  // ch3 byte 2
+	readCmd[12] = 0x00;  // ch3 byte 3
+	readCmd[13] = 0x00;  // ch4 byte 1
+	readCmd[14] = 0x00;  // ch4 byte 2
+	readCmd[15] = 0x00;  // ch4 byte 3
+	readCmd[16] = 0x00;  // ch5 byte 1
+	readCmd[17] = 0x00;  // ch5 byte 2
+	readCmd[18] = 0x00;  // ch5 byte 3
+	readCmd[19] = 0x00;  // ch6 byte 1
+	readCmd[20] = 0x00;  // ch6 byte 2
+	readCmd[21] = 0x00;  // ch6 byte 3
+	readCmd[22] = 0x00;  // ch7 byte 1
+	readCmd[23] = 0x00;  // ch7 byte 2
+	readCmd[24] = 0x00;  // ch7 byte 3
+	readCmd[25] = 0x00;  // ch8 byte 1
+	readCmd[26] = 0x00;  // ch8 byte 2
+	readCmd[27] = 0x00;  // ch8 byte 3
 
     ads1299->SetCS(0);
     ads1299->Transfer(readCmd, rx, 28);
     ads1299->SetCS(1);
 
-    //TODO Parsing channels data in `msg` or something
+    ads1299->sample.ch1 = ADS1299_RawValueToFloat(rx[4], rx[5], rx[6]);
+    ads1299->sample.ch2 = ADS1299_RawValueToFloat(rx[7], rx[8], rx[9]);
+    ads1299->sample.ch3 = ADS1299_RawValueToFloat(rx[10], rx[11], rx[12]);
+    ads1299->sample.ch4 = ADS1299_RawValueToFloat(rx[13], rx[14], rx[15]);
+    ads1299->sample.ch5 = ADS1299_RawValueToFloat(rx[16], rx[17], rx[18]);
+    ads1299->sample.ch6 = ADS1299_RawValueToFloat(rx[19], rx[20], rx[21]);
+    ads1299->sample.ch7 = ADS1299_RawValueToFloat(rx[22], rx[23], rx[24]);
+    ads1299->sample.ch8 = ADS1299_RawValueToFloat(rx[25], rx[26], rx[27]);
+}
 
-    return msg;
+float32_t ADS1299_RawValueToFloat(uint8_t msb, uint8_t middle, uint8_t lsb) {
+    uint32_t rawValue = ((uint32_t)msb << 16) | ((uint32_t)middle << 8) | lsb;
+
+    // convert to two's complement
+    int32_t signedValue = (int32_t)(rawValue << 8) >> 8;
+
+    // LOG_DBG("rawValue: %u, signedValue: %u, returnValue: %f",
+    //     rawValue,
+    //     signedValue,
+    //     (float32_t)signedValue * ADS1299_LSB_SIZE
+    // );
+    // Scale the signed value to float using LSB size
+    return (float32_t)signedValue * ADS1299_LSB_SIZE;
 }
 
 /*!
