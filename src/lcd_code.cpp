@@ -1,127 +1,160 @@
-#include <Adafruit_GFX.h>
-#include <Adafruit_ST7735.h>
-#include <SPI.h>
+#include "display_st7735r.h"
+#include <zephyr/device.h>
+#include <zephyr/drivers/spi.h>
+#include <zephyr/drivers/gpio.h>
+#include <zephyr/pm/device.h>
+#include <zephyr/sys/byteorder.h>
+#include <zephyr/drivers/display.h>
+#include <zephyr/logging/log.h>
+#include <stdio.h>
+#include <lvgl.h>
+LOG_MODULE_REGISTER(sample, LOG_LEVEL_INF);
 
-#include <iostream>  // Include standard C++ libraries
-#include <thread>    // Include C++ threading library for delays
+#include <zephyr/kernel.h>
+#include <zephyr/device.h>
+#include <zephyr/drivers/display.h>
 
-// Define pin numbers if needed
-#define BUTTON_UP_PIN  2
 
-#define TFT_CS     AK10
-#define TFT_RST    B14
-#define TFT_DC     B16
-#define TFT_MOSI   AK8
-#define TFT_MISO   AK12
-#define TFT_SCLK   AL13
+// Set text and background colour
+//uint16_t text_colour = 0x0000; //Black
+//uint16_t background_colour = 0xFFFF //White; 
 
-Adafruit_ST7735 tft(TFT_CS, TFT_DC, TFT_MOSI, TFT_SCLK, TFT_RST);
-// color definitions
+// set cursors
+//uint16_t x = 10;
+//uint16_t y = 10;
+
+void displayMessage()
+//void displayMessage(const char *message)
+{
+
+    const struct device *display_dev;
+    struct display_capabilities capabilities;
+
+    //display_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
+    display_dev = device_get_binding(DT_LABEL(DT_INST(0, sitronix_st7735r)));
+
+     if (display_dev == NULL) {
+        printk("Device not found\n");
+        return;
+    }
+
+    lv_obj_t *label = lv_label_create(lv_scr_act(), NULL); //ensure the acfive screen is being used for displaying
+    lv_label_set_text(label, message);  //create a text label
+    //lv_label_set_text(label, "Hello"); 
+    lv_obj_align(label, NULL, LV_ALIGN_CENTER, 0, 0);  // coordinates for placing text
+    lv_task_handler(); // continuously updates display based on changes in text...might need to be in a while loop?
+    display_blanking_off(display_dev); //keeps the screen on (no blanking)
+
+}
+
+
+void displayResults(){
+
+    const struct device *display_dev;
+    struct display_capabilities capabilities;
+
+    display_dev = device_get_binding(DT_LABEL(DT_INST(0, sitronix_st7735r)));
+
+     if (display_dev == NULL) {
+        printk("Device not found\n");
+        return;
+    }
+
+    std::ostringstream myString1;
+    myString1 << "Alpha: " << alphaPower;
+    std::string alphaResult = myString1.str();
+
+    std::ostringstream myString2;
+    myString2 << "Beta: " << betaPpower;
+    std::string betaResult = myString2.str();
+
+    std::ostringstream myString3;
+    myString3 << "Delta: " << deltaPower;
+    std::string deltaResult = myString3.str();
+
+    std::ostringstream myString4;
+    myString4 << "Theta: " << thetaPower;
+    std::string thetaResult = myString4.str();
+
+    lv_obj_t *label1 = lv_label_create(lv_scr_act(), NULL); //ensure the active screen is being used for displaying
+    lv_label_set_text(label, alphaResult); 
+    lv_obj_align(label1, NULL, LV_ALIGN_CENTER, 0, 0);  // coordinates for placing text
+    lv_task_handler(); // continuously updates display based on changes in text...might need to be in a while loop?
+    display_blanking_off(display_dev); //keeps the screen on (no blanking)
+
+    //need to add a delay before displaying other text
+    k_sleep(K_MSEC(4000));
+
+    lv_obj_t *label1 = lv_label_create(lv_scr_act(), NULL); //ensure the active screen is being used for displaying
+    lv_label_set_text(label, betaResult); 
+    lv_obj_align(label1, NULL, LV_ALIGN_CENTER, 0, 0);  // coordinates for placing text
+    lv_task_handler(); // continuously updates display based on changes in text...might need to be in a while loop?
+    display_blanking_off(display_dev); //keeps the screen on (no blanking)
+
+    k_sleep(K_MSEC(4000));
+
+    lv_obj_t *label1 = lv_label_create(lv_scr_act(), NULL); 
+    lv_label_set_text(label, deltaResult); 
+    lv_obj_align(label1, NULL, LV_ALIGN_CENTER, 0, 0);  
+    lv_task_handler(); 
+    display_blanking_off(display_dev); 
+
+    k_sleep(K_MSEC(4000));
+
+    lv_obj_t *label1 = lv_label_create(lv_scr_act(), NULL); 
+    lv_label_set_text(label, thetaResult); 
+    lv_obj_align(label1, NULL, LV_ALIGN_CENTER, 0, 0); 
+    lv_task_handler(); 
+    display_blanking_off(display_dev); 
+
+    k_sleep(K_MSEC(4000));
+
+}
+
+
+void main(void){
+    lv_init(); //initialize lvgl
+    lv_obj_t *screen = lv_obj_create(NULL, NULL); //create lvgl screen object
+    lv_scr_load(screen);             //makes the screen object the active screen on the display
+    //void displayMessage(const char *message);
+    void displayMessage();
+    void displayResults();
+}
+
+// "Welcome"
+// "Press to start recording EEG"
+// "Recording in progress...press again to cancel"
+// "ERROR"
+// "You have cancelled the session"
+// "Recording complete, analyzing data..."
+// "Data Analysis Complete"
+// "Your EEG is normal"
+// "Your EEG may be abnormal"
+
 /*
-const uint16_t  Display_Color_Black        = 0x0000;
-const uint16_t  Display_Color_Blue         = 0x001F;
-const uint16_t  Display_Color_Red          = 0xF800;
-const uint16_t  Display_Color_Green        = 0x07E0;
-const uint16_t  Display_Color_Cyan         = 0x07FF;
-const uint16_t  Display_Color_Magenta      = 0xF81F;
-const uint16_t  Display_Color_Yellow       = 0xFFE0;
-const uint16_t  Display_Color_White        = 0xFFFF;
-*/
 
-// The colors we actually want to use
-//uint16_t        Display_Text_Color         = Display_Color_Black;
-//uint16_t        Display_Backround_Color    = Display_Color_White;
-
-// assume the display is off until configured in setup()
-
-//bool            isDisplayVisible        = false;
-
-
-int main() {
-    setup();
-    while (true) {
-        loop();
-    }
-    return 0;
-}
-
-void setup() {
-    // Initialization code
-    //Serial.begin(9600);
-    pinMode(CS_PIN, OUTPUT);    // Chip select pin
-    pinMode(RST_PIN, OUTPUT);   // Reset pin
-    pinMode(DC_PIN, OUTPUT);    // Data/Command pin
-    pinMode(MOSI_PIN, OUTPUT);  // MOSI pin
-    pinMode(MISO_PIN, OUTPUT);  // MISO pin
-    pinMode(SCLK_PIN, OUTPUT);  // Clock pin 
-
-    //use this initializer if using a 0.96" 180x60 TFT:
-    tft.initR(INITR_MINI160x80);  // Init ST7735S mini display
-
-    // initialise the display
-    tft.setFont();
-    tft.fillScreen(ST7735_WHITE ST77XX_WHITE);
-    tft.setTextColor(ST7735_BLACK ST77XX_BLACK);
-    tft.setTextSize(1);
-
-    // the display is now on
-    //isDisplayVisible = true;
-
-    //Welcome Screen
-    tft.setCursor(10, 10); // Set cursor position
-    tft.println("Welcome");
-    // Wait for a delay
-    std::this_thread::sleep_for(std::chrono::seconds(3)); // Delay for 3 seconds
-
-    // Display menu selection
-    tft.fillScreen(ST7735_WHITE ST77XX_WHITE);
-    tft.println("Press to start recording EEG");
+    
    
+     
+    //st7735r_get_capabilities(display_dev, &capabilities);
+    //struct display_buffer_descriptor desc;
+    //st7735r_get_framebuffer(display_dev, &desc);
+    //write to display
+    //st7735r_write(display_dev, x, y, &desc, message);
+    
 
+    
+    static lv_disp_buf_t disp_buf;
+    static lv_color_t buf[LV_HOR_RES_MAX * 10];
+    lv_disp_buf_init(&disp_buf, buf, NULL, LV_HOR_RES_MAX * 10);
+    lv_disp_drv_t disp_drv;
+    lv_disp_drv_init(&disp_drv);
+    disp_drv.flush_cb = display_flush;
+    disp_drv.buffer = &disp_buf;
+    lv_disp_drv_register(&disp_drv);
 
+    lv_disp_buf_fill(&disp_buf, LV_COLOR_WHITE);
+
+    
 }
-
-void loop() {
-    //user starts recording
-    /*
-    if (digitalRead() == LOW){
-        tft.println("Recording in progress, press again to cancel...");
-    }
-    // user cancels recording
-    if (digitalRead() == HIGH){
-        tft.println("You have terminated the recording session");
-    }
-    if (digitalRead() == LOW){
-        tft.println("Error: ");
-    }
-    */
-   /*
-    if (button1 == 1){
-        tft.println("Recording in progress, press again to cancel...");
-    }
-    // user cancels recording
-    if (button1 == 2){
-        tft.println("You have terminated the recording session");
-    }
-    if (button1 == 3){
-        tft.println("Error: ");
-    }
-        tft.println("Recording Complete");
-        std::this_thread::sleep_for(std::chrono::seconds(3)); // Delay for 3 seconds
-        tft.fillScreen(Display_Backround_Color);
-        // if results are normal
-            tft.fillScreen(ST7735_GREEN ST77XX_GREEN);
-            tft.println("Your EEG is normal");
-        // if results are abnormal
-            tft.fillScreen(ST7735_YELLOW ST77XX_YELLOW);
-            tft.println("Your EEG may be abnormal...");
-
-    */
-   tft.println("Testing Display");
-
-}
-
-
-
-
-
+*/
