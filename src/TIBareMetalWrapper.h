@@ -19,6 +19,11 @@ private:
     static struct spi_config spi_cfg;
     static struct k_poll_signal spi_done_sig;
 
+    static uint8_t rx_buffer[rx_buf_len];
+    static bool is_adc_on;
+    static bool is_config_reg_continuous;
+    static uint8_t master_counter;
+
     static void DelayMs(uint32_t delay);
     static void DelayUs(uint32_t delay);
     static void Transfer(uint8_t tx[], uint8_t rx[], uint16_t len);
@@ -28,7 +33,8 @@ private:
     static void SetStart(uint8_t state);
     static void SetPWDN(uint8_t state);
     static void HandleDRDY(const device *dev, gpio_callback *cb, uint32_t pins);
-    static uint8_t master_counter;
+    static void ConfigSingleShotConversion();
+    static void ConfigContinuousConversion();
 
 public:
     TIBareMetalWrapper();
@@ -43,11 +49,13 @@ public:
     void Stop() override;
     void ReadData() override;
 
+    void RunPowerOnTest();    
     void CheckID();
     void CheckChannels();
     void CheckConfigRegs();
     void CheckBiasSensPReg();
     void CheckBiasSensNReg();
     void ReadOneSample();
+    void ReadContinuous();
     void TestLoopbackSlave();
 };

@@ -41,7 +41,9 @@
 #define ADS1299_CONFIG1_SETUP_16000      (0x90)    // 16 kSPS
 #define ADS1299_CONFIG2_SETUP_TEST       (0xD0)    // Test signals are generated internally
 #define ADS1299_CONFIG3_SETUP_REFBUF     (0xE0)    // Enable internal reference buffer
+#define ADS1299_CONFIG3_SETUP_REF_BIAS   (0xFA)    // Enable internal reference buffer and add bias sensing
 #define ADS1299_CONFIG3_SETUP_LOFF_STAT  (0x61)    // BIAS is not connected
+#define ADS1299_CONFIG4_SETUP_LOFF_C_DIS (0x00)    // Continuous conversion mode / Lead-Off comp disabled
 #define ADS1299_CONFIG4_SETUP_LOFF_C_EN  (0x02)    // Continuous conversion mode / Lead-Off comp enabled
 #define ADS1299_CONFIG4_SETUP_LOFF_S_EN  (0x0A)    // Single-shot mode / Lead-Off comp enabled
 #define ADS1299_CONFIG4_SETUP_LOFF_S_DIS (0x08)    // Single-shot mode / Lead-Off comp disabled
@@ -77,6 +79,10 @@
 #define ADS1299_CH_N_SET_SETUP_MUX_TEST  (0x05)    // Test signal
 #define ADS1299_CH_N_SET_SETUP_MUX_DRP   (0x06)    // BIAS_DRP
 #define ADS1299_CH_N_SET_SETUP_MUX_DRN   (0x07)    // BIAS_DRN
+#define ADS1299_BIAS_SENSX_ALL_ON		 (0xFF)    // Route all channels to bias derivation
+#define ADS1299_BIAS_SENSX_ALL_OFF		 (0x00)    // Route none channels to bias derivation
+#define ADS1299_LOFF_SENSX_ALL_ON  		 (0x00)    // Lead-off detection on
+#define ADS1299_LOFF_SENSX_ALL_OFF  	 (0xFF)    // Lead-off detection off
 #define ADS1299_LOFF_SENSP_SETUP_IN_1_2  (0x03)    // Lead-off detection on IN1P and IN2P
 #define ADS1299_LOFF_SENSN_SETUP_IN_1_2  (0x03)    // Lead-off detection on IN1N and IN2N
 

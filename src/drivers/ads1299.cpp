@@ -37,6 +37,9 @@ void ADS1299_Init(ads1299_t * ads1299)
     // Hard reset (After that we have 250 SPS)
     ADS1299_HardReset(ads1299);
 
+    // delay 18 Tclk, ~9us
+    ads1299->DelayUs(50);
+
     // Stop Read Data Continuously mode
     ADS1299_DisableContRead(ads1299);
 
@@ -102,7 +105,7 @@ void ADS1299_Reset(ads1299_t * ads1299)
     ads1299->SetCS(0);
     ads1299->Transfer(writeCmd, rx, 3);
     /* need to wait 18tclk after this command, which would be 9usec @ 2Mhz */
-    ads1299->DelayUs(10);
+    ads1299->DelayUs(12);                // (Datasheet, pg. 35)
     ads1299->SetCS(1);
 }
 
@@ -111,6 +114,7 @@ void ADS1299_Reset(ads1299_t * ads1299)
 */
 void ADS1299_WakeUp(ads1299_t * ads1299)
 {
+    // only allowed to send wakeup after sending standby
     uint8_t writeCmd[3] = {0};
     uint8_t rx[3] = {0};
 
@@ -121,6 +125,7 @@ void ADS1299_WakeUp(ads1299_t * ads1299)
     ads1299->SetCS(0);
     ads1299->Transfer(writeCmd, rx, 3);
     ads1299->SetCS(1);
+    ads1299->DelayUs(3);                // must wait 4 tclk (Datasheet, pg. 35)
 }
 
 /*!
@@ -183,7 +188,7 @@ void ADS1299_ReadAdc(ads1299_t * ads1299)
     uint8_t rx[28] = {0};
 
     readCmd[0] = ADS1299_RDATA_CMD;
-    readCmd[1] = 0x00;  // stat byte 1 (msb)
+    readCmd[1] = 0x00;  // stat byte 1 (msb) 1100 + LOFF_STATP + LOFF_STATN + GPIO[7:4]
     readCmd[2] = 0x00;  // stat byte 2
     readCmd[3] = 0x00;  // stat byte 3
     readCmd[4] = 0x00;  // ch1 byte 1
@@ -226,16 +231,18 @@ void ADS1299_ReadAdc(ads1299_t * ads1299)
 }
 
 float32_t ADS1299_RawValueToFloat(uint8_t msb, uint8_t middle, uint8_t lsb) {
-    uint32_t rawValue = ((uint32_t)msb << 16) | ((uint32_t)middle << 8) | lsb;
+    uint32_t rawValue = ((uint32_t)msb << 16) | ((uint32_t)middle << 8) | ((uint32_t)lsb);
 
     // convert to two's complement
     int32_t signedValue = (int32_t)(rawValue << 8) >> 8;
 
+    // If verbose:
     // LOG_DBG("rawValue: %u, signedValue: %u, returnValue: %f",
     //     rawValue,
     //     signedValue,
     //     (float32_t)signedValue * ADS1299_LSB_SIZE
     // );
+
     // Scale the signed value to float using LSB size
     return (float32_t)signedValue * ADS1299_LSB_SIZE;
 }
@@ -255,6 +262,7 @@ void ADS1299_EnableContRead(ads1299_t * ads1299)
     ads1299->SetCS(0);
     ads1299->Transfer(writeCmd, rx, 3);
     ads1299->SetCS(1);
+    ads1299->DelayUs(3);                // must wait 4 tclk (Datasheet, pg. 37)
 }
 
 /*!
@@ -272,6 +280,7 @@ void ADS1299_DisableContRead(ads1299_t * ads1299)
     ads1299->SetCS(0);
     ads1299->Transfer(writeCmd, rx, 3);
     ads1299->SetCS(1);
+    ads1299->DelayUs(3);                // must wait 4 tclk (Datasheet, pg. 37)
 }
 
 

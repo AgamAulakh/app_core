@@ -25,7 +25,7 @@ LOG_MODULE_REGISTER(eegals_app_core, LOG_LEVEL_DBG);
 
 static const struct pwm_dt_spec blue_pwm_led = PWM_DT_SPEC_GET(DT_ALIAS(blueled));
 
-#define LOG_DELAY_MS 2000
+#define LOG_DELAY_MS 250
 #define LED_PERIOD 1000
 #define LED_OFF 0
 #define LED_CHANNEL 0
