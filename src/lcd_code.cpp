@@ -1,3 +1,5 @@
+/* Modifications will be made based on how functions are being called by state_machine, other
+ code will likely need to be added to clear screen, etc., will modify after we make sure LCD is able to display something*/
 #include "display_st7735r.h"
 #include <zephyr/device.h>
 #include <zephyr/drivers/spi.h>
@@ -15,16 +17,9 @@ LOG_MODULE_REGISTER(sample, LOG_LEVEL_INF);
 #include <zephyr/drivers/display.h>
 
 
-// Set text and background colour
-//uint16_t text_colour = 0x0000; //Black
-//uint16_t background_colour = 0xFFFF //White; 
 
-// set cursors
-//uint16_t x = 10;
-//uint16_t y = 10;
 
-void displayMessage()
-//void displayMessage(const char *message)
+void displayMessage(const char *message)
 {
 
     const struct device *display_dev;
@@ -48,7 +43,7 @@ void displayMessage()
 }
 
 
-void displayResults(){
+void displayResults(float *alphaPower, float *betaPower, float *deltaPower, float *thetaPower){
 
     const struct device *display_dev;
     struct display_capabilities capabilities;
@@ -77,7 +72,7 @@ void displayResults(){
     std::string thetaResult = myString4.str();
 
     lv_obj_t *label1 = lv_label_create(lv_scr_act(), NULL); //ensure the active screen is being used for displaying
-    lv_label_set_text(label, alphaResult); 
+    lv_label_set_text(label1, alphaResult); 
     lv_obj_align(label1, NULL, LV_ALIGN_CENTER, 0, 0);  // coordinates for placing text
     lv_task_handler(); // continuously updates display based on changes in text...might need to be in a while loop?
     display_blanking_off(display_dev); //keeps the screen on (no blanking)
@@ -85,24 +80,24 @@ void displayResults(){
     //need to add a delay before displaying other text
     k_sleep(K_MSEC(4000));
 
-    lv_obj_t *label1 = lv_label_create(lv_scr_act(), NULL); //ensure the active screen is being used for displaying
-    lv_label_set_text(label, betaResult); 
-    lv_obj_align(label1, NULL, LV_ALIGN_CENTER, 0, 0);  // coordinates for placing text
-    lv_task_handler(); // continuously updates display based on changes in text...might need to be in a while loop?
-    display_blanking_off(display_dev); //keeps the screen on (no blanking)
-
-    k_sleep(K_MSEC(4000));
-
-    lv_obj_t *label1 = lv_label_create(lv_scr_act(), NULL); 
-    lv_label_set_text(label, deltaResult); 
+    //lv_obj_t *label1 = lv_label_create(lv_scr_act(), NULL); 
+    lv_label_set_text(label1, betaResult); 
     lv_obj_align(label1, NULL, LV_ALIGN_CENTER, 0, 0);  
     lv_task_handler(); 
     display_blanking_off(display_dev); 
 
     k_sleep(K_MSEC(4000));
 
-    lv_obj_t *label1 = lv_label_create(lv_scr_act(), NULL); 
-    lv_label_set_text(label, thetaResult); 
+    //lv_obj_t *label1 = lv_label_create(lv_scr_act(), NULL); 
+    lv_label_set_text(label1, deltaResult); 
+    lv_obj_align(label1, NULL, LV_ALIGN_CENTER, 0, 0);  
+    lv_task_handler(); 
+    display_blanking_off(display_dev); 
+
+    k_sleep(K_MSEC(4000));
+
+    //lv_obj_t *label1 = lv_label_create(lv_scr_act(), NULL); 
+    lv_label_set_text(label1, thetaResult); 
     lv_obj_align(label1, NULL, LV_ALIGN_CENTER, 0, 0); 
     lv_task_handler(); 
     display_blanking_off(display_dev); 
@@ -116,10 +111,8 @@ void main(void){
     lv_init(); //initialize lvgl
     lv_obj_t *screen = lv_obj_create(NULL, NULL); //create lvgl screen object
     lv_scr_load(screen);             //makes the screen object the active screen on the display
-    //void displayMessage(const char *message);
-    void displayMessage();
-    void displayResults();
 }
+/* Messages to Display, will be used in state machine code */
 
 // "Welcome"
 // "Press to start recording EEG"
@@ -130,6 +123,10 @@ void main(void){
 // "Data Analysis Complete"
 // "Your EEG is normal"
 // "Your EEG may be abnormal"
+
+
+
+// EXTRA CODE, IGNORE //
 
 /*
 
@@ -154,7 +151,14 @@ void main(void){
     lv_disp_drv_register(&disp_drv);
 
     lv_disp_buf_fill(&disp_buf, LV_COLOR_WHITE);
+    
+// Set text and background colour
+//uint16_t text_colour = 0x0000; //Black
+//uint16_t background_colour = 0xFFFF //White; 
 
+// set cursors
+//uint16_t x = 10;
+//uint16_t y = 10;
     
 }
 */
