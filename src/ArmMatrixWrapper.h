@@ -16,7 +16,8 @@
 // #else
 //#include "../../lisa_test_project/arm_math/DSP/Include/arm_math.h"
 // #endif
-#include <arm_math.h>
+#include "arm_math.h"
+#include "matrix_functions.h"
 
 template <uint32_t MaxRows, uint32_t MaxCols>
 class ArmMatrixWrapper {
