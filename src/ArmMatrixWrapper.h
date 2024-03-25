@@ -4,20 +4,7 @@
 #include <vector>
 #include <zephyr/sys/printk.h> 
 
-
-// #include "arm_math/DSP/Include/arm_math.h"
-// #include "v1.9.1/modules/hal/cmsis/CMSIS/DSP/Include/arm_math.h"
-
-//using namespace std;
-//#include "v1.9.1/modules/hal/cmsis/CMSIS/Core/Include/cmsis_compiler.h"
-//#include "../../lisa_test_project/arm_math/DSP/include/arm_math.h"
-// #if defined(LISA_TEST_PROJECT)
-// #include "../../lisa_test_project/arm_math/arm_math.h"
-// #else
-//#include "../../lisa_test_project/arm_math/DSP/Include/arm_math.h"
-// #endif
 #include "arm_math.h"
-#include "matrix_functions.h"
 
 template <uint32_t MaxRows, uint32_t MaxCols>
 class ArmMatrixWrapper {
@@ -109,7 +96,7 @@ public:
 
     void prettyPrint() {
 
-        printk("\nmatrix data:\n") ;
+        printk("\nmatrix data:\n");
         for (int row = 0; row < matrix.numRows; row++ ) { 
             for (int col = 0; col < matrix.numCols; col++ ) 
             { 
