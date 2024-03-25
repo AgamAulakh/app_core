@@ -12,6 +12,7 @@
 
 #include <stdlib.h>
 
+#include "lcd_handler.h"
 #include "arm_math.h"
 
 #define ASSERT_MSG_BUFFER_ALLOC_FAILED	"buffer allocation failed"
@@ -100,14 +101,11 @@ int main(void)
 	// disable_ram_and_wfi(&NRF_VMC->RAM[0].POWER,
 	// 		    &NRF_VMC->RAM[ARRAY_SIZE(NRF_VMC->RAM) - 1].POWER);
 
-	test_buffer_sigproc[0] = 1;
-	test_buffer_afe[0] = 1;
-
-	size_t fft_length = 100;
-	uint32_t fft_input[fft_length] = { 0 };
-	uint32_t fft_output[fft_length] = { 0 };
-
-	test_arm_rfft_f32_real(fft_input, fft_output, fft_length);
+    uint32_t count = 1;
+    while(1) {
+        LCDHandler::DisplayDefaultMessage(count);
+        k_msleep(100);
+    }
 
 	return 0;
 }
