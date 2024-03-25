@@ -1,21 +1,26 @@
 /* Modifications will be made based on how functions are being called by state_machine, other
  code will likely need to be added to clear screen, etc., will modify after we make sure LCD is able to display something*/
-#include "lcd_handler.h"
+#include "HDIThread.h"
 LOG_MODULE_REGISTER(sample, LOG_LEVEL_INF);
+K_THREAD_STACK_DEFINE(hdi_stack_area, HDI_THREAD_STACK_SIZE_B);
+struct k_thread hdi_thread_data;
 
-
-const device* LCDHandler::spi_dev = static_cast<const device*>(DEVICE_DT_GET(LCD_SPI));
-const device* LCDHandler::display = static_cast<const device*>(DEVICE_DT_GET(DT_CHOSEN(zephyr_display)));
-spi_config LCDHandler::spi_cfg = {
+// static fields
+const device* HDIThread::spi_dev = static_cast<const device*>(DEVICE_DT_GET(LCD_SPI));
+const device* HDIThread::display = static_cast<const device*>(DEVICE_DT_GET(DT_CHOSEN(zephyr_display)));
+spi_config HDIThread::spi_cfg = {
     .frequency = LCD_SPI_FREQUENCY_hZ,
     .operation = SPI_WORD_SET(8) | SPI_TRANSFER_MSB | SPI_MODE_CPOL | SPI_MODE_CPHA,
     .slave = 0,
     .cs = {.gpio = LCD_SPI_CS_DT_SPEC, .delay = 0},
 };
-k_poll_signal LCDHandler::spi_done_sig = K_POLL_SIGNAL_INITIALIZER(spi_done_sig);
-lv_obj_t* LCDHandler::screen = lv_obj_create(NULL);
+k_poll_signal HDIThread::spi_done_sig = K_POLL_SIGNAL_INITIALIZER(spi_done_sig);
+lv_obj_t* HDIThread::screen = lv_obj_create(NULL);
+uint32_t HDIThread::count = 0;
+int HDIThread::dev_state = 0;
+float HDIThread::power[4] = {0};
 
-LCDHandler::LCDHandler() {
+HDIThread::HDIThread() {
     lv_init();  //initialize lvgl
     lv_scr_load(screen); //makes the screen object the active screen on the display
 
@@ -30,10 +35,58 @@ LCDHandler::LCDHandler() {
     if(!device_is_ready(spim_cs_gpio.port)) {
         LOG_ERR("LCD chip select not ready");
     }
-
 };
 
-void LCDHandler::DisplayDefaultMessage(uint32_t count) {
+void HDIThread::Initialize() {
+    LOG_DBG("HDI::%s -- initializing HDI", __FUNCTION__);
+
+    if (id == nullptr) {
+        LOG_DBG("HDI::%s -- making thread", __FUNCTION__);
+        id = k_thread_create(
+            &hdi_thread_data, hdi_stack_area,
+            K_THREAD_STACK_SIZEOF(hdi_stack_area),
+            HDIThread::RunThreadSequence,
+            this, NULL, NULL,
+            HDI_THREAD_PRIORITY, 0, K_NO_WAIT
+        );
+
+        k_thread_name_set(id, "HDIThread");
+        LOG_DBG("HDI::%s -- thread create successful", __FUNCTION__);
+    }
+};
+
+void HDIThread::Run() {
+    uint8_t message = 0;
+    while (true) {
+        if (message_queue.get_with_blocking_wait(message)) {
+            uint8_t message_enum = static_cast<HDIThreadMessage>(message);
+		    LOG_DBG("HDI::%s -- received message: %u at: %u ms", __FUNCTION__, message_enum, k_uptime_get_32());
+            switch (message_enum) {
+                case DISPLAY_RESULTS:
+                    break;
+                case DISPLAY_ERROR:
+                    break;
+                case DISPLAY_STARTUP:
+                    break;
+                case DISPLAY_INSTRUCTIONS:
+                    break;
+                case DISPLAY_RESET:
+                    break;
+                case DISPLAY_BATTERY:
+                    break;
+                case DISPLAY_HELLO_WORLD:
+                    DisplayDefaultMessage();
+                    break;
+                case INVALID:
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+};
+
+void HDIThread::DisplayDefaultMessage() {
 	char count_str[11] = {0};
 	lv_obj_t *hello_world_label;
 	lv_obj_t *count_label;
@@ -54,7 +107,7 @@ void LCDHandler::DisplayDefaultMessage(uint32_t count) {
     lv_task_handler();
 };
 
-void LCDHandler::DisplayMessage(const char* message) {
+void HDIThread::DisplayMessage(const char* message) {
 
     const struct device *display_dev;
     struct display_capabilities capabilities;
@@ -74,7 +127,7 @@ void LCDHandler::DisplayMessage(const char* message) {
 };
 
 
-void LCDHandler::DisplayResults(float *alphaPower, float *betaPower, float *deltaPower, float *thetaPower){
+void HDIThread::DisplayResults(float *alphaPower, float *betaPower, float *deltaPower, float *thetaPower){
 
     // const struct device *display_dev;
     // struct display_capabilities capabilities;
