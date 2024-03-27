@@ -1,3 +1,4 @@
+#include <arm_math_types.h>
 
 #define RAW_SAMPLE_NUMBER 1024
 
