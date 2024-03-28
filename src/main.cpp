@@ -9,6 +9,7 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/logging/log_ctrl.h>
 #include <StateMachineThread.h>
+#include <HIDThread.h>
 #include <zephyr/init.h>
 #include <nrf.h>
 #include <nrfx.h>
@@ -41,6 +42,7 @@ int main(void)
 	LOG_INF("Hello world from %s", CONFIG_BOARD);
 
 	StateMachineThread::GetInstance().Initialize();
+    HIDThread::GetInstance().Initialize();
 
 	DataAcquisitionThread::GetInstance().Initialize();
 	SignalProcessingThread::GetInstance().Initialize();

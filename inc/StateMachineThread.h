@@ -4,7 +4,7 @@
 #include <zephyr/logging/log.h>
 #include "core/Thread.h"
 
-#define STATE_MACHINE_THREAD_STACK_SIZE 1028
+#define STATE_MACHINE_THREAD_STACK_SIZE 2048
 #define STATE_MACHINE_THREAD_PRIORITY 3
 #define STATE_MACHINE_THREAD_MSG_Q_DEPTH 0
 
