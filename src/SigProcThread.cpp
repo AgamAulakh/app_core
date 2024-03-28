@@ -41,7 +41,7 @@ void SigProcThread::Run() {
                     ComputeSingleSidePower();
                     break;
                 case COMPUTE_BANDPOWER_RESULTS:
-                    ComputeBandPowers(DELTA);
+                    ComputeBandPowers(PowerBands::DELTA);
                     break;
                 case COMPUTE_RELATIVEPOWER_RESULTS:
                     ComputeRelativeBandPowers();
@@ -66,10 +66,10 @@ void SigProcThread::TestValuesWooHoo()
 void SigProcThread::ComputeSingleSideFFT()
 {
     printk("\nPrint single-sided FFT results:\n");
-    for (int i = 0; i < CHANNELS; i++) 
+    for (int i = 0; i < 1; i++) 
     {
          // Compute the singeSideFFT for all channels
-        channelFFTResults[i] = allChannels.singleSideFFT(i);
+        channelFFTResults.emplace_back(allChannels.singleSideFFT(i));
 
         channelFFTResults[i].prettyPrint();
     }
@@ -81,7 +81,7 @@ void SigProcThread::ComputeSingleSidePower()
     for (int i = 0; i < CHANNELS; i++) 
     {
         // Compute the singleSidePower for all channels
-        channelPowerResults[i] = allChannels.singleSidePower(i);
+        channelPowerResults.emplace_back(allChannels.singleSidePower(i));
      
         channelPowerResults[i].prettyPrint();
 
@@ -89,7 +89,7 @@ void SigProcThread::ComputeSingleSidePower()
     
 }
 
-void SigProcThread::ComputeBandPowers(uint8_t powerBand)
+void SigProcThread::ComputeBandPowers(const PowerBands powerBand)
 {
     uint8_t powerBand_enum = static_cast<PowerBands>(powerBand);
     // Computation of bandpowers

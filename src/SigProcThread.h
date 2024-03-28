@@ -23,11 +23,12 @@
 #define SAMPLE_FREQ 250 
 #define CHANNELS_TEST 1 // Just for testing one channel 
 #define BANDS 4
+#define CHANNELS 1
 
 using namespace std; 
-int processed_sample_number = 512;
-uint32_t channels_test = 1;
 
+
+/// @brief 
 class SigProcThread : public Thread<SIG_PROC_THREAD_MSG_Q_DEPTH> {
 private:
     // TIFrontEndWrapper AFEWrapper;
@@ -44,16 +45,17 @@ private:
     ArmMatrixWrapper<512, 8> allChannels;
 
     // Array of FFT results of all 8 channels
-    vector< ArmMatrixWrapper<512, 1> > channelFFTResults{1};
+    vector<ArmMatrixWrapper<256, 1>> channelFFTResults;
   
     // Array of Power spectrum of all 8 channels 
-    vector< ArmMatrixWrapper<512, 1> > channelPowerResults{1};
+    vector< ArmMatrixWrapper<256, 1> > channelPowerResults;
    
+    vector<float32_t> bandPowers = vector<float32_t>(4);
     // Array of channels where each channel has 4 elements for 4 bandpowers
-    vector<vector<float32_t>> channelBandPowers{channels_test, std::vector<float32_t>(4)};
+    vector<vector<float32_t>> channelBandPowers = vector<vector<float32_t>>(1, bandPowers);
 
     // Array of channels where each channel has 4 elements for 4 bandpowers
-    vector<vector<float32_t>> channelRelativeBandPowers{channels_test, std::vector<float32_t>(4)};
+    vector<vector<float32_t>> channelRelativeBandPowers = vector<vector<float32_t> >(1, bandPowers);
  
 
 public:
@@ -77,7 +79,7 @@ public:
     
     void ComputeSingleSideFFT();
     void ComputeSingleSidePower();
-    void ComputeBandPowers();
+    void ComputeBandPowers(const PowerBands powerBand);
     void ComputeRelativeBandPowers();
 
     void TestValuesWooHoo();
