@@ -8,12 +8,20 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/init.h>
 #include <nrf.h>
-#include <nrfx.h>
 
 #include <stdlib.h>
 
 #include "HDIThread.h"
 #include "arm_math.h"
+
+#include <zephyr/device.h>
+#include <zephyr/devicetree.h>
+#include <zephyr/drivers/display.h>
+#include <lvgl.h>
+#include <stdio.h>
+#include <string.h>
+#include <zephyr/kernel.h>
+
 
 int main(void)
 {

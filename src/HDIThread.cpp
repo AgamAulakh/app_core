@@ -1,7 +1,7 @@
 /* Modifications will be made based on how functions are being called by state_machine, other
  code will likely need to be added to clear screen, etc., will modify after we make sure LCD is able to display something*/
 #include "HDIThread.h"
-LOG_MODULE_REGISTER(sample, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(HDI_Thread, LOG_LEVEL_DBG);
 K_THREAD_STACK_DEFINE(hdi_stack_area, HDI_THREAD_STACK_SIZE_B);
 struct k_thread hdi_thread_data;
 
@@ -120,7 +120,7 @@ void HDIThread::DisplayMessage(const char* message) {
     lv_label_set_text(label, message);  //create a text label
 
     //lv_label_set_text(label, "Hello"); 
-    lv_obj_align(label, NULL, 0, 0);  // coordinates for placing text
+    lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);  // coordinates for placing text
     lv_task_handler(); // continuously updates display based on changes in text...might need to be in a while loop?
 
     display_blanking_off(display_dev); //keeps the screen on (no blanking)

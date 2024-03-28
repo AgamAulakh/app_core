@@ -17,34 +17,7 @@
 #include <zephyr/dt-bindings/spi/spi.h>
 #include <zephyr/dt-bindings/gpio/gpio.h>
 
-
 &pinctrl {
-    pwm0_default: pwm0_default {
-        group1 {
-            psels = <NRF_PSEL(PWM_OUT0, 0, 3)>,   // Channel 0, green line, pin 3 
-                    <NRF_PSEL(PWM_OUT1, 0, 4)>,   // Channel 1, blue line, pin 4
-                    <NRF_PSEL(PWM_OUT2, 0, 5)>;   // Channel 2, red line, pin 5
-            nordic,invert;
-        };
-    };
-
-    afe_spi_default: afe_spi_default {
-        group1 {
-            psels = <NRF_PSEL(SPIM_MISO, 0, 10)>,
-                    <NRF_PSEL(SPIM_MOSI, 0, 9)>,
-                    <NRF_PSEL(SPIM_SCK, 0, 8)>;
-        };
-    };
-
-    afe_spi_sleep: afe_spi_sleep {
-        group1 {
-            psels = <NRF_PSEL(SPIM_MISO, 0, 10)>,
-                    <NRF_PSEL(SPIM_MOSI, 0, 9)>,
-                    <NRF_PSEL(SPIM_SCK, 0, 8)>;
-            low-power-enable;
-        };
-    };
-
     lcd_spi_default: lcd_spi_default {
         group1 {
             psels = <NRF_PSEL(SPIM_MISO, 0, 17)>,
@@ -63,131 +36,41 @@
 };
 
 / {
-    aliases {
-        pwm-led0 = &fake_led;
-        greenled = &green_pwm_led; // 0.03
-        blueled = &blue_pwm_led; // 0.04
-        redled = &red_pwm_led; // 0.05
-        databutton = &button_data_en; // 1.00
-        afespi = &spi0;
-        lcdspi = &spi1;
-    };
-
     chosen {
         zephyr,display = &lcd;
     };
-
-    pwmleds {
-        compatible = "pwm-leds";
-
-        // pwm0 Ch dont care
-        fake_led: fake {
-            pwms = <&pwm0 5 15625000 PWM_POLARITY_NORMAL>;
-        };
-        // pwm0 Ch 0
-        green_pwm_led: green_pwm {
-            pwms = <&pwm0 0 15625000 PWM_POLARITY_NORMAL>;
-        };
-        // pwm0 Ch 1
-        blue_pwm_led: blue_pwm {
-            pwms = <&pwm0 1 15625000 PWM_POLARITY_NORMAL>;
-        };
-        // pwm0 Ch 2
-        red_pwm_led: red_pwm {
-            pwms = <&pwm0 2 15625000 PWM_POLARITY_NORMAL>;
-        };
-    };
-    
-    buttons {
-        compatible = "gpio-keys";
-        button_data_en: data_en {
-            gpios = <&gpio1 0 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
-            label = "Data Enable Button";
-            zephyr,code = <INPUT_KEY_0>;
-        };
-    };
-
-    zephyr,user {
-        afereset-gpios = <&gpio0 13 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
-        afereset-label = "AFE Reset";
-        afeindicator-gpios = <&gpio0 2 0>;
-        afeindicator-label = "AFE Indicator LED";
-    };
 };
-
-/delete-node/ &pwm_led0;
-/delete-node/ &{/pin-controller/pwm0_sleep/group1/};
-
-&pwm0_default {
-    group1 {
-        psels = <NRF_PSEL(PWM_OUT2, 0, 5)>;
-    };
-    group2 {
-        psels = <NRF_PSEL(PWM_OUT0, 1, 3)>, <NRF_PSEL(PWM_OUT1, 0, 4)>, <NRF_PSEL(PWM_OUT2, 0, 5)>;
-    };
-};
-
-// afe_spi: &spi4 {
-// 	compatible = "nordic,nrf-spim";
-// 	status = "okay";
-// 	pinctrl-0 = <&afe_spi_default>;
-// 	pinctrl-1 = <&afe_spi_sleep>;
-// 	pinctrl-names = "default", "sleep";
-//     cs-gpios = <&gpio1 8 (GPIO_ACTIVE_LOW)>;
-// 	reg_afe_spi:  spi-dev-a@0 {
-// 		reg = <0>;
-// 	};
-// };
 
 lcd_spi: &spi1 {
-	compatible = "nordic,nrf-spim";
+	// compatible = "nordic,nrf-spim";
 	status = "okay";
 	pinctrl-0 = <&lcd_spi_default>;
     pinctrl-1 = <&lcd_spi_sleep>;
 	pinctrl-names = "default", "sleep";
     cs-gpios = <&gpio0 15 (GPIO_ACTIVE_LOW)>;
-    reg_lcd_spi:  spi-dev-a@0 {
-		reg = <0>;
-	};
 
     lcd: st7735r@0 {
         compatible = "sitronix,st7735r";
-        reg = <0x0>;
-        cmd-data-gpios = < &gpio1 14 GPIO_ACTIVE_LOW >;
-        reset-gpios = < &gpio1 15 GPIO_ACTIVE_LOW >;
-        x-offset = <0>;
-        y-offset = <0>;
-        gamctrp1 = [  ];
-        gamctrn1 = [  ];
-        spi-max-frequency = <2000000>;
-        height = <80>;
-        width = <160>;
+		spi-max-frequency = <20000000>;
+		reg = <0>;
+		cmd-data-gpios = <&gpio1 14 GPIO_ACTIVE_LOW>;	/* D9 */
+		reset-gpios = <&gpio1 15 GPIO_ACTIVE_LOW>;	/* D8 */
+		width = <160>;
+		height = <128>;
+		x-offset = <0>;
+		y-offset = <0>;
+		madctl = <0x60>;
+		colmod = <0x55>;
+		vmctr1 = <0x0e>;
+		pwctr1 = [a2 02 84];
+		pwctr2 = [c5];
+		pwctr3 = [0a 00];
+		pwctr4 = [8a 2a];
+		pwctr5 = [8a ee];
+		frmctr1 = [01 2c 2d];
+		frmctr2 = [01 2c 2d];
+		frmctr3 = [01 2c 2d 01 2c 2d];
+		gamctrp1 = [02 1c 07 12 37 32 29 2d 29 25 2b 39 00 01 03 10];
+		gamctrn1 = [03 1d 07 06 2e 2c 29 2d 2e 2e 37 3f 00 00 02 10];
     };
-};
-
-&i2c1_default {
-    group1 {
-        psels = <NRF_PSEL(TWIM_SDA, 1, 2)>;
-    };
-};
-
-&i2c1_sleep {
-    group1 {
-        psels = <NRF_PSEL(TWIM_SDA, 1, 2)>;
-    };
-};
-&gpio_fwd {
-    uart {
-        status = "disabled";
-        /delete-property/ nfct-pins-as-gpios;
-    };
-};
-&uart0 {
-    status = "disabled";
-};
-&qspi {
-    status = "disabled";
-};
-&gpiote {
-    status = "okay";
 };
