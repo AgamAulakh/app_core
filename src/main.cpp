@@ -9,6 +9,7 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/logging/log_ctrl.h>
 #include <StateMachineThread.h>
+#include <HIDThread.h>
 #include <zephyr/init.h>
 
 extern "C" {
@@ -27,11 +28,15 @@ LOG_MODULE_REGISTER(app_core_main, LOG_LEVEL_INF);
 
 int main(void)
 {
-	LOG_INF("Hello world from %s", CONFIG_BOARD);
+	LOG_INF("Hello world");
 
 	StateMachineThread::GetInstance().Initialize();
+    HIDThread::GetInstance().Initialize();
 
 	while(1) {
+        // HIDThread::GetInstance().SendMessage(
+        //     HIDThread::DISPLAY_HELLO_WORLD
+        // );
 		LOG_DBG("main thread up time: %u ms", k_uptime_get_32());
 		k_msleep(LOG_DELAY_MS);
 	}

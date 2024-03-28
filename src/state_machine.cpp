@@ -1,6 +1,7 @@
 #include <zephyr/smf.h>
 #include <state_machine.h>
 #include <led_handler.h>
+#include <lcd_handler.h>
 
 LOG_MODULE_REGISTER(state_machine, LOG_LEVEL_DBG);
 
@@ -54,6 +55,7 @@ void StateMachine::idle_run(void *obj) {
 void StateMachine::test_entry(void *obj) {
     LOG_DBG("test entry state");
     LED1::set_yellow();
+    LCD::display_testing();
 };
 
 void StateMachine::test_run(void *obj) {
