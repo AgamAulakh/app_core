@@ -363,7 +363,8 @@ void SigProcThread::Run() {
 		    LOG_DBG("SigProc::%s -- received message: %u at: %u ms", __FUNCTION__, message_enum, k_uptime_get_32());
             switch (message_enum) {
                 case COMPUTE_FFT_RESULTS:
-                    ComputeSingleSideFFT();
+					TestValuesWooHoo();
+                    //ComputeSingleSideFFT();
                     break;
                 case COMPUTE_POWER_RESULTS:
                     ComputeSingleSidePower();
@@ -386,20 +387,22 @@ void SigProcThread::Run() {
 void SigProcThread::TestValuesWooHoo()
 {
     printk("\nFilling up allChannels with sample data Woo Hoo\n");
-    for (int i = 0; i < RAW_SAMPLE_NUMBER; i++) {
-        allChannels.set_at(inputSignal[i], i, 1);
-    }
+	allChannels.testPrint();
+    //for (int i = 0; i < RAW_SAMPLE_NUMBER; i++) {
+      //  allChannels.set_at(inputSignal[i], i, 1);
+    //}
 }
 
 void SigProcThread::ComputeSingleSideFFT()
 {
     printk("\nPrint single-sided FFT results:\n");
+
     for (int i = 0; i < 1; i++) 
     {
-         // Compute the singeSideFFT for all channels
-        channelFFTResults.emplace_back(allChannels.singleSideFFT(i));
-
-        channelFFTResults[i].prettyPrint();
+        // Compute the singeSideFFT for all channels
+		allChannels.testPrint();
+		//channelFFTResults.emplace_back(allChannels.singleSideFFT(i));
+        //channelFFTResults[i].prettyPrint();
     }
 }
 

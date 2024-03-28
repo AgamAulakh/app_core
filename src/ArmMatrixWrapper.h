@@ -105,7 +105,11 @@ public:
         } 
         printk("\n");
 
-    }
+    };
+
+    void testPrint() {
+        printk("Hello World!\n");
+    };
 
     bool set_at(float32_t value, uint32_t i, uint32_t j) {
         if (i < matrix.numRows && j < matrix.numCols) {

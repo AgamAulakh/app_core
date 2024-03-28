@@ -13,7 +13,7 @@
 #include "core/Thread.h"
 
 
-#define SIG_PROC_THREAD_STACK_SIZE_B 4096
+#define SIG_PROC_THREAD_STACK_SIZE_B 8192
 #define SIG_PROC_THREAD_PRIORITY 3 // max based on prj config
 #define SIG_PROC_THREAD_MSG_Q_DEPTH 100
 
