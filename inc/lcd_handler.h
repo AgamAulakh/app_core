@@ -8,7 +8,11 @@
 #include <zephyr/logging/log.h>
 
 namespace LCD {
+    void display_init();
     void display_testing();
+    void display_processing();
+    void display_complete(float *alphaPower, float *betaPower, float *deltaPower, float *thetaPower);
+    void display_cancel();
 };
 
 void lcd_init();

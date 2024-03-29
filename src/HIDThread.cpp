@@ -29,7 +29,7 @@ void HIDThread::Initialize() {
 };
 
 void HIDThread::Run() {
-    lcd_init();
+    // lcd_init();
 };
 
 
