@@ -7,7 +7,6 @@ struct k_thread data_acq_thread_data;
 DataAcquisitionThread::DataAcquisitionThread() : AFEWrapper() {
     // set up data manager to listen to AFE
     // DataBufferManager::spi_dma_setup(spi_dev);
-
 }
 
 void DataAcquisitionThread::Initialize() {
@@ -35,28 +34,41 @@ void DataAcquisitionThread::Run() {
     while (true) {
         if (message_queue.get_with_blocking_wait(message)) {
             uint8_t message_enum = static_cast<DataAcquisitionThreadMessage>(message);
-		    LOG_DBG("DataAcq::%s -- received message: %u at: %u ms", __FUNCTION__, message_enum, k_uptime_get_32());
+		    LOG_DBG("DataAcq::%s -- received message: %u at: %u ms",
+                __FUNCTION__,
+                message_enum,
+                k_uptime_get_32()
+            );
             switch (message_enum) {
                 case STOP_READING_AFE:
-                    // AFEWrapper.Stop();
+                    AFEWrapper.Stop();
                     break;
-                case START_READING_AFE_CONTINUOUS:
+                case START_READING_AFE:
+                    AFEWrapper.Start();
+                    break;
+                case READ_AFE_DEFAULT_EPOCH:
+                    AFEWrapper.ReadContinuous();
                     break;
                 case READ_AFE_SAMPLE:
                     AFEWrapper.ReadOneSample();
                     break;
                 case RESET_AFE:
+                    LOG_DBG("DataAcq::%s dangerous request, ignoring reset command", __FUNCTION__);
                     break;
                 case CHECK_AFE_REGISTERS:
-                    AFEWrapper.CheckID();
-                    AFEWrapper.CheckConfigRegs();
-                    AFEWrapper.CheckChannels();
+                    AFEWrapper.CheckAllRegisters();
                     break;
                 case RUN_INPUT_SHORT_TEST:
                     AFEWrapper.RunInputShortTest();
+                    // because test takes ~2 seconds to run asyncronously, sleep before changing registers
+                    k_msleep(2000);
+                    AFEWrapper.SetDefaultRegisters();
                     break;
                 case RUN_INTERNAL_SQUARE_WAVE_TEST:
                     AFEWrapper.RunInternalSquareWaveTest();
+                    // because test takes ~2 seconds to run asyncronously, sleep before changing registers
+                    k_msleep(2000);
+                    AFEWrapper.SetDefaultRegisters();
                     break;
                 case INVALID:
                     break;

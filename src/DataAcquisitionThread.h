@@ -9,8 +9,6 @@
 #define DATA_ACQ_THREAD_PRIORITY 4 // max based on prj config
 #define DATA_ACQ_THREAD_MSG_Q_DEPTH 10
 
-// #define AFE_RST_PIN DT_GPIO_PIN(AFE_RESET, gpios)
-
 class DataAcquisitionThread : public Thread<DATA_ACQ_THREAD_MSG_Q_DEPTH> {
 private:
     // TIFrontEndWrapper AFEWrapper;
@@ -26,7 +24,8 @@ private:
 public:
     enum DataAcquisitionThreadMessage : uint8_t {
         STOP_READING_AFE = 0,
-        START_READING_AFE_CONTINUOUS,
+        START_READING_AFE,
+        READ_AFE_DEFAULT_EPOCH,
         READ_AFE_SAMPLE,
         RESET_AFE,
         CHECK_AFE_REGISTERS,

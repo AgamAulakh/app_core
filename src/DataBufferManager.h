@@ -3,42 +3,37 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/sem.h>
 #include <zephyr/device.h>
-#include <zephyr/drivers/dma.h>
-#include <zephyr/drivers/spi.h>
 #include <zephyr/logging/log.h>
-#include "Data.h"
+#include <zephyr/sys/ring_buffer.h>
+#include "drivers/ads1299.h"
 #include "core/Semaphore.h"
+#include "ArmMatrixWrapper.h"
+#include "Data.h"
 
-#define AFE_DMA_CHANNEL 0
-#define AFE_DMA_BURST_NUM_SAMPLES 5
-#define AFE_DMA_BLOCK_SIZE 256
-
-namespace cool {
-    void foo();
-};
+constexpr uint16_t max_samples_ring_buffer = 2048;
+constexpr size_t sample_size_B = sizeof(sample_t);
+constexpr size_t total_size_ring_buffer_B = max_samples_ring_buffer * sample_size_B;
 
 class DataBufferManager {
 // NOTE: needs to be fully static, only one instance should exist
 private:
-    static struct device* dma_dev;
-    static struct dma_config dma_cfg;
-    static struct dma_block_config dma_block_cfg;
-    // note: each afe sample is 15 bytes, burst size is 5, so max usage is 15 * 5 = 75
-    static uint8_t source_buffer[AFE_DMA_BLOCK_SIZE];
-
-    //// TODO: use this instead
-    // static Semaphore eeg_buffer_semaphore;
-    // static eeg_sample dma_buffer[max_samples];
-    // static size_t buffer_index;
-
+    static struct ring_buf buffer;
+    static sample_t data_buffer[max_samples_ring_buffer];
+    
+    // can't read one sample at a time
+    static bool ReadOneSample(sample_t&);
 public:
-    static void Read();
-    static void Write();
-    static void DMASetup(device* spi_dev);
-    static void DMATransfer(const struct device *dev, void *user_data, uint32_t channel, int status);
+    DataBufferManager();
+    ~DataBufferManager() = default;
 
-    // inline function to be used in callback
-    static void ResetBuffer() {
-        memset(source_buffer, 0, sizeof(source_buffer));
-    };
+    static Semaphore buffer_lock;
+
+    // ring functionality
+    static bool WriteOneSample(const sample_t&);
+    static void ReadEpoch(ArmMatrixWrapper<num_electrodes, num_samples_per_epoch> &mat);
+    // helpers
+    static bool IsEmpty();
+    static size_t GetFreeSpace();
+    static size_t GetUsedSpace();
+    static void ResetBuffer();
 };

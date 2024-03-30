@@ -1,6 +1,7 @@
 #pragma once
 
 #include <zephyr/sys/util.h>
+#include <zephyr/drivers/gpio.h>
 #include <devicetree_generated.h>
 #include "AnalogFrontEndWrapper.h"
 #include "DataBufferManager.h"
@@ -21,9 +22,8 @@ private:
     static struct spi_config spi_cfg;
     static struct k_poll_signal spi_done_sig;
 
-    static uint8_t tx_buffer[rx_buf_len];
-    static uint8_t rx_buffer[rx_buf_len];
     static bool is_adc_on;
+    static bool is_test_on;
     static uint8_t master_counter;
 
     // experimental
@@ -38,7 +38,8 @@ private:
     static void SetReset(uint8_t state);
     static void SetStart(uint8_t state);
     static void SetPWDN(uint8_t state);
-    static void HandleDRDY(const device *dev, gpio_callback *cb, uint32_t pins);
+    static void HandleDRDYForOneEpoch(const device *dev, gpio_callback *cb, uint32_t pins);
+    static void HandleDRDYForFullTest(const device *dev, gpio_callback *cb, uint32_t pins);
 
     static void StartADC();
     static void StopADC();
@@ -58,20 +59,25 @@ public:
     void Stop() override;
     void ReadData() override;
 
+    static void SetDefaultRegisters();    
     static void RunInputShortTest();    
-    static void RunInternalSquareWaveTest();    
+    static void RunInternalSquareWaveTest(); 
+    static void CheckAllRegisters();   
     static void CheckID();
     static void CheckChannels();
     static void CheckConfigRegs();
     static void CheckBiasSensPReg();
     static void CheckBiasSensNReg();
+    static void CheckLoffSensPState();
+    static void CheckLoffSensNState();
+    static void CheckLoffFlipState();
     static void ReadOneSample();
     static void ReadContinuous();
     static void PrintCurrentSample();
     static void TestLoopbackSlave();
 
-
     // experimental
-    static void DMAWorkHandler(struct k_work *item);
-    static void DMACleanUpHandler(struct k_work *item);
+    static void DMATestHandler(struct k_work *item);
+    static void DMAEpochHandler(struct k_work *item);
+    static void DMAStopHandler(struct k_work *item);
 };

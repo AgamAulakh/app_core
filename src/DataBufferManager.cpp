@@ -2,64 +2,68 @@
 // log level declaration
 LOG_MODULE_REGISTER(data_buffer_manager, LOG_LEVEL_DBG);
 
-void cool::foo() {
-    int i = 0;
-    i++;
+ring_buf DataBufferManager::buffer;
+sample_t DataBufferManager::data_buffer[max_samples_ring_buffer] = {0};
+Semaphore DataBufferManager::buffer_lock = Semaphore();
+
+DataBufferManager::DataBufferManager(){
+    ring_buf_init(&buffer, total_size_ring_buffer_B, reinterpret_cast<uint8_t*>(data_buffer));
+}
+
+// ring functionality
+bool DataBufferManager::WriteOneSample(const sample_t &sample) {
+    uint32_t samples_written_B = ring_buf_put(&buffer,
+        const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(&sample)),
+        sample_size_B
+    ) == sample_size_B;
+
+    LOG_INF("DataBufferManager::%s bytes used: %u", __FUNCTION__, samples_written_B);
+
+    if ((samples_written_B / sample_size_B) == num_samples_per_epoch) {
+        // collected one full epoch, signal to data acq and sig proc thread
+        // DATABUFFER CANT KNOW ABOUT ANY OF THE THREADS!!
+        // DataAcquisitionThread::GetInstance().SendMessage(
+        //     DataAcquisitionThread::INCREASE_EPOCH_COUNT
+        // );
+        // SignalProcessingThread::GetInstance().SendMessage(
+        //     SignalProcessingThread::PROCESS_EPOCH
+        // );
+    }
+    return (samples_written_B == sample_size_B);
 };
 
-struct dma_config DataBufferManager::dma_cfg = {
-    .channel_direction = PERIPHERAL_TO_MEMORY,
-    .complete_callback_en = 1,
-    .source_burst_length = 1, // accept 1 sample at a time
-    .dma_callback = DMATransfer,
+bool DataBufferManager::ReadOneSample(sample_t &sample) {
+    return ring_buf_get(&buffer,
+        const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(&sample)),
+        sample_size_B
+    ) == sample_size_B;
 };
 
-// struct Semaphore DataBufferManager::eeg_buffer_semaphore;
-// eeg_sample DataBufferManager::dma_buffer[max_samples];
-// size_t DataBufferManager::buffer_index;
-
-void DataBufferManager::Write() {
-
-}
-
-void DataBufferManager::Read() {
-
-}
-
-void DataBufferManager::DMASetup(device* spi_dev) {
-    // set up basic source buffer for dma
-    dma_block_cfg.dest_address = (uintptr_t)source_buffer;
-    dma_block_cfg.source_address = (uintptr_t)&spi_dev->data;
-
-    if (dma_config(dma_dev, AFE_DMA_CHANNEL, &dma_cfg)) {
-        LOG_ERR("Failed to configure DMA");
-        // TODO: error handling :D
-        return;
+DataBufferManager::ReadEpoch(ArmMatrixWrapper<num_electrodes, num_samples_per_epoch> &mat) {
+    sample_t to_read = { 0 };
+    for(uint32_t i = 0; i < num_samples_per_epoch; i++) {
+        ReadOneSample(to_read);
+        mat.set_at(to_read.ch1, CH1_IDX, i);
+        mat.set_at(to_read.ch2, CH2_IDX, i);
+        mat.set_at(to_read.ch3, CH3_IDX, i);
+        mat.set_at(to_read.ch4, CH4_IDX, i);
+        mat.set_at(to_read.ch5, CH5_IDX, i);
+        mat.set_at(to_read.ch6, CH6_IDX, i);
+        mat.set_at(to_read.ch7, CH7_IDX, i);
+        mat.set_at(to_read.ch8, CH8_IDX, i);
     }
+};
 
-    if (dma_start(dma_dev, AFE_DMA_CHANNEL)) {
-        LOG_ERR("Failed to start DMA transfer");
-        // TODO: error handling
-    }
-}
-
-void DataBufferManager::DMATransfer(const struct device *dev, void *user_data, uint32_t channel, int status) {
-    if (status == 0) {
-        LOG_DBG("DMA transfer complete success");
-        for (size_t i = 0; i < AFE_DMA_BLOCK_SIZE; i++) {
-            LOG_INF("Sample[%u]: %d", i, source_buffer[i]);
-        }
-        ResetBuffer();
-        // Perform any post-transfer processing or signal completion
-        
-    } else {
-        LOG_ERR("DMA transfer failed with status %d", status);
-        // TODO: error handling
-    }
-
-    // in either case, start the DMA again
-    if (dma_start(dma_dev, AFE_DMA_CHANNEL)) {
-        LOG_ERR("Failed to start DMA transfer");
-        // TODO: error handling
-    }
-}
+// helpers
+bool DataBufferManager::IsEmpty() {
+    return ring_buf_is_empty(&buffer);
+};
+size_t DataBufferManager::GetFreeSpace() {
+    return ring_buf_space_get(&buffer);
+};
+size_t DataBufferManager::GetUsedSpace() {
+    return total_size_ring_buffer_B - ring_buf_space_get(&buffer);
+};
+void DataBufferManager::ResetBuffer() {
+    memset(data_buffer, 0, sizeof(data_buffer));
+};

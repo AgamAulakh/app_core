@@ -50,7 +50,7 @@ int main(void)
 		// DataAcquisitionThread::GetInstance().SendMessage(
 		// 	DataAcquisitionThread::READ_AFE_SAMPLE
 		// );
-		LOG_DBG("main thread up time: %u ms", k_uptime_get_32());
+		// LOG_DBG("main thread up time: %u ms", k_uptime_get_32());
 		
 		pwm_set_dt(&blue_pwm_led, LED_PERIOD, LED_BLUE_PULSE_WIDTH);
 		k_msleep(LOG_DELAY_MS);

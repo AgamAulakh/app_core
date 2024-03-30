@@ -1,18 +1,17 @@
 #include "TIBareMetalWrapper.h"
-#include <zephyr/drivers/gpio.h>
 
 // log level declaration
 LOG_MODULE_REGISTER(TI_bare_metal_wrapper, LOG_LEVEL_DBG);
 k_work_q TIBareMetalWrapper::dma_work_queue;
-K_WORK_DEFINE(dma_work, TIBareMetalWrapper::DMAWorkHandler);
-K_WORK_DEFINE(dma_cleanup, TIBareMetalWrapper::DMACleanUpHandler);
+K_WORK_DEFINE(dma_test, TIBareMetalWrapper::DMATestHandler);
+K_WORK_DEFINE(dma_epoch, TIBareMetalWrapper::DMAEpochHandler);
+K_WORK_DEFINE(dma_cleanup, TIBareMetalWrapper::DMAStopHandler);
 
 // Static fields
-uint8_t TIBareMetalWrapper::tx_buffer[rx_buf_len] = {0};
-uint8_t TIBareMetalWrapper::rx_buffer[rx_buf_len] = {0};
 uint8_t TIBareMetalWrapper::sample_count = 0;
 uint8_t TIBareMetalWrapper::master_counter = 0;
 bool TIBareMetalWrapper::is_adc_on = false;
+bool TIBareMetalWrapper::is_test_on = false;
 gpio_dt_spec TIBareMetalWrapper::afe_reset_spec = GPIO_DT_SPEC_GET(ZEPHYR_USER_NODE, afereset_gpios);
 gpio_dt_spec TIBareMetalWrapper::afe_drdy_spec = GPIO_DT_SPEC_GET(ZEPHYR_USER_NODE, afedrdy_gpios);
 gpio_dt_spec TIBareMetalWrapper::afe_indicate_spec = GPIO_DT_SPEC_GET(ZEPHYR_USER_NODE, afeindicator_gpios);
@@ -61,8 +60,6 @@ TIBareMetalWrapper::TIBareMetalWrapper() {
         LOG_ERR("\n\nTIBareMetalWrapper::%s COULD NOT CONFIGURE AFE DRDY INTERRUPT\n\n", __FUNCTION__);
     }
 
-    gpio_init_callback(&afe_drdy_cb_data, HandleDRDY, BIT(afe_drdy_spec.pin));
-
     //*************************** Hard reset KILLS AFE ***************************//
     ADS1299_Init(&afe_driver);
     //*************************** Hard reset KILLS AFE ***************************//
@@ -73,35 +70,118 @@ TIBareMetalWrapper::TIBareMetalWrapper() {
     StopADC();
 
     // Setup register states internal to driver:
-    CheckID();
-    CheckConfigRegs();
-    CheckChannels();
+    CheckAllRegisters();
+};
+
+// parent functions to override
+void TIBareMetalWrapper::Initialize() {
+    SetDefaultRegisters();
+
+    // check all registers were updated:
+    CheckAllRegisters();
+};
+
+void TIBareMetalWrapper::SetDefaultRegisters() {
+    // write application-specific settings
+    ADS1299_SetConfig1State(&afe_driver, ADS1299_CONFIG1_SETUP_ARDUINO_250);
+    ADS1299_SetConfig2State(&afe_driver, ADS1299_CONFIG2_SETUP_TEST_d004V_d9HZ);
+    ADS1299_SetConfig3State(&afe_driver, ADS1299_CONFIG3_SETUP_REF_BIAS);
+    ADS1299_SetConfig4State(&afe_driver, ADS1299_CONFIG4_SETUP_LOFF_S_DIS);
+
+    uint8_t channel_state = ADS1299_CH_N_SET_SETUP_NO
+                            | ADS1299_CH_N_SET_SETUP_GAIN_24
+                            | ADS1299_CH_N_SET_SETUP_SRB2_CL
+                            | ADS1299_CH_N_SET_SETUP_MUX_NEI;
+    ADS1299_SetCh1SetState(&afe_driver, channel_state);
+    ADS1299_SetCh2SetState(&afe_driver, channel_state);
+    ADS1299_SetCh3SetState(&afe_driver, channel_state);
+    ADS1299_SetCh4SetState(&afe_driver, channel_state);
+    ADS1299_SetCh5SetState(&afe_driver, channel_state);
+    ADS1299_SetCh6SetState(&afe_driver, channel_state);
+    ADS1299_SetCh7SetState(&afe_driver, channel_state);
+    ADS1299_SetCh8SetState(&afe_driver, channel_state);
+
+    ADS1299_SetBiasSensPState(&afe_driver, ADS1299_BIAS_SENSX_ALL_OFF);
+    ADS1299_SetBiasSensNState(&afe_driver, ADS1299_BIAS_SENSX_ALL_ON);
+
+    ADS1299_SetLoffSensPState(&afe_driver, ADS1299_LOFF_SENSX_ALL_OFF);
+    ADS1299_SetLoffSensNState(&afe_driver, ADS1299_LOFF_SENSX_ALL_OFF);
+}
+
+void TIBareMetalWrapper::RunInputShortTest() {
+    if (is_adc_on) { StopADC(); }
+
+    LOG_DBG("TIBareMetalWrapper::%s starting input short test",__FUNCTION__);
+    // NOTE: should be used after hard reset
+    // set internal reference for power on test
+    ADS1299_SetConfig3State(&afe_driver, ADS1299_CONFIG3_SETUP_REFBUF);
+
+    // set deviec for DR = Fmod / 4096
+    ADS1299_SetConfig1State(&afe_driver, ADS1299_CONFIG1_SETUP_DEFAULT);
+    ADS1299_SetConfig2State(&afe_driver, ADS1299_CONFIG2_SETUP_DEFAULT);
+
+    // set all channels to input short
+    ADS1299_SetCh1SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_IS);
+    ADS1299_SetCh2SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_IS);
+    ADS1299_SetCh3SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_IS);
+    ADS1299_SetCh4SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_IS);
+    ADS1299_SetCh5SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_IS);
+    ADS1299_SetCh6SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_IS);
+    ADS1299_SetCh7SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_IS);
+    ADS1299_SetCh8SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_IS);
+
+    // verify all registers have been set
+    CheckAllRegisters();
+
+    // ReadContinuous: activate converstion, DRDY should toggle at Fclk/8192
+    // ReadContinuous: put device back in RDATAC mode
+    // look for DRDY and issue 24 + 8x24 SCLKs
+    // DRDY toggles at 2000000 / 8192 ~= 245
+    // should be approx 250 samples
+    ReadContinuous();
+    // stop continuous read mode
+
+    LOG_DBG("TIBareMetalWrapper::%s end",__FUNCTION__);
+};
+
+void TIBareMetalWrapper::RunInternalSquareWaveTest() {
+    if (is_adc_on) { StopADC(); }
+
+    LOG_DBG("TIBareMetalWrapper::%s starting square wave test",__FUNCTION__);
+    // NOTE: should be used after hard reset
+    // set internal reference for power on test
+    ADS1299_SetConfig3State(&afe_driver, ADS1299_CONFIG3_SETUP_REFBUF);
+
+    // set device for DR = Fmod / 4096
+    ADS1299_SetConfig1State(&afe_driver, ADS1299_CONFIG1_SETUP_DEFAULT);
+    // enable internal test signals
+    ADS1299_SetConfig2State(&afe_driver, ADS1299_CONFIG2_SETUP_TEST_d002V_d9HZ);
+
+    // set all channels read test signal
+    ADS1299_SetCh1SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_TEST);
+    ADS1299_SetCh2SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_TEST);
+    ADS1299_SetCh3SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_TEST);
+    ADS1299_SetCh4SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_TEST);
+    ADS1299_SetCh5SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_TEST);
+    ADS1299_SetCh6SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_TEST);
+    ADS1299_SetCh7SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_TEST);
+    ADS1299_SetCh8SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_TEST);
+
+    // verify all registers have been set
+    CheckAllRegisters();
+
+    // ReadContinuous: activate converstion, DRDY should toggle at Fclk/8192
+    // ReadContinuous: put device back in RDATAC mode
+    // look for DRDY and issue 24 + 8x24 SCLKs
+    // DRDY toggles at 2000000 / 8192 ~= 245
+    // should be approx 250 samples
+    ReadContinuous();
+    // stop continuous read mode
+
+    LOG_DBG("TIBareMetalWrapper::%s end",__FUNCTION__);
 };
 
 // callbacks needed for driver
-void TIBareMetalWrapper::SetCS(uint8_t state){
-    // if (state) {
-    //     int err_code = gpio_pin_set_dt(&spi_cfg.cs.gpio, 1);
-    //     err_code |= gpio_pin_set_dt(&afe_indicate_spec, 1);
-    //     if (err_code != 0) {
-    //         LOG_ERR("TIBareMetalWrapper::%s could not set chip select", __FUNCTION__);
-    //     }
-    // } else {
-    //     int err_code = gpio_pin_set_dt(&spi_cfg.cs.gpio, 0);
-    //     err_code |= gpio_pin_set_dt(&afe_indicate_spec, 0);
-    //     if (err_code != 0) {
-    //         LOG_ERR("TIBareMetalWrapper::%s could not reset chip select", __FUNCTION__);
-    //     }
-    // }
-};
-
-void TIBareMetalWrapper::DelayMs(uint32_t delay) {
-    k_msleep(delay);
-};
-
-void TIBareMetalWrapper::DelayUs(uint32_t delay) {
-    k_usleep(delay);
-};
 
 void TIBareMetalWrapper::Transfer(uint8_t tx[], uint8_t rx[], uint16_t len) {
     // NOTE: sometimes len < sizeof(tx) or sizeof(rx)
@@ -180,8 +260,6 @@ void TIBareMetalWrapper::Read(uint8_t rx[], uint16_t len) {
     } while(spi_signaled == 0);
 
     Utils::ShiftRightLogicalBuffer(rx, len);
-    // printk("READ SPI RX:");
-    // Utils::PrintBuffer(rx, len);
     return;
 };
 
@@ -205,6 +283,10 @@ void TIBareMetalWrapper::SetReset(uint8_t state) {
     }
 };
 
+void TIBareMetalWrapper::SetCS(uint8_t state){
+    LOG_ERR("TIBareMetalWrapper::%s not implemented", __FUNCTION__);
+};
+
 void TIBareMetalWrapper::SetStart(uint8_t state){
     LOG_ERR("TIBareMetalWrapper::%s not implemented", __FUNCTION__);
 };
@@ -213,125 +295,55 @@ void TIBareMetalWrapper::SetPWDN(uint8_t state){
     LOG_ERR("TIBareMetalWrapper::%s not implemented", __FUNCTION__);
 };
 
-void TIBareMetalWrapper::HandleDRDY(const device *dev, gpio_callback *cb, uint32_t pins){
-    if (sample_count < 500) {
-        k_work_submit(&dma_work);
-    } else {
-        k_work_submit(&dma_cleanup);
+void TIBareMetalWrapper::DelayMs(uint32_t delay) {
+    k_msleep(delay);
+};
+
+void TIBareMetalWrapper::DelayUs(uint32_t delay) {
+    k_usleep(delay);
+};
+
+// Controlled by State Machine
+void TIBareMetalWrapper::Start() {
+    // defensive check agaisnt double-starting test:
+    if (is_test_on){
+        LOG_ERR("TIBareMetalWrapper::%s Test Is ALREADY Running!", __FUNCTION__);
+        return;
     }
-};
 
-// parent functions to override
-void TIBareMetalWrapper::Initialize() {
-    // reads shorted input and internal test signal values
-    // RunInputShortTest();
-
-    // write application-specific settings
-    ADS1299_SetConfig1State(&afe_driver, ADS1299_CONFIG1_SETUP_ARDUINO_250);
-    ADS1299_SetConfig2State(&afe_driver, ADS1299_CONFIG2_SETUP_TEST_d004V_d9HZ);
-    ADS1299_SetConfig3State(&afe_driver, ADS1299_CONFIG3_SETUP_REF_BIAS);
-    ADS1299_SetConfig4State(&afe_driver, ADS1299_CONFIG4_SETUP_LOFF_S_DIS);
-
-    uint8_t channel_state = ADS1299_CH_N_SET_SETUP_NO
-                            | ADS1299_CH_N_SET_SETUP_GAIN_4
-                            | ADS1299_CH_N_SET_SETUP_SRB2_CL
-                            | ADS1299_CH_N_SET_SETUP_MUX_NEI;
-    ADS1299_SetCh1SetState(&afe_driver, channel_state);
-    ADS1299_SetCh2SetState(&afe_driver, channel_state);
-    ADS1299_SetCh3SetState(&afe_driver, channel_state);
-    ADS1299_SetCh4SetState(&afe_driver, channel_state);
-    ADS1299_SetCh5SetState(&afe_driver, channel_state);
-    ADS1299_SetCh6SetState(&afe_driver, channel_state);
-    ADS1299_SetCh7SetState(&afe_driver, channel_state);
-    ADS1299_SetCh8SetState(&afe_driver, channel_state);
-
-    ADS1299_SetBiasSensPState(&afe_driver, ADS1299_BIAS_SENSX_ALL_OFF);
-    ADS1299_SetBiasSensNState(&afe_driver, ADS1299_BIAS_SENSX_ALL_ON);
-
-    ADS1299_SetLoffSensPState(&afe_driver, ADS1299_LOFF_SENSX_ALL_OFF);
-    ADS1299_SetLoffSensNState(&afe_driver, ADS1299_LOFF_SENSX_ALL_OFF);
-
-    // check all registers were updated:
-    CheckID();
-    CheckConfigRegs();
-    CheckChannels();
-};
-
-void TIBareMetalWrapper::RunInputShortTest() {
+    // Officially start sampling afe with no end in sight
     if (is_adc_on) { StopADC(); }
+    if (afe_driver.config4.singleShot) { ConfigContinuousConversion(); }
 
-    LOG_DBG("TIBareMetalWrapper::%s starting input short test",__FUNCTION__);
-    // NOTE: should be used after hard reset
-    // set internal reference for power on test
-    ADS1299_SetConfig3State(&afe_driver, ADS1299_CONFIG3_SETUP_REFBUF);
+    // clear DMA buffer
+    DataBufferManager::buffer_lock.wait();
+    DataBufferManager::ResetBuffer();
+    DataBufferManager::buffer_lock.give();
 
-    // set deviec for DR = Fmod / 4096
-    ADS1299_SetConfig1State(&afe_driver, ADS1299_CONFIG1_SETUP_DEFAULT);
-    ADS1299_SetConfig2State(&afe_driver, ADS1299_CONFIG2_SETUP_DEFAULT);
+    // Write setting first, then start adc conversion
+    LOG_INF("TIBareMetalWrapper::%s enabling continuous read at %u ms", __FUNCTION__, k_uptime_get_32());
 
-    // set all channels to input short
-    ADS1299_SetCh1SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_IS);
-    ADS1299_SetCh2SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_IS);
-    ADS1299_SetCh3SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_IS);
-    ADS1299_SetCh4SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_IS);
-    ADS1299_SetCh5SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_IS);
-    ADS1299_SetCh6SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_IS);
-    ADS1299_SetCh7SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_IS);
-    ADS1299_SetCh8SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_IS);
+    // send RDATAC command, then start adc conversion
+    ADS1299_EnableContRead(&afe_driver);
+    StartADC();
 
-    // verify all registers have been set
-    CheckConfigRegs();
-    CheckChannels();
-
-    // ReadContinuous: activate converstion, DRDY should toggle at Fclk/8192
-    // ReadContinuous: put device back in RDATAC mode
-    // look for DRDY and issue 24 + 8x24 SCLKs
-    // DRDY toggles at 2000000 / 8192 ~= 245
-    // should be approx 250 samples
-    ReadContinuous();
-    // stop continuous read mode
-
-    LOG_DBG("TIBareMetalWrapper::%s end",__FUNCTION__);
+    // run our own DMA handler
+    gpio_init_callback(&afe_drdy_cb_data, HandleDRDYForFullTest, BIT(afe_drdy_spec.pin));
+    gpio_add_callback(afe_drdy_spec.port, &afe_drdy_cb_data);
 };
 
-void TIBareMetalWrapper::RunInternalSquareWaveTest() {
-    if (is_adc_on) { StopADC(); }
+void TIBareMetalWrapper::Stop() {
+    // defensive check agaisnt double-starting test:
+    if (!is_test_on){
+        LOG_ERR("TIBareMetalWrapper::%s Test Is NOT Running!", __FUNCTION__);
+        return;
+    }
 
-    LOG_DBG("TIBareMetalWrapper::%s starting square wave test",__FUNCTION__);
-    // NOTE: should be used after hard reset
-    // set internal reference for power on test
-    ADS1299_SetConfig3State(&afe_driver, ADS1299_CONFIG3_SETUP_REFBUF);
-
-    // set deviec for DR = Fmod / 4096
-    ADS1299_SetConfig1State(&afe_driver, ADS1299_CONFIG1_SETUP_DEFAULT);
-    // enable internal test signals
-    ADS1299_SetConfig2State(&afe_driver, ADS1299_CONFIG2_SETUP_TEST_d002V_d9HZ);
-
-    // set all channels read test signal
-    ADS1299_SetCh1SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_TEST);
-    ADS1299_SetCh2SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_TEST);
-    ADS1299_SetCh3SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_TEST);
-    ADS1299_SetCh4SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_TEST);
-    ADS1299_SetCh5SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_TEST);
-    ADS1299_SetCh6SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_TEST);
-    ADS1299_SetCh7SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_TEST);
-    ADS1299_SetCh8SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_TEST);
-
-    // verify all registers have been set
-    CheckConfigRegs();
-    CheckChannels();
-
-    // ReadContinuous: activate converstion, DRDY should toggle at Fclk/8192
-    // ReadContinuous: put device back in RDATAC mode
-    // look for DRDY and issue 24 + 8x24 SCLKs
-    // DRDY toggles at 2000000 / 8192 ~= 245
-    // should be approx 250 samples
-    ReadContinuous();
-    // stop continuous read mode
-
-    LOG_DBG("TIBareMetalWrapper::%s end",__FUNCTION__);
+    // Officially stop sampling afe
+    k_work_submit(&dma_cleanup);
 };
 
+// Other
 void TIBareMetalWrapper::StartADC() {
     // Start ADC conversion
     LOG_INF("TIBareMetalWrapper::%s Starting ADC Conversion", __FUNCTION__);
@@ -386,34 +398,63 @@ void TIBareMetalWrapper::ReadContinuous() {
     if (is_adc_on) { StopADC(); }
     if (afe_driver.config4.singleShot) { ConfigContinuousConversion(); }
 
-    // clear DMA buffer
-    memset(rx_buffer, 0, rx_buf_len);
-
     // Write setting first, then start adc conversion
     LOG_INF("TIBareMetalWrapper::%s enabling continuous read at %u ms", __FUNCTION__, k_uptime_get_32());
 
     // send RDATAC command, then start adc conversion
     ADS1299_EnableContRead(&afe_driver);
     StartADC();
+
+    // count samples for up to an epoch
     sample_count = 0;
+
     // run our own DMA handler
+    gpio_init_callback(&afe_drdy_cb_data, HandleDRDYForOneEpoch, BIT(afe_drdy_spec.pin));
     gpio_add_callback(afe_drdy_spec.port, &afe_drdy_cb_data);
 };
 
-void TIBareMetalWrapper::DMAWorkHandler(struct k_work *item) {
-    // LOG_INF("TIBareMetalWrapper::%s DRDY signal caught, reading sample at %u ms", __FUNCTION__, k_uptime_get_32());
+void TIBareMetalWrapper::HandleDRDYForOneEpoch(const device *dev, gpio_callback *cb, uint32_t pins){
+    if (sample_count < num_samples_per_test) {
+        k_work_submit(&dma_epoch);
+    } else {
+        k_work_submit(&dma_cleanup);
+    }
+};
+
+void TIBareMetalWrapper::HandleDRDYForFullTest(const device *dev, gpio_callback *cb, uint32_t pins){
+    k_work_submit(&dma_test);
+};
+
+void TIBareMetalWrapper::DMATestHandler(struct k_work *item) {
+    ADS1299_ReadOutputSample(&afe_driver);
+
+    DataBufferManager::buffer_lock.wait();
+    DataBufferManager::WriteOneSample(afe_driver.sample);
+    DataBufferManager::buffer_lock.give();
+};
+
+void TIBareMetalWrapper::DMAEpochHandler(struct k_work *item) {
     ADS1299_ReadOutputSample(&afe_driver);
     PrintCurrentSample();
     sample_count++;
 };
 
-void TIBareMetalWrapper::DMACleanUpHandler(struct k_work *item) {
+void TIBareMetalWrapper::DMAStopHandler(struct k_work *item) {
     gpio_remove_callback(afe_drdy_spec.port, &afe_drdy_cb_data);
     LOG_INF("TIBareMetalWrapper::%s disabling continuous read at %u ms", __FUNCTION__, k_uptime_get_32());
 
     // Stop adc conversion, then send SDATAC command
     StopADC();
     ADS1299_DisableContRead(&afe_driver);
+}
+
+void TIBareMetalWrapper::CheckAllRegisters() {
+    CheckID();
+    CheckConfigRegs();
+    CheckChannels();
+    CheckLoffSensPState();
+    CheckLoffSensNState();
+    CheckLoffFlipState();
 }
 
 void TIBareMetalWrapper::CheckID() {
@@ -579,7 +620,7 @@ void TIBareMetalWrapper::CheckBiasSensPReg() {
 void TIBareMetalWrapper::CheckBiasSensNReg() {
     if (is_adc_on) { StopADC(); }
     ADS1299_GetBiasSensNState(&afe_driver);
-    LOG_DBG("TIBareMetalWrapper::%s p1: %u, p2: %u, p3: %u, p4: %u, p5: %u, p6: %u, p7: %u, p8: %u",
+    LOG_DBG("TIBareMetalWrapper::%s n1: %u, n2: %u, n3: %u, n4: %u, n5: %u, n6: %u, n7: %u, n8: %u",
         __FUNCTION__, 
         afe_driver.biassensn.biasN1,
         afe_driver.biassensn.biasN2,
@@ -591,6 +632,54 @@ void TIBareMetalWrapper::CheckBiasSensNReg() {
         afe_driver.biassensn.biasN8
     );
 };
+
+void TIBareMetalWrapper::CheckLoffSensPState() {
+    if (is_adc_on) { StopADC(); }
+    ADS1299_GetLoffSensPState(&afe_driver);
+    LOG_DBG("TIBareMetalWrapper::%s p1: %u, p2: %u, p3: %u, p4: %u, p5: %u, p6: %u, p7: %u, p8: %u",
+        __FUNCTION__, 
+        afe_driver.loffsensp.loffP1,
+        afe_driver.loffsensp.loffP2,
+        afe_driver.loffsensp.loffP3,
+        afe_driver.loffsensp.loffP4,
+        afe_driver.loffsensp.loffP5,
+        afe_driver.loffsensp.loffP6,
+        afe_driver.loffsensp.loffP7,
+        afe_driver.loffsensp.loffP8
+    );
+};
+
+void TIBareMetalWrapper::CheckLoffSensNState() {
+    if (is_adc_on) { StopADC(); }
+    ADS1299_GetLoffSensNState(&afe_driver);
+    LOG_DBG("TIBareMetalWrapper::%s n1: %u, n2: %u, n3: %u, n4: %u, n5: %u, n6: %u, n7: %u, n8: %u",
+        __FUNCTION__, 
+        afe_driver.loffsensn.loffN1,
+        afe_driver.loffsensn.loffN2,
+        afe_driver.loffsensn.loffN3,
+        afe_driver.loffsensn.loffN4,
+        afe_driver.loffsensn.loffN5,
+        afe_driver.loffsensn.loffN6,
+        afe_driver.loffsensn.loffN7,
+        afe_driver.loffsensn.loffN8
+    );
+};
+
+void TIBareMetalWrapper::CheckLoffFlipState(){
+    if (is_adc_on) { StopADC(); }
+    ADS1299_GetLoffFlipState(&afe_driver);
+    LOG_DBG("TIBareMetalWrapper::%s c1: %u, c2: %u, c3: %u, c4: %u, c5: %u, c6: %u, c7: %u, c8: %u",
+        __FUNCTION__, 
+        afe_driver.loffflip.loffFlip8,
+        afe_driver.loffflip.loffFlip7,
+        afe_driver.loffflip.loffFlip6,
+        afe_driver.loffflip.loffFlip5,
+        afe_driver.loffflip.loffFlip4,
+        afe_driver.loffflip.loffFlip3,
+        afe_driver.loffflip.loffFlip2,
+        afe_driver.loffflip.loffFlip1
+    );
+}
 
 void TIBareMetalWrapper::TestLoopbackSlave() {
     uint8_t tx[2] = {0};
@@ -626,10 +715,6 @@ void TIBareMetalWrapper::Wakeup() {
 void TIBareMetalWrapper::Standby() {
 };
 void TIBareMetalWrapper::Reset() {
-};
-void TIBareMetalWrapper::Start() {
-};
-void TIBareMetalWrapper::Stop() {
 };
 void TIBareMetalWrapper::ReadData() {
 };

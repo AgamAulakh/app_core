@@ -5,13 +5,13 @@
  */
 Semaphore::Semaphore()
 {
-	printk("Create Semaphore %p\n", this);
+	printk("Create Semaphore\n",);
 	k_sem_init(&_sema_internal, 0, SEMAPHORE_MAX_TAKE);
 }
 
 Semaphore::Semaphore(int initial_take_count)
 {
-	printk("Create Semaphore %p\n", this);
+	printk("Create Semaphore with initial take count: %d\n", initial_take_count);
 	k_sem_init(&_sema_internal, initial_take_count, SEMAPHORE_MAX_TAKE);
 }
 /*

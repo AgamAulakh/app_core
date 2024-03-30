@@ -97,6 +97,16 @@ public:
         }
     };
 
+    void pretty_print() {
+        printk("\nmatrix data:\n");
+        for (int row = 0; row < matrix.numRows; row++ ) { 
+            for (int col = 0; col < matrix.numCols; col++) { 
+                printk("%.4f\t", this->at(row,col));
+            } 
+        } 
+        printk("\n");
+    };
+
     // Overloaded Operators
     ArmMatrixWrapper operator+(const ArmMatrixWrapper& other) const {
         ArmMatrixWrapper result; // deepy copy
