@@ -236,13 +236,13 @@ public:
     };
 
     // Computes the raw FFT for specific channel given a number of samples 
-    ArmMatrixWrapper<1024, 1> rawFFT(uint32_t channel) const {
+    ArmMatrixWrapper<MaxRows, 1> rawFFT(uint32_t channel) const {
         
         // Struct to store the output of the FFT for one channel 
-        ArmMatrixWrapper<1024, 1> rawResult;
+        ArmMatrixWrapper<MaxRows, 1> rawResult;
 
         // Temporary arrays to store initial data and intermediate FFT values
-        float32_t inputFFT[1024];
+        float32_t inputFFT[MaxRows];
         float32_t outputFFT[1024];
        
        
@@ -302,7 +302,7 @@ public:
 
         // Compute the power of the FFT
         ArmMatrixWrapper<MaxRows, 1> rawFFTChannel = rawFFT(channel);
-       // arm_cmplx_mag_squared_f32(rawFFTChannel.data, powerFFT, matrix.numRows/2);
+         arm_cmplx_mag_squared_f32(rawFFTChannel.data, powerFFT, matrix.numRows/2);
         
         // Check if the scaling is required for the above function
         // Copy the output to the result matrix

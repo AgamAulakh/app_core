@@ -43,7 +43,7 @@ private:
 
 
     // Matrix of raw data
-    ArmMatrixWrapper<1024, 1> allChannels;
+    ArmMatrixWrapper<1024, 8> allChannels;
 
     // Array of FFT results of all 8 channels
     vector<ArmMatrixWrapper<512, 1>> channelFFTResults;
@@ -61,10 +61,11 @@ private:
 
 public:
     enum SigProcThreadMessage : uint8_t {
-        COMPUTE_FFT_RESULTS = 0,
-        COMPUTE_POWER_RESULTS,
-        COMPUTE_BANDPOWER_RESULTS,
+        COMPUTE_DEBUG_FFT_RESULTS = 0,
+        COMPUTE_DEBUG_POWER_RESULTS,
+        COMPUTE_DEBUG_BANDPOWER_RESULTS,
         COMPUTE_RELATIVEPOWER_RESULTS,
+        START_PROCESS,
         INVALID,
     };
     enum PowerBands : uint8_t {

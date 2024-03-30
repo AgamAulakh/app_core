@@ -340,7 +340,7 @@ float32_t inputSignal[1024] = {0,0.713737136,1.200363228,1.318952679,1.067980105
 // 							10.0,20.0,
 // 							10.0,20.0,
 // 							10.0,20.0,
-// 							10.0,20.0,};
+// 							10.0,20.0};
 
 SigProcThread::SigProcThread() {
    
@@ -372,11 +372,11 @@ void SigProcThread::Run() {
             uint8_t message_enum = static_cast<SigProcThreadMessage>(message);
 		    LOG_DBG("SigProc::%s -- received message: %u at: %u ms", __FUNCTION__, message_enum, k_uptime_get_32());
             switch (message_enum) {
-                case COMPUTE_FFT_RESULTS:
+                case COMPUTE_DEBUG_FFT_RESULTS:
 					TestValuesWooHoo();
                    // ComputeSingleSideFFT();
                     break;
-                case COMPUTE_POWER_RESULTS:
+                case COMPUTE_DEBUG_POWER_RESULTS:
 					TestValuesWooHoo();
                     ComputeSingleSidePower();
                     break;
@@ -404,7 +404,9 @@ void SigProcThread::TestValuesWooHoo()
        allChannels.set_at(inputSignal[i], i, 0);
     }
     allChannels.rawFFT(0);
-    allChannels.prettyPrint();
+
+
+    //allChannels.prettyPrint();
 
 }
 
