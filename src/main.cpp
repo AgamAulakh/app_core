@@ -20,6 +20,7 @@ extern "C" {
 #include <zephyr/logging/log.h>
 
 #include <stdlib.h>
+#include "SigProcThread.h"
 
 LOG_MODULE_REGISTER(app_core_main, LOG_LEVEL_INF);
 
@@ -27,14 +28,20 @@ LOG_MODULE_REGISTER(app_core_main, LOG_LEVEL_INF);
 
 int main(void)
 {
-	LOG_INF("Hello world from %s", CONFIG_BOARD);
+	SigProcThread::GetInstance().Initialize();
 
-	StateMachineThread::GetInstance().Initialize();
 
-	while(1) {
-		LOG_DBG("main thread up time: %u ms", k_uptime_get_32());
-		k_msleep(LOG_DELAY_MS);
-	}
+	
+	//SigProcThread::GetInstance().SendMessage(SigProcThread::COMPUTE_BANDPOWER_RESULTS);
+	SigProcThread::GetInstance().SendMessage(SigProcThread::COMPUTE_FFT_RESULTS);
+   	while(1)
+   	{
+        //SigProcThread::GetInstance().SendMessage(SigProcThread::COMPUTE_FFT_RESULTS);
+		//SigProcThread::GetInstance().SendMessage(SigProcThread::COMPUTE_POWER_RESULTS);
+		//SigProcThread::GetInstance().SendMessage(SigProcThread::COMPUTE_BANDPOWER_RESULTS);
+        k_msleep(1000);
+
+    }
 
 	return 0;
 }

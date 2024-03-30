@@ -21,4 +21,4 @@ include_directories(inc)
 zephyr_library_include_directories(.)
 
 # Add CMSIS library from nrfSDK
-# include_directories(..\\..\\..\\..\\modules\\hal\\cmsis\\CMSIS\\DSP\\Include)
+ include_directories(..\\..\\..\\..\\modules\\hal\\cmsis\\CMSIS\\DSP\\Include)
