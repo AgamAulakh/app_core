@@ -1,4 +1,4 @@
-#include "TIBareMetalWrapper.h"
+#include <TIBareMetalWrapper.h>
 
 // log level declaration
 LOG_MODULE_REGISTER(TI_bare_metal_wrapper, LOG_LEVEL_DBG);

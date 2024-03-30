@@ -28,7 +28,6 @@ extern "C" {
 LOG_MODULE_REGISTER(app_core_main, LOG_LEVEL_INF);
 #include "ArmMatrixWrapper.h"
 #include "DataAcquisitionThread.h"
-#include "drivers/ads1299-x.h"
 
 #define LOG_DELAY_MS 5000
 

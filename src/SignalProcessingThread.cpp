@@ -1,4 +1,4 @@
-#include "SignalProcessingThread.h"
+#include <SignalProcessingThread.h>
 
 LOG_MODULE_REGISTER(eegals_app_core_sigproc, LOG_LEVEL_DBG);
 K_THREAD_STACK_DEFINE(sig_proc_stack_area, SIG_PROC_THREAD_STACK_SIZE_B);
@@ -48,7 +48,7 @@ void SignalProcessingThread::Run() {
     uint8_t message = 0;
     while (true) {
         if (message_queue.get_with_blocking_wait(message)) {
-            uint8_t message_enum = static_cast<SignalProcessingThread>(message);
+            uint8_t message_enum = static_cast<SignalProcessingThreadMessage>(message);
 		    LOG_DBG("SigProc::%s -- received message: %u at: %u ms",
                 __FUNCTION__,
                 message_enum,

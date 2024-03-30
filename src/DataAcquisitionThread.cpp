@@ -1,4 +1,4 @@
-#include "DataAcquisitionThread.h"
+#include <DataAcquisitionThread.h>
 
 LOG_MODULE_REGISTER(eegals_app_core_daq, LOG_LEVEL_DBG);
 K_THREAD_STACK_DEFINE(data_acq_stack_area, DATA_ACQ_THREAD_STACK_SIZE_B);

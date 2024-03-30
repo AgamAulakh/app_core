@@ -5,7 +5,7 @@
  */
 Semaphore::Semaphore()
 {
-	printk("Create Semaphore\n",);
+	printk("Create Semaphore\n");
 	k_sem_init(&_sema_internal, 0, SEMAPHORE_MAX_TAKE);
 }
 

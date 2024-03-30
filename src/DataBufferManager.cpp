@@ -1,4 +1,5 @@
-#include "DataBufferManager.h"
+#include <DataBufferManager.h>
+
 // log level declaration
 LOG_MODULE_REGISTER(data_buffer_manager, LOG_LEVEL_DBG);
 
@@ -39,7 +40,7 @@ bool DataBufferManager::ReadOneSample(sample_t &sample) {
     ) == sample_size_B;
 };
 
-DataBufferManager::ReadEpoch(ArmMatrixWrapper<num_electrodes, num_samples_per_epoch> &mat) {
+void DataBufferManager::ReadEpoch(ArmMatrixWrapper<num_electrodes, num_samples_per_epoch> &mat) {
     sample_t to_read = { 0 };
     for(uint32_t i = 0; i < num_samples_per_epoch; i++) {
         ReadOneSample(to_read);
