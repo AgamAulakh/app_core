@@ -34,8 +34,10 @@ void ADS1299_Init(ads1299_t * ads1299)
     * */
     ads1299->DelayMs(500);
 
+    //***************************************** REMOVED *****************************************//
     // Hard reset (After that we have 250 SPS)
-    ADS1299_HardReset(ads1299);
+    // ADS1299_HardReset(ads1299);
+    //***************************************** REMOVED *****************************************//
 
     // delay 18 Tclk, ~9us
     ads1299->DelayUs(50);
@@ -182,7 +184,7 @@ void ADS1299_StopAdc(ads1299_t * ads1299)
 /*!
 \brief Function for reading the ADC value from the register.
 */
-void ADS1299_ReadAdc(ads1299_t * ads1299)
+void ADS1299_ReadAdcRegister(ads1299_t * ads1299)
 {
     uint8_t readCmd[28] = {0};
     uint8_t rx[28] = {0};
@@ -220,31 +222,21 @@ void ADS1299_ReadAdc(ads1299_t * ads1299)
     ads1299->Transfer(readCmd, rx, 28);
     ads1299->SetCS(1);
 
-    ads1299->sample.ch1 = ADS1299_RawValueToFloat(rx[4], rx[5], rx[6]);
-    ads1299->sample.ch2 = ADS1299_RawValueToFloat(rx[7], rx[8], rx[9]);
-    ads1299->sample.ch3 = ADS1299_RawValueToFloat(rx[10], rx[11], rx[12]);
-    ads1299->sample.ch4 = ADS1299_RawValueToFloat(rx[13], rx[14], rx[15]);
-    ads1299->sample.ch5 = ADS1299_RawValueToFloat(rx[16], rx[17], rx[18]);
-    ads1299->sample.ch6 = ADS1299_RawValueToFloat(rx[19], rx[20], rx[21]);
-    ads1299->sample.ch7 = ADS1299_RawValueToFloat(rx[22], rx[23], rx[24]);
-    ads1299->sample.ch8 = ADS1299_RawValueToFloat(rx[25], rx[26], rx[27]);
+    ADS1299_ParseSample_28B(ads1299, rx);
 }
 
-float32_t ADS1299_RawValueToFloat(uint8_t msb, uint8_t middle, uint8_t lsb) {
-    uint32_t rawValue = ((uint32_t)msb << 16) | ((uint32_t)middle << 8) | ((uint32_t)lsb);
+/*!
+\brief Function for reading a sample being written on MISO.
+*/
+void ADS1299_ReadOutputSample(ads1299_t * ads1299)
+{
+    uint8_t rx[27] = {0};
 
-    // convert to two's complement
-    int32_t signedValue = (int32_t)(rawValue << 8) >> 8;
+    ads1299->SetCS(0);
+    ads1299->Read(rx, 27);
+    ads1299->SetCS(1);
 
-    // If verbose:
-    // LOG_DBG("rawValue: %u, signedValue: %u, returnValue: %f",
-    //     rawValue,
-    //     signedValue,
-    //     (float32_t)signedValue * ADS1299_LSB_SIZE
-    // );
-
-    // Scale the signed value to float using LSB size
-    return (float32_t)signedValue * ADS1299_LSB_SIZE;
+    ADS1299_ParseSample_27B(ads1299, rx);
 }
 
 /*!
@@ -279,6 +271,7 @@ void ADS1299_DisableContRead(ads1299_t * ads1299)
 
     ads1299->SetCS(0);
     ads1299->Transfer(writeCmd, rx, 3);
+    ads1299->DelayMs(1);
     ads1299->SetCS(1);
     ads1299->DelayUs(3);                // must wait 4 tclk (Datasheet, pg. 37)
 }
@@ -555,7 +548,53 @@ void ADS1299_GetMisc2State(ads1299_t * ads1299)
 
 
 /* --------------- Parsing Functions Section --------------- */
+/*!
+\brief Parsing of 27 Byte sample read (no tx command)
+\param [out] void
+\param [in] uint8_t sample buffer with 27 bytes read by mcu
+*/
+void ADS1299_ParseSample_27B(ads1299_t * ads1299, uint8_t sample[]) {
+    ads1299->sample.ch1 = ADS1299_RawValueToFloat(sample[3], sample[4], sample[5]);
+    ads1299->sample.ch2 = ADS1299_RawValueToFloat(sample[6], sample[7], sample[8]);
+    ads1299->sample.ch3 = ADS1299_RawValueToFloat(sample[9], sample[10], sample[11]);
+    ads1299->sample.ch4 = ADS1299_RawValueToFloat(sample[12], sample[13], sample[14]);
+    ads1299->sample.ch5 = ADS1299_RawValueToFloat(sample[15], sample[16], sample[17]);
+    ads1299->sample.ch6 = ADS1299_RawValueToFloat(sample[18], sample[19], sample[20]);
+    ads1299->sample.ch7 = ADS1299_RawValueToFloat(sample[21], sample[22], sample[23]);
+    ads1299->sample.ch8 = ADS1299_RawValueToFloat(sample[24], sample[25], sample[26]);
+}
+/*!
+\brief Parsing of 28 Byte sample read (CONTAINS TX COMMAND)
+\param [out] void
+\param [in] uint8_t sample buffer with 28 bytes read by mcu 
+*/
+void ADS1299_ParseSample_28B(ads1299_t * ads1299, uint8_t sample[]) {
+    ads1299->sample.ch1 = ADS1299_RawValueToFloat(sample[4], sample[5], sample[6]);
+    ads1299->sample.ch2 = ADS1299_RawValueToFloat(sample[7], sample[8], sample[9]);
+    ads1299->sample.ch3 = ADS1299_RawValueToFloat(sample[10], sample[11], sample[12]);
+    ads1299->sample.ch4 = ADS1299_RawValueToFloat(sample[13], sample[14], sample[15]);
+    ads1299->sample.ch5 = ADS1299_RawValueToFloat(sample[16], sample[17], sample[18]);
+    ads1299->sample.ch6 = ADS1299_RawValueToFloat(sample[19], sample[20], sample[21]);
+    ads1299->sample.ch7 = ADS1299_RawValueToFloat(sample[22], sample[23], sample[24]);
+    ads1299->sample.ch8 = ADS1299_RawValueToFloat(sample[25], sample[26], sample[27]);
+}
 
+float32_t ADS1299_RawValueToFloat(uint8_t msb, uint8_t middle, uint8_t lsb) {
+    uint32_t rawValue = ((uint32_t)msb << 16) | ((uint32_t)middle << 8) | ((uint32_t)lsb);
+
+    // convert to two's complement
+    int32_t signedValue = (int32_t)(rawValue << 8) >> 8;
+
+    // If verbose:
+    // LOG_DBG("rawValue: %u, signedValue: %u, returnValue: %f",
+    //     rawValue,
+    //     signedValue,
+    //     (float32_t)signedValue * ADS1299_LSB_SIZE
+    // );
+
+    // Scale the signed value to float using LSB size
+    return (float32_t)signedValue * ADS1299_LSB_SIZE;
+}
 /*!
 \brief Parsing of ID Register result
 \param [out] ads1299 Initialized variable of type ads1299_t

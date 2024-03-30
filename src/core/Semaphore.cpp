@@ -9,6 +9,11 @@ Semaphore::Semaphore()
 	k_sem_init(&_sema_internal, 0, SEMAPHORE_MAX_TAKE);
 }
 
+Semaphore::Semaphore(int initial_take_count)
+{
+	printk("Create Semaphore %p\n", this);
+	k_sem_init(&_sema_internal, initial_take_count, SEMAPHORE_MAX_TAKE);
+}
 /*
  * @brief wait for a Semaphore
  *

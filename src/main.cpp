@@ -25,7 +25,7 @@ LOG_MODULE_REGISTER(eegals_app_core, LOG_LEVEL_DBG);
 
 static const struct pwm_dt_spec blue_pwm_led = PWM_DT_SPEC_GET(DT_ALIAS(blueled));
 
-#define LOG_DELAY_MS 250
+#define LOG_DELAY_MS 3000
 #define LED_PERIOD 1000
 #define LED_OFF 0
 #define LED_CHANNEL 0
@@ -36,22 +36,29 @@ int main(void)
 {
 	LOG_INF("Hello world from %s", CONFIG_BOARD);
 
-	DataAcquisitionThread::GetInstance().Initialize();
+	// DataAcquisitionThread::GetInstance().Initialize();
 
-	DataAcquisitionThread::GetInstance().SendMessage(
-		DataAcquisitionThread::CHECK_AFE_ID
-	);
+	// DataAcquisitionThread::GetInstance().SendMessage(
+	// 	DataAcquisitionThread::CHECK_AFE_ID
+	// );
+
+	TIBareMetalWrapper AFEWrapper;
+	k_msleep(2500);
+	AFEWrapper.Initialize();
 
 	while(1) {
+		// DataAcquisitionThread::GetInstance().SendMessage(
+		// 	DataAcquisitionThread::READ_AFE_SAMPLE
+		// );
 		LOG_DBG("main thread up time: %u ms", k_uptime_get_32());
-		DataAcquisitionThread::GetInstance().SendMessage(
-			DataAcquisitionThread::READ_AFE_SAMPLE
-		);
+		
 		pwm_set_dt(&blue_pwm_led, LED_PERIOD, LED_BLUE_PULSE_WIDTH);
 		k_msleep(LOG_DELAY_MS);
 
 		pwm_set_dt(&blue_pwm_led, LED_PERIOD, LED_OFF);
 		k_msleep(LOG_DELAY_MS);
+
+		AFEWrapper.RunInternalSquareWaveTest();
 	}
 
 	return 0;

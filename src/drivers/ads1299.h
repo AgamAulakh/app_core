@@ -33,13 +33,17 @@
 
 /* Register settings */
 #define ADS1299_CONFIG1_SETUP_250        (0x96)    // 250 SPS
+#define ADS1299_CONFIG1_SETUP_ARDUINO_250        (0xD6)    // 250 SPS
 #define ADS1299_CONFIG1_SETUP_500        (0x95)    // 500 SPS
 #define ADS1299_CONFIG1_SETUP_1000       (0x94)    // 1 kSPS
 #define ADS1299_CONFIG1_SETUP_2000       (0x93)    // 2 kSPS
 #define ADS1299_CONFIG1_SETUP_4000       (0x92)    // 4 kSPS
 #define ADS1299_CONFIG1_SETUP_8000       (0x91)    // 8 kSPS
 #define ADS1299_CONFIG1_SETUP_16000      (0x90)    // 16 kSPS
-#define ADS1299_CONFIG2_SETUP_TEST       (0xD0)    // Test signals are generated internally
+#define ADS1299_CONFIG2_SETUP_TEST_d002V_d9HZ  (0xD0)    // Internal Test signals 0.002 V 1(vref)/2400 at 0.977 Hz (fCLK/2^21) 
+#define ADS1299_CONFIG2_SETUP_TEST_d002V_1d9HZ (0xD1)    // Internal Test signals 0.002 V 1(vref)/2400 at 1.953 Hz (fCLK/2^20)
+#define ADS1299_CONFIG2_SETUP_TEST_d004V_d9HZ  (0xD4)    // Internal Test signals 0.004 V 2(vref)/2400 at 0.977 Hz (fCLK/2^21)
+#define ADS1299_CONFIG2_SETUP_TEST_d004V_1d9HZ (0xD5)    // Internal Test signals 0.004 V 2(vref)/2400 at 1.953 Hz (fCLK/2^20)
 #define ADS1299_CONFIG3_SETUP_REFBUF     (0xE0)    // Enable internal reference buffer
 #define ADS1299_CONFIG3_SETUP_REF_BIAS   (0xFA)    // Enable internal reference buffer and add bias sensing
 #define ADS1299_CONFIG3_SETUP_LOFF_STAT  (0x61)    // BIAS is not connected
@@ -81,7 +85,7 @@
 #define ADS1299_CH_N_SET_SETUP_MUX_DRN   (0x07)    // BIAS_DRN
 #define ADS1299_BIAS_SENSX_ALL_ON		 (0xFF)    // Route all channels to bias derivation
 #define ADS1299_BIAS_SENSX_ALL_OFF		 (0x00)    // Route none channels to bias derivation
-#define ADS1299_LOFF_SENSX_ALL_ON  		 (0x00)    // Lead-off detection on
+#define ADS1299_LOFF_SENSX_ALL_ON  		 (0xFF)    // Lead-off detection on
 #define ADS1299_LOFF_SENSX_ALL_OFF  	 (0xFF)    // Lead-off detection off
 #define ADS1299_LOFF_SENSP_SETUP_IN_1_2  (0x03)    // Lead-off detection on IN1P and IN2P
 #define ADS1299_LOFF_SENSN_SETUP_IN_1_2  (0x03)    // Lead-off detection on IN1N and IN2N
@@ -316,6 +320,7 @@ typedef struct {
     void (*DelayMs)(uint32_t delay);
     void (*DelayUs)(uint32_t delay);
     void (*Transfer)(uint8_t tx[], uint8_t rx[], uint16_t len);
+    void (*Read)( uint8_t rx[], uint16_t len);
     void (*SetCS)(uint8_t state);
     void (*SetReset)(uint8_t state);
     void (*SetStart)(uint8_t state);
@@ -363,8 +368,8 @@ void ADS1299_WakeUp(ads1299_t * ads1299);
 void ADS1299_StandBy(ads1299_t * ads1299);
 void ADS1299_StartAdc(ads1299_t * ads1299);
 void ADS1299_StopAdc(ads1299_t * ads1299);
-void ADS1299_ReadAdc(ads1299_t * ads1299);
-float32_t ADS1299_RawValueToFloat(uint8_t msb, uint8_t middle, uint8_t lsb);
+void ADS1299_ReadAdcRegister(ads1299_t * ads1299);
+void ADS1299_ReadOutputSample(ads1299_t * ads1299);
 void ADS1299_EnableContRead(ads1299_t * ads1299);
 void ADS1299_DisableContRead(ads1299_t * ads1299);
 
@@ -421,6 +426,9 @@ void ADS1299_GetMisc2State(ads1299_t * ads1299);
 
 
 /*                 Parsing Functions Section                 */
+void ADS1299_ParseSample_27B(ads1299_t * ads1299, uint8_t sample[]);
+void ADS1299_ParseSample_28B(ads1299_t * ads1299, uint8_t sample[]);
+float32_t ADS1299_RawValueToFloat(uint8_t msb, uint8_t middle, uint8_t lsb);
 void ADS1299_ParseIdReg(ads1299_t * ads1299, uint8_t regVal);
 void ADS1299_ParseConfig1Reg(ads1299_t * ads1299, uint8_t regVal);
 void ADS1299_ParseConfig2Reg(ads1299_t * ads1299, uint8_t regVal);

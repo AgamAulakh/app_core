@@ -5,7 +5,9 @@
 #include "AnalogFrontEndWrapper.h"
 #include "DataBufferManager.h"
 #include "AFEConfig.h"
+#include "Utils.h"
 #include "drivers/ads1299.h"
+#include "core/Semaphore.h"
 
 class TIBareMetalWrapper : public AnalogFrontEndWrapper {
 private:
@@ -19,20 +21,27 @@ private:
     static struct spi_config spi_cfg;
     static struct k_poll_signal spi_done_sig;
 
+    static uint8_t tx_buffer[rx_buf_len];
     static uint8_t rx_buffer[rx_buf_len];
     static bool is_adc_on;
-    static bool is_config_reg_continuous;
     static uint8_t master_counter;
+
+    // experimental
+    static uint8_t sample_count;
+    static struct k_work_q dma_work_queue;
 
     static void DelayMs(uint32_t delay);
     static void DelayUs(uint32_t delay);
     static void Transfer(uint8_t tx[], uint8_t rx[], uint16_t len);
-    static void StartDMA(uint8_t rx[], uint16_t len);
+    static void Read(uint8_t rx[], uint16_t len);
     static void SetCS(uint8_t state);
     static void SetReset(uint8_t state);
     static void SetStart(uint8_t state);
     static void SetPWDN(uint8_t state);
     static void HandleDRDY(const device *dev, gpio_callback *cb, uint32_t pins);
+
+    static void StartADC();
+    static void StopADC();
     static void ConfigSingleShotConversion();
     static void ConfigContinuousConversion();
 
@@ -49,13 +58,20 @@ public:
     void Stop() override;
     void ReadData() override;
 
-    void RunPowerOnTest();    
-    void CheckID();
-    void CheckChannels();
-    void CheckConfigRegs();
-    void CheckBiasSensPReg();
-    void CheckBiasSensNReg();
-    void ReadOneSample();
-    void ReadContinuous();
-    void TestLoopbackSlave();
+    static void RunInputShortTest();    
+    static void RunInternalSquareWaveTest();    
+    static void CheckID();
+    static void CheckChannels();
+    static void CheckConfigRegs();
+    static void CheckBiasSensPReg();
+    static void CheckBiasSensNReg();
+    static void ReadOneSample();
+    static void ReadContinuous();
+    static void PrintCurrentSample();
+    static void TestLoopbackSlave();
+
+
+    // experimental
+    static void DMAWorkHandler(struct k_work *item);
+    static void DMACleanUpHandler(struct k_work *item);
 };

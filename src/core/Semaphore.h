@@ -35,6 +35,7 @@ protected:
 	struct k_sem _sema_internal;
 public:
 	Semaphore();
+	Semaphore(int initial_take_count);
 	~Semaphore() {}
 	int wait(void);
 	int wait(int timeout);

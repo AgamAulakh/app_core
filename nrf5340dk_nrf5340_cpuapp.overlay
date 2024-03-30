@@ -114,7 +114,7 @@ afe_spi: &spi4 {
 	pinctrl-0 = <&afe_spi_default>;
 	pinctrl-1 = <&afe_spi_sleep>;
 	pinctrl-names = "default", "sleep";
-    cs-gpios = <&gpio1 8 (GPIO_ACTIVE_LOW)>;
+    cs-gpios = <&gpio1 8 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 	reg_afe_spi:  spi-dev-a@0 {
 		reg = <0>;
 	};

@@ -5,7 +5,7 @@
 #include "core/Thread.h"
 #include "TIBareMetalWrapper.h"
 
-#define DATA_ACQ_THREAD_STACK_SIZE_B 12288
+#define DATA_ACQ_THREAD_STACK_SIZE_B 2048
 #define DATA_ACQ_THREAD_PRIORITY 4 // max based on prj config
 #define DATA_ACQ_THREAD_MSG_Q_DEPTH 10
 
@@ -29,7 +29,9 @@ public:
         START_READING_AFE_CONTINUOUS,
         READ_AFE_SAMPLE,
         RESET_AFE,
-        CHECK_AFE_ID,
+        CHECK_AFE_REGISTERS,
+        RUN_INPUT_SHORT_TEST,
+        RUN_INTERNAL_SQUARE_WAVE_TEST,
         INVALID,
     };
 
