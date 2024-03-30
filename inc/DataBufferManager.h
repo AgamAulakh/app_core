@@ -17,7 +17,7 @@ constexpr size_t total_size_ring_buffer_B = max_samples_ring_buffer * sample_siz
 class DataBufferManager {
 // NOTE: needs to be fully static, only one instance should exist
 private:
-    static struct ring_buf buffer;
+    // static struct ring_buf buffer;
     static sample_t data_buffer[max_samples_ring_buffer];
     
     // can't read one sample at a time
@@ -26,7 +26,7 @@ public:
     DataBufferManager();
     ~DataBufferManager() = default;
 
-    static Semaphore buffer_lock;
+    // static Semaphore buffer_lock;
 
     // ring functionality
     static bool WriteOneSample(const sample_t&);

@@ -1,3 +1,4 @@
+#pragma once
 // #include <stdint.h>
 #include <cstdint>
 #include <cstring>
@@ -256,7 +257,7 @@ public:
         outputFFT[0] =  0;
         
         // Copy output FFT to result
-        memcpy(rawResult.data,  outputFFT,  MaxBufferSize * sizeof(float32_t));
+        memcpy(rawResult.data,  outputFFT, sizeof(outputFFT));
         return rawResult;
     };
 

@@ -316,9 +316,9 @@ void TIBareMetalWrapper::Start() {
     if (afe_driver.config4.singleShot) { ConfigContinuousConversion(); }
 
     // clear DMA buffer
-    DataBufferManager::buffer_lock.wait();
-    DataBufferManager::ResetBuffer();
-    DataBufferManager::buffer_lock.give();
+    // DataBufferManager::buffer_lock.wait();
+    // DataBufferManager::ResetBuffer();
+    // DataBufferManager::buffer_lock.give();
 
     // Write setting first, then start adc conversion
     LOG_INF("TIBareMetalWrapper::%s enabling continuous read at %u ms", __FUNCTION__, k_uptime_get_32());
@@ -428,9 +428,9 @@ void TIBareMetalWrapper::HandleDRDYForFullTest(const device *dev, gpio_callback 
 void TIBareMetalWrapper::DMATestHandler(struct k_work *item) {
     ADS1299_ReadOutputSample(&afe_driver);
 
-    DataBufferManager::buffer_lock.wait();
-    DataBufferManager::WriteOneSample(afe_driver.sample);
-    DataBufferManager::buffer_lock.give();
+    // DataBufferManager::buffer_lock.wait();
+    // DataBufferManager::WriteOneSample(afe_driver.sample);
+    // DataBufferManager::buffer_lock.give();
 };
 
 void TIBareMetalWrapper::DMAEpochHandler(struct k_work *item) {

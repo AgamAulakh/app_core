@@ -7,12 +7,11 @@
 #include <zephyr/logging/log_ctrl.h>
 #include <zephyr/logging/log.h>
 #include "core/Thread.h"
-#include "DummyFFTSignal.h"
-
+#include "DataBufferManager.h"
 
 #define SIG_PROC_THREAD_STACK_SIZE_B 16384
 #define SIG_PROC_THREAD_PRIORITY 3 // max based on prj config
-#define SIG_PROC_THREAD_MSG_Q_DEPTH 100
+#define SIG_PROC_THREAD_MSG_Q_DEPTH 10
 
 // #ifndef RAW_SAMPLE_NUMBER
 // #define RAW_SAMPLE_NUMBER 1024 // Just testing for one channel

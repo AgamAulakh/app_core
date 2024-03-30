@@ -39,7 +39,7 @@ int main(void)
 
 	LED1::init();
 	// DataAcquisitionThread::GetInstance().Initialize();
-	SignalProcessingThread::GetInstance().Initialize();
+	// SignalProcessingThread::GetInstance().Initialize();
 
 	// DataAcquisitionThread::GetInstance().SendMessage(
 	// 	DataAcquisitionThread::CHECK_AFE_ID
@@ -56,9 +56,9 @@ int main(void)
 		LOG_DBG("main thread up time: %u ms", k_uptime_get_32());
 		k_msleep(LOG_DELAY_MS);
 
-		SignalProcessingThread::GetInstance().SendMessage(
-			SignalProcessingThread::COMPUTE_FFT_RESULTS
-		);
+		// SignalProcessingThread::GetInstance().SendMessage(
+		// 	SignalProcessingThread::COMPUTE_DEBUG_FFT_RESULTS
+		// );
 
 		AFEWrapper.RunInternalSquareWaveTest();
 	}
