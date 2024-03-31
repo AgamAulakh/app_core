@@ -103,6 +103,54 @@ public:
         }
     };
 
+    ArmMatrixWrapper<MaxRows, 1> get_column_vector_at(uint32_t j) const {
+        ArmMatrixWrapper<MaxRows, 1> columnVector;
+        for (uint32_t i = 0; i < MaxRows; i++) {
+            columnVector.set_at(at(i, j), i);
+        }
+        return columnVector;
+    };
+
+    // Get row vector at index i
+    ArmMatrixWrapper<1, MaxCols> get_row_vector_at(uint32_t i) const {
+        ArmMatrixWrapper<1, MaxCols> rowVector;
+        for (uint32_t j = 0; j < MaxCols; j++) {
+            rowVector.set_at(at(i, j), j);
+        }
+        return rowVector;
+    };
+
+    bool set_row_vector_at(const ArmMatrixWrapper<1, MaxCols>& rowVector, uint32_t i) {
+        if (i >= matrix.numRows) {
+            // Row index out of bounds
+            return false;
+        }
+
+        for (uint32_t j = 0; j < MaxCols; ++j) {
+            if (!set_at(rowVector.at(j), i, j)) {
+                // Failed to set element in the row vector
+                return false;
+            }
+        }
+        return true;
+    };
+
+    bool set_column_vector_at(const ArmMatrixWrapper<MaxRows, 1>& columnVector, uint32_t j) {
+        if (j >= matrix.numCols) {
+            // Column index out of bounds
+            return false;
+        }
+
+        for (uint32_t i = 0; i < MaxRows; ++i) {
+            if (!set_at(columnVector.at(i), i, j)) {
+                // Failed to set element in the column vector
+                return false;
+            }
+        }
+        return true;
+    }
+
+
     void prettyPrint() {
         printk("\nmatrix data:\n");
         for (int row = 0; row < matrix.numRows; row++ ) { 
@@ -305,7 +353,7 @@ public:
 
     // Computes the single-sided Band Power given the single-sided FFT of a channel,
     // Pwelch of specified channel and specific band power range type
-    float32_t singleSideBandPower(uint32_t channel, uint32_t sampleFreq, uint32_t sampleNo, uint32_t bandSelect) const {
+    float32_t singleSideBandPower(uint32_t sampleFreq, uint32_t sampleNo, uint32_t bandSelect) const {
         
         // The frequency resolution or frequency bin width
         float32_t freqRes = sampleFreq / sampleNo;

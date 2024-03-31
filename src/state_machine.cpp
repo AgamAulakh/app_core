@@ -10,14 +10,15 @@ extern const struct smf_state dev_states[];
 enum dev_state { INIT, IDLE, TEST, PROCESS, COMPLETE, CANCEL };
 
 /* User defined object */
-struct s_object {
-    struct smf_ctx ctx;
+// struct s_object {
+//     struct smf_ctx ctx;
 
-    /* Events */
-    struct k_event button_press_event;
-    int32_t events;
+//     /* Events */
+//     struct k_event button_press_event;
+//     extern struct k_event sig_proc_complete;
+//     int32_t events;
 
-} s_obj;
+// } s_obj;
 
 void StateMachine::init_run(void *obj) {
     // Setup threads
@@ -68,7 +69,7 @@ void StateMachine::test_run(void *obj) {
 
     /* We need to wait for either a button press to cancel or callback from sigproc
     data collection so we know which state to go to */
-    // s_obj.events = k_event_wait(&s_obj.button_press_event, EVENT_BTN_PRESS, true, K_FOREVER);
+    s_obj.events = k_event_wait(&s_obj.sig_proc_complete, EVENT_SIG_PROC_COMPLETE, true, K_FOREVER);
 
     /* If the button is pressed the user wants to terminate
     the test, move to CANCEL state */
@@ -108,7 +109,8 @@ void StateMachine::process_run(void *obj) {
 
     /* We need to wait for either a button press to cancel or callback from sigproc
     data collection so we know which state to go to */
-    // s_obj.events = k_event_wait(&s_obj.button_press_event, EVENT_BTN_PRESS, true, K_FOREVER);
+    s_obj.events = k_event_wait(&s_obj.sig_proc_complete, EVENT_SIG_PROC_COMPLETE, true, K_FOREVER);
+    
     LOG_DBG("button press %ld",(s_obj.events & EVENT_BTN_PRESS));
     if (s_obj.events & EVENT_BTN_PRESS) {
         /* If the button is pressed the user wants to terminate
@@ -234,6 +236,7 @@ void state_machine_init() {
 
     /* Initialize the event */
     k_event_init(&s_obj.button_press_event);
+    k_event_init(&s_obj.sig_proc_complete);
 
     /* Set initial state */
     smf_set_initial(SMF_CTX(&s_obj), &dev_states[INIT]);

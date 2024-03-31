@@ -30,6 +30,10 @@ void DataAcquisitionThread::Initialize() {
 
 void DataAcquisitionThread::Run() {
     // set AFE in continuous read mode
+    k_msleep(2500);
+    AFEWrapper.Initialize();
+
+    // handle incomming messages    
     uint8_t message = 0;
     while (true) {
         if (message_queue.get_with_blocking_wait(message)) {

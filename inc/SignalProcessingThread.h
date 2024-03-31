@@ -8,6 +8,8 @@
 #include <zephyr/logging/log.h>
 #include "core/Thread.h"
 #include "DataBufferManager.h"
+#include "Data.h"
+#include <Events.h>
 
 #define SIG_PROC_THREAD_STACK_SIZE_B 16384
 #define SIG_PROC_THREAD_PRIORITY 3 // max based on prj config
@@ -16,14 +18,6 @@
 // #ifndef RAW_SAMPLE_NUMBER
 // #define RAW_SAMPLE_NUMBER 1024 // Just testing for one channel
 // #endif
-#define PROCESSED_SAMPLE_NUMBER 512
-#define SAMPLE_FREQ 250 
-#define CHANNELS_TEST 1 // Just for testing one channel 
-#define BANDS 4
-#define CHANNELS 1
-
-using namespace std; 
-
 /// @brief 
 class SignalProcessingThread : public Thread<SIG_PROC_THREAD_MSG_Q_DEPTH> {
 private:
@@ -36,22 +30,25 @@ private:
     SignalProcessingThread& operator=(const SignalProcessingThread&) = delete;
 
 
+    // heehee variables
+    uint8_t epoch_count;
 
     // Matrix of raw data
-    ArmMatrixWrapper<1024, 8> allChannels;
+    ArmMatrixWrapper<num_samples_per_epoch, num_electrodes> allChannels;
 
     // Array of FFT results of all 8 channels
-    vector<ArmMatrixWrapper<512, 1>> channelFFTResults;
+    ArmMatrixWrapper<num_samples_per_epoch/2, num_electrodes> channelFFTResults;
   
     // Array of Power spectrum of all 8 channels 
-    vector< ArmMatrixWrapper<512, 1> > channelPowerResults;
+    ArmMatrixWrapper<num_samples_per_epoch/2, num_electrodes> channelPowerResults;
    
-    vector<float32_t> bandPowers = vector<float32_t>(4);
+    //vector<float32_t> bandPowers = vector<float32_t>(4);
     // Array of channels where each channel has 4 elements for 4 bandpowers
-    vector<vector<float32_t>> channelBandPowers = vector<vector<float32_t>>(1, bandPowers);
-
+    ArmMatrixWrapper<4, num_electrodes> channelBandPowers; 
+    //vector<vector<float32_t>> channelBandPowers = vector<vector<float32_t>>(1, bandPowers);
+    ArmMatrixWrapper<4, num_electrodes> channelRelativeBandPowers;
     // Array of channels where each channel has 4 elements for 4 bandpowers
-    vector<vector<float32_t>> channelRelativeBandPowers = vector<vector<float32_t> >(1, bandPowers);
+    //vector<vector<float32_t>> channelRelativeBandPowers = vector<vector<float32_t> >(1, bandPowers);
  
 
 public:
@@ -71,12 +68,17 @@ public:
         NONE,
     };
 
+    // static struct k_work_q epoch_work_queue;
+
     void Initialize() override;
     void Run() override;
-    
+    void StartProcessing();
+    void ProcessOneEpoch();
+
     void ComputeSingleSideFFT();
     void ComputeSingleSidePower();
-    void ComputeBandPowers(const PowerBands powerBand);
+    void ComputeBandPowerAtOneBand(const PowerBands powerBand);
+    void ComputeBandPowers();
     void ComputeRelativeBandPowers();
 
     void TestValuesWooHoo();

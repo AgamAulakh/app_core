@@ -7,6 +7,7 @@
 #include <inttypes.h>
 #include <zephyr/smf.h>
 #include <zephyr/logging/log.h>
+#include <Events.h>
 
 #define THREAD_STATE_SIZE 1028 // arbitrary for now
 

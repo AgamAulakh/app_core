@@ -36,31 +36,38 @@ int main(void)
 {
 
 	state_machine_init();
-
 	LED1::init();
-	// DataAcquisitionThread::GetInstance().Initialize();
-	// SignalProcessingThread::GetInstance().Initialize();
 
-	// DataAcquisitionThread::GetInstance().SendMessage(
-	// 	DataAcquisitionThread::CHECK_AFE_ID
-	// );
+	DataAcquisitionThread::GetInstance().Initialize();
+	SignalProcessingThread::GetInstance().Initialize();
 
-	TIBareMetalWrapper AFEWrapper;
 	k_msleep(2500);
-	AFEWrapper.Initialize();
+	DataAcquisitionThread::GetInstance().SendMessage(
+		DataAcquisitionThread::CHECK_AFE_REGISTERS
+	);
+
+	// testing DAQ and sigproc together
+	DataAcquisitionThread::GetInstance().SendMessage(
+		DataAcquisitionThread::START_READING_AFE
+	);
+	SignalProcessingThread::GetInstance().SendMessage(
+		SignalProcessingThread::START_PROCESSING
+	);
+
+	k_msleep(10000);
+
+	// if sigproc stop:
+	// 	DataAcquisitionThread::GetInstance().SendMessage(
+	// 		DataAcquisitionThread::STOP_READING_AFE
+	// 	);
 
 	while(1) {
-		// DataAcquisitionThread::GetInstance().SendMessage(
-		// 	DataAcquisitionThread::READ_AFE_SAMPLE
-		// );
 		LOG_DBG("main thread up time: %u ms", k_uptime_get_32());
 		k_msleep(LOG_DELAY_MS);
 
 		// SignalProcessingThread::GetInstance().SendMessage(
 		// 	SignalProcessingThread::COMPUTE_DEBUG_FFT_RESULTS
 		// );
-
-		AFEWrapper.RunInternalSquareWaveTest();
 	}
 
 	return 0;
