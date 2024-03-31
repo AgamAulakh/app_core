@@ -298,6 +298,8 @@ void lcd_init(void)
 	size_t buf_size = 0;
 	fill_buffer fill_buffer_fnc = NULL;
 
+     LOG_DBG("LCD init");
+
 	display_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
 	if (!device_is_ready(display_dev)) {
 		LOG_ERR("Device %s not found. Aborting sample.",
@@ -369,18 +371,18 @@ void lcd_init(void)
 #endif
 	}
 
-	k_malloc(buf_size);
+	buf = static_cast<uint8_t *>(k_malloc(buf_size));
 
-	// if (buf == NULL) {
-// 		LOG_ERR("Could not allocate memory. Aborting sample.");
-// #ifdef CONFIG_ARCH_POSIX
-// 		posix_exit_main(1);
-// #else
-// 		return;
-// #endif
-// 	}
+	if (buf == NULL) {
+		LOG_ERR("Could not allocate memory. Aborting sample.");
+#ifdef CONFIG_ARCH_POSIX
+		posix_exit_main(1);
+#else
+		return;
+#endif
+	}
 
-	(void)memset(buf, 0xFFu, buf_size);
+	(void*)memset(buf, 0xFFu, buf_size);
 
 	buf_desc.buf_size = buf_size;
 	buf_desc.pitch = capabilities.x_resolution;

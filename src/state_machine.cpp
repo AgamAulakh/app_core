@@ -2,6 +2,7 @@
 #include <state_machine.h>
 #include <led_handler.h>
 #include <lcd_handler.h>
+#include <HIDThread.h>
 
 LOG_MODULE_REGISTER(state_machine, LOG_LEVEL_DBG);
 
@@ -23,6 +24,8 @@ struct s_object {
 void StateMachine::init_run(void *obj) {
     // Setup threads
     LOG_DBG("init run state");
+
+    HIDThread::GetInstance().Initialize();
 
     smf_set_state(SMF_CTX(&s_obj), &dev_states[IDLE]);
 };
