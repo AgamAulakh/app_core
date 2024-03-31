@@ -82,7 +82,7 @@ void SignalProcessingThread::StartProcessing()
             epoch_count++;
         }
     }
-    k_event_post(s_obj.sig_proc_complete, EVENT_SIG_PROC_COMPLETE);
+    k_event_post(&s_obj.sig_proc_complete, EVENT_SIG_PROC_COMPLETE);
     // stop sigproc
 }
 
