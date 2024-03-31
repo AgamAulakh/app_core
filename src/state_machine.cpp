@@ -7,7 +7,7 @@ LOG_MODULE_REGISTER(state_machine, LOG_LEVEL_DBG);
 /* Forward declaration of state table */
 extern const struct smf_state dev_states[];
 
-enum dev_state { INIT, IDLE, TEST, PROCESS, COMPLETE, CANCEL };
+enum dev_state { INIT, IDLE, TEST, COMPLETE, CANCEL };
 
 /* User defined object */
 struct s_object {
@@ -77,8 +77,8 @@ void StateMachine::test_run(void *obj) {
         s_obj.events = k_event_clear(&s_obj.button_press_event, EVENT_BTN_PRESS);
     }
     else {
-        // Once data collection is done move to PROCESS state
-        smf_set_state(SMF_CTX(&s_obj), &dev_states[PROCESS]);
+        // Once processing and data collection is done move to COMPLETE state
+        smf_set_state(SMF_CTX(&s_obj), &dev_states[COMPLETE]);
     }
 };
 
@@ -90,52 +90,6 @@ void StateMachine::test_exit(void *obj) {
     data processing and discard data */
     if (s_obj.ctx.current == &dev_states[CANCEL]) {
         // stop data processing
-    }
-};
-
-void StateMachine::process_entry(void *obj) {
-    LOG_DBG("process entry state");
-};
-
-void StateMachine::process_run(void *obj) {
-    // Run signal processing
-    LOG_DBG("process run state");
-
-    // Remove once sigproc can signal to state machine to change states
-    static uint8_t tempCounter = 5;
-
-    LED1::set_flash_green();
-
-    /* We need to wait for either a button press to cancel or callback from sigproc
-    data collection so we know which state to go to */
-    // s_obj.events = k_event_wait(&s_obj.button_press_event, EVENT_BTN_PRESS, true, K_FOREVER);
-    LOG_DBG("button press %ld",(s_obj.events & EVENT_BTN_PRESS));
-    if (s_obj.events & EVENT_BTN_PRESS) {
-        /* If the button is pressed the user wants to terminate
-        the test, move to CANCEL state */
-        LOG_DBG("cancel processing");
-        smf_set_state(SMF_CTX(&s_obj), &dev_states[CANCEL]);
-    }
-    else if (tempCounter == 0) {
-        /* Otherwise if sigproc is done move to COMPLETE state */
-        smf_set_state(SMF_CTX(&s_obj), &dev_states[COMPLETE]);
-    }
-
-    tempCounter--;
-};
-
-void StateMachine::process_exit(void *obj) {
-
-    // Finish signal processing
-    LOG_DBG("process exit state");
-
-    /* If the user wants to terminate the test, discard data
-    and results */
-    if (s_obj.ctx.current == &dev_states[CANCEL]) {
-        // discard data, do not send results out
-    }
-    else {
-        // Send results to LCD and potentially to radio handler
     }
 };
 
@@ -186,7 +140,6 @@ const struct smf_state dev_states[] = {
     [INIT] = SMF_CREATE_STATE(NULL, StateMachine::init_run, NULL),
     [IDLE] = SMF_CREATE_STATE(StateMachine::idle_entry, StateMachine::idle_run, NULL),
     [TEST] = SMF_CREATE_STATE(StateMachine::test_entry, StateMachine::test_run, StateMachine::test_exit),
-    [PROCESS] = SMF_CREATE_STATE(StateMachine::process_entry, StateMachine::process_run, StateMachine::process_exit),
     [COMPLETE] = SMF_CREATE_STATE(StateMachine::complete_entry, StateMachine::complete_run, StateMachine::complete_exit),
     [CANCEL] = SMF_CREATE_STATE(StateMachine::cancel_entry, StateMachine::cancel_run, StateMachine::cancel_exit)
 };

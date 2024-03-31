@@ -63,43 +63,6 @@ void LED1::set_yellow() {
     }
 }
 
-// PROCESS state LED
-void LED1::set_flash_green() {
-    int err;
-
-    LOG_DBG("set LED to flashing green");
-
-    // Turn off red and blue LED's
-    err = pwm_set_pulse_dt(&LED1::red_pwm_led, 0);
-    if (err) {
-        printk("Error %d: solid red write failed\n", err);
-        return;
-    }
-    
-    err = pwm_set_pulse_dt(&LED1::blue_pwm_led, 0);
-    if (err) {
-        printk("Error %d: blue write failed\n", err);
-        return;
-    }
-
-    // Turn on green LED flashing
-    err = pwm_set_pulse_dt(&LED1::green_pwm_led, STEP_SIZE);
-    if (err) {
-        printk("Error %d: flash green write failed\n", err);
-        return;
-    }
-
-    k_sleep(K_MSEC(400));
-
-    err = pwm_set_pulse_dt(&LED1::green_pwm_led, 0);
-    if (err) {
-        printk("Error %d: flash green write failed\n", err);
-        return;
-    }
-
-    k_sleep(K_MSEC(300));
-}
-
 // COMPLETE state LED
 void LED1::set_solid_green() {
     int err;

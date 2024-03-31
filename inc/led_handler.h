@@ -11,7 +11,6 @@ namespace LED1 {
     void init();
     void set_blue();
     void set_yellow();
-    void set_flash_green();
     void set_solid_green();
     void set_flash_red();
     void set_solid_red();
