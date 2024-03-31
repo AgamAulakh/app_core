@@ -138,24 +138,30 @@ void lcd_init(void)
     display_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
     if (!device_is_ready(display_dev)) {
 		LOG_ERR("Device not ready, aborting");
-		return;
-	}
+		return; 
+    }
 
     // display_blanking_off(display_dev);
 
     hello_world_label = lv_label_create(lv_scr_act());
-    testing_label = lv_label_create(lv_scr_act());
+    // testing_label = lv_label_create(lv_scr_act());
 
     // lv_label_set_long_mode(hello_world_label, LV_LABEL_LONG_WRAP);
     lv_label_set_text(hello_world_label, "Hello world from EEGALs!");
     lv_obj_set_align(hello_world_label, LV_ALIGN_CENTER);
     lv_task_handler();
-    display_blanking_on(display_dev);
+    display_blanking_off_api(display_dev);
 
     while(1) {
+        k_msleep(1000);
+        lv_label_set_text(hello_world_label, "Hello world");
+        LOG_INF("task handler");
         lv_task_handler();
-        k_msleep(5);
+        // // hello_world_label = lv_label_create(lv_scr_act());
+        // lv_label_set_text(hello_world_label, "Hello world!");
+        // lv_obj_set_align(hello_world_label, LV_ALIGN_CENTER);
+        // // lv_task_handler();
+        // display_blanking_off_api(display_dev);
+        // k_msleep(100);
     }
 }
-
-K_THREAD_DEFINE(lcd_thread, 4096, lcd_init, NULL, NULL, NULL, 1, 0, 0);

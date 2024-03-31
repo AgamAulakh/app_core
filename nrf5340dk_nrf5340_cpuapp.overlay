@@ -56,14 +56,14 @@
             nordic,invert;
         };
     };
-    lcd_spi_sleep: lcd_spi_sleep {
-        group1 {
-            psels = <NRF_PSEL(SPIM_MISO, 0, 17)>,
-                    <NRF_PSEL(SPIM_MOSI, 0, 14)>,
-                    <NRF_PSEL(SPIM_SCK, 0, 19)>;
-            low-power-enable;
-        };
-    };
+    // lcd_spi_sleep: lcd_spi_sleep {
+    //     group1 {
+    //         psels = <NRF_PSEL(SPIM_MISO, 0, 17)>,
+    //                 <NRF_PSEL(SPIM_MOSI, 0, 14)>,
+    //                 <NRF_PSEL(SPIM_SCK, 0, 19)>;
+    //         low-power-enable;
+    //     };
+    // };
 };
 
 / {
@@ -127,23 +127,28 @@ lcd_spi: &spi1 {
 	// compatible = "nordic,nrf-spim";
 	status = "okay";
 	pinctrl-0 = <&lcd_spi_default>;
-    pinctrl-1 = <&lcd_spi_sleep>;
-	pinctrl-names = "default", "sleep";
-    cs-gpios = <&gpio0 15 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+    // pinctrl-1 = <&lcd_spi_sleep>;
+	pinctrl-names = "default";
+    cs-gpios = <&gpio0 15 (GPIO_ACTIVE_LOW)>;
 
-    lcd: st7735r@0 {
-        compatible = "sitronix,st7735r";
+    lcd: st7735s@0 {
+        compatible = "sitronix,st7735s";
 		spi-max-frequency = <20000000>;
 		reg = <0>;
-		cmd-data-gpios = <&gpio1 14 GPIO_PULL_UP>;	/* D9 */
+        lcd-logic-power-gpios = <&gpio0 5 GPIO_ACTIVE_HIGH>;	/* D7 */
+		lcd-backlight-power-gpios = <&gpio1 13 GPIO_ACTIVE_HIGH>;	/* D4 */
+		cmd-data-gpios = <&gpio1 14 GPIO_ACTIVE_LOW>;	/* D9 */
 		reset-gpios = <&gpio1 15 GPIO_ACTIVE_LOW>;	/* D8 */
-		width = <160>;
-		height = <128>;
+		width = <128>;
+		height = <160>;
 		x-offset = <0>;
 		y-offset = <0>;
-		madctl = <0x60>;
+		madctl = <0xc0>;
 		colmod = <0x55>;
+		caset = [00 00 00 4F];
+		raset = [00 00 00 9F];
 		vmctr1 = <0x0e>;
+		invctr = <0x07>;
 		pwctr1 = [a2 02 84];
 		pwctr2 = [c5];
 		pwctr3 = [0a 00];
@@ -210,18 +215,6 @@ afe_spi: &spi4 {
 };
 &gpiote {
     status = "okay";
-};
-
-&spi4_default {
-    group1 {
-        psels = <NRF_PSEL(SPIM_MOSI, 1, 13)>;
-    };
-};
-
-&spi4_sleep {
-    group1 {
-        psels = <NRF_PSEL(SPIM_MOSI, 1, 13)>;
-    };
 };
 
 &qspi_default {
