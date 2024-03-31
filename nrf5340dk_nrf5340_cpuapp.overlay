@@ -56,14 +56,14 @@
             nordic,invert;
         };
     };
-    // lcd_spi_sleep: lcd_spi_sleep {
-    //     group1 {
-    //         psels = <NRF_PSEL(SPIM_MISO, 0, 17)>,
-    //                 <NRF_PSEL(SPIM_MOSI, 0, 14)>,
-    //                 <NRF_PSEL(SPIM_SCK, 0, 19)>;
-    //         low-power-enable;
-    //     };
-    // };
+    lcd_spi_sleep: lcd_spi_sleep {
+        group1 {
+            psels = <NRF_PSEL(SPIM_MISO, 0, 17)>,
+                    <NRF_PSEL(SPIM_MOSI, 0, 14)>,
+                    <NRF_PSEL(SPIM_SCK, 0, 19)>;
+            low-power-enable;
+        };
+    };
 };
 
 / {
@@ -124,19 +124,19 @@
 /delete-node/ &{/pin-controller/pwm0_sleep/group1/};
 
 lcd_spi: &spi1 {
-	// compatible = "nordic,nrf-spim";
+	compatible = "nordic,nrf-spim";
 	status = "okay";
 	pinctrl-0 = <&lcd_spi_default>;
-    // pinctrl-1 = <&lcd_spi_sleep>;
-	pinctrl-names = "default";
+    pinctrl-1 = <&lcd_spi_sleep>;
+	pinctrl-names = "default", "sleep";
     cs-gpios = <&gpio0 15 (GPIO_ACTIVE_LOW)>;
 
-    lcd: st7735s@0 {
-        compatible = "sitronix,st7735s";
+    lcd: st7735r@0 {
+        compatible = "sitronix,st7735r";
 		spi-max-frequency = <20000000>;
 		reg = <0>;
-        lcd-logic-power-gpios = <&gpio0 5 GPIO_ACTIVE_HIGH>;	/* D7 */
-		lcd-backlight-power-gpios = <&gpio1 13 GPIO_ACTIVE_HIGH>;	/* D4 */
+        // lcd-logic-power-gpios = <&gpio0 5 GPIO_ACTIVE_HIGH>;	/* D7 */
+		// lcd-backlight-power-gpios = <&gpio1 13 GPIO_ACTIVE_HIGH>;	/* D4 */
 		cmd-data-gpios = <&gpio1 14 GPIO_ACTIVE_LOW>;	/* D9 */
 		reset-gpios = <&gpio1 15 GPIO_ACTIVE_LOW>;	/* D8 */
 		width = <128>;
