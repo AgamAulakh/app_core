@@ -34,9 +34,6 @@ class StateMachine {
         static void test_entry(void *obj);
         static void test_run(void *obj);
         static void test_exit(void *obj);
-        static void process_entry(void *obj);
-        static void process_run(void *obj);
-        static void process_exit(void *obj);
         static void complete_entry(void *obj);
         static void complete_run(void *obj);
         static void complete_exit(void *obj);
