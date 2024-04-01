@@ -9,17 +9,6 @@ extern const struct smf_state dev_states[];
 
 enum dev_state { INIT, IDLE, TEST, PROCESS, COMPLETE, CANCEL };
 
-/* User defined object */
-// struct s_object {
-//     struct smf_ctx ctx;
-
-//     /* Events */
-//     struct k_event button_press_event;
-//     extern struct k_event sig_proc_complete;
-//     int32_t events;
-
-// } s_obj;
-
 void StateMachine::init_run(void *obj) {
     // Setup threads
     LOG_DBG("init run state");

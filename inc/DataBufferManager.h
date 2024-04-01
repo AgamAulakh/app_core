@@ -14,22 +14,21 @@ class DataBufferManager {
 private:
     static struct ring_buf buffer;
     static sample_t data_buffer[max_samples_ring_buffer];
-
-    DataBufferManager();
-    ~DataBufferManager() = default;
- 
-public:
-    static Semaphore epoch_lock; // only used by the sigproc thread
-
-    // ring functionality
-    static bool WriteOneSample(const sample_t&);
+    
+    // can only read one epoch at a time:
     static bool ReadOneSample(sample_t&);
+    static bool is_buffer_initialized;
+
+public:
+    // ring functionality
+    static void Initialize();
+    static bool WriteOneSample(const sample_t);
     static void ReadEpoch(ArmMatrixWrapper<num_samples_per_epoch, num_electrodes> &mat);
-    static void DoneReadingEpoch();
 
     // helpers
     static bool IsEmpty();
     static size_t GetFreeSpace();
     static size_t GetUsedSpace();
+    static size_t GetNumSaplesWritten();
     static void ResetBuffer();
 };

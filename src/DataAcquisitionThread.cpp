@@ -11,7 +11,6 @@ DataAcquisitionThread::DataAcquisitionThread() : AFEWrapper() {
 
 void DataAcquisitionThread::Initialize() {
     LOG_DBG("DataAcq::%s -- initializing AFE Wrapper", __FUNCTION__);
-    AFEWrapper.Initialize();
 
     if (id == nullptr) {
         LOG_DBG("DataAcq::%s -- making thread", __FUNCTION__);
@@ -31,7 +30,7 @@ void DataAcquisitionThread::Initialize() {
 void DataAcquisitionThread::Run() {
     // set AFE in continuous read mode
     k_msleep(2500);
-    AFEWrapper.Initialize();
+    // AFEWrapper.Initialize();
 
     // handle incomming messages    
     uint8_t message = 0;
@@ -73,6 +72,15 @@ void DataAcquisitionThread::Run() {
                     // because test takes ~2 seconds to run asyncronously, sleep before changing registers
                     k_msleep(2000);
                     AFEWrapper.SetDefaultRegisters();
+                    break;
+                case RUN_FAKE_SAMPLES_DATA_BUFFER_TEST:
+                    // calls a blocking loop
+                    AFEWrapper.TestFakeSampleDataBuffer();
+                    AFEWrapper.TestFakeSampleDataBuffer();
+                    AFEWrapper.TestFakeSampleDataBuffer();
+                    AFEWrapper.TestFakeSampleDataBuffer();
+                    AFEWrapper.TestFakeSampleDataBuffer();
+                    AFEWrapper.TestFakeSampleDataBuffer();
                     break;
                 case INVALID:
                     break;

@@ -74,6 +74,7 @@ public:
     static void ReadOneSample();
     static void ReadContinuous();
     static void PrintCurrentSample();
+    static void TestFakeSampleDataBuffer();
     static void TestLoopbackSlave();
 
     // experimental

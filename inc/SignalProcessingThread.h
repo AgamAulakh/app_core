@@ -9,6 +9,7 @@
 #include "core/Thread.h"
 #include "DataBufferManager.h"
 #include "Data.h"
+#include "Utils.h"
 #include <Events.h>
 
 #define SIG_PROC_THREAD_STACK_SIZE_B 16384
@@ -73,7 +74,6 @@ public:
     void Initialize() override;
     void Run() override;
     void StartProcessing();
-    void ProcessOneEpoch();
 
     void ComputeSingleSideFFT();
     void ComputeSingleSidePower();

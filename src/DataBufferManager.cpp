@@ -5,39 +5,46 @@ LOG_MODULE_REGISTER(data_buffer_manager, LOG_LEVEL_DBG);
 
 ring_buf DataBufferManager::buffer;
 sample_t DataBufferManager::data_buffer[max_samples_ring_buffer] = {0};
-Semaphore DataBufferManager::epoch_lock = Semaphore();
+bool DataBufferManager::is_buffer_initialized = false;
 
-DataBufferManager::DataBufferManager(){
-    ring_buf_init(&buffer, total_size_ring_buffer_B, reinterpret_cast<uint8_t*>(data_buffer));
-
-    LOG_DBG("DataBufferManager::%s -- TOOK THE SEMAPHORE at ms: %u",
-        __FUNCTION__,
-        k_uptime_get_32()
-    );
-
-    epoch_lock.wait();
+void DataBufferManager::Initialize(){
+    if (!is_buffer_initialized) {
+        ring_buf_init(&buffer, total_size_ring_buffer_B, reinterpret_cast<uint8_t*>(data_buffer));
+        LOG_DBG("DataBufferManager::%s -- Initialized Buffer at ms: %u",
+            __FUNCTION__,
+            k_uptime_get_32()
+        );
+        is_buffer_initialized = true;
+    }
 }
 
 // ring functionality
-bool DataBufferManager::WriteOneSample(const sample_t &sample) {
-    bool is_successful = ring_buf_put(&buffer,
-        const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(&sample)),
-        sample_size_B
-    ) == sample_size_B;
+bool DataBufferManager::WriteOneSample(const sample_t sample) {
+    bool is_successful = ring_buf_put(
+                            &buffer,
+                            reinterpret_cast<const uint8_t*>(&sample),
+                            sample_size_B
+                        ) == sample_size_B;
 
-    LOG_INF("DataBufferManager::%s wrote new sample", __FUNCTION__);
-
-    if ((GetUsedSpace() / sample_size_B) == num_samples_per_epoch) {
-        epoch_lock.give();
+    if(!is_successful) {
+        LOG_INF("DataBufferManager::%s write status: %u, sample number: %u, used space B: %u",
+            __FUNCTION__,
+            is_successful,
+            (GetUsedSpace() / sample_size_B),
+            GetUsedSpace()
+        );
     }
+
     return is_successful;
 };
 
 bool DataBufferManager::ReadOneSample(sample_t &sample) {
-    return ring_buf_get(&buffer,
-        const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(&sample)),
-        sample_size_B
-    ) == sample_size_B;
+    bool is_successful = ring_buf_get(
+                            &buffer,
+                            reinterpret_cast<uint8_t*>(&sample),
+                            sample_size_B
+                        ) == sample_size_B;
+    return is_successful;
 };
 
 void DataBufferManager::ReadEpoch(ArmMatrixWrapper<num_samples_per_epoch, num_electrodes> &mat) {
@@ -59,10 +66,6 @@ void DataBufferManager::ReadEpoch(ArmMatrixWrapper<num_samples_per_epoch, num_el
     }
 };
 
-void DataBufferManager::DoneReadingEpoch() {
-    epoch_lock.wait();
-}
-
 // helpers
 bool DataBufferManager::IsEmpty() {
     return ring_buf_is_empty(&buffer);
@@ -71,8 +74,12 @@ size_t DataBufferManager::GetFreeSpace() {
     return ring_buf_space_get(&buffer);
 };
 size_t DataBufferManager::GetUsedSpace() {
-    return total_size_ring_buffer_B - ring_buf_space_get(&buffer);
+    return ring_buf_size_get(&buffer);
+};
+size_t DataBufferManager::GetNumSaplesWritten() {
+    return (GetUsedSpace() / sample_size_B);
 };
 void DataBufferManager::ResetBuffer() {
+    ring_buf_internal_reset(&buffer, 0);
     memset(data_buffer, 0, sizeof(data_buffer));
 };

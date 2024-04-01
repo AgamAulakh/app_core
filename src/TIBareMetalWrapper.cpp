@@ -32,45 +32,45 @@ ads1299_t TIBareMetalWrapper::afe_driver{
 };
 
 TIBareMetalWrapper::TIBareMetalWrapper() {
-    if(!device_is_ready(spi_dev)) {
-        LOG_ERR("\n\nTIBareMetalWrapper::%s SPI master device not ready!\n\n", __FUNCTION__);
-    }
-    struct gpio_dt_spec spim_cs_gpio = AFE_SPI_CS_DT_SPEC;
-    if(!device_is_ready(spim_cs_gpio.port)){
-        LOG_ERR("\n\nTIBareMetalWrapper::%s SPI master chip select device not ready!\n\n", __FUNCTION__);
-    }
+    // if(!device_is_ready(spi_dev)) {
+    //     LOG_ERR("\n\nTIBareMetalWrapper::%s SPI master device not ready!\n\n", __FUNCTION__);
+    // }
+    // struct gpio_dt_spec spim_cs_gpio = AFE_SPI_CS_DT_SPEC;
+    // if(!device_is_ready(spim_cs_gpio.port)){
+    //     LOG_ERR("\n\nTIBareMetalWrapper::%s SPI master chip select device not ready!\n\n", __FUNCTION__);
+    // }
 
-    bool is_cs_gpio = spi_cs_is_gpio(&spi_cfg);
-    LOG_INF("TIBareMetalWrapper::%s CS IS: %d", __FUNCTION__, is_cs_gpio);
+    // bool is_cs_gpio = spi_cs_is_gpio(&spi_cfg);
+    // LOG_INF("TIBareMetalWrapper::%s CS IS: %d", __FUNCTION__, is_cs_gpio);
 
-    // AFE RESET AND CHIP SELECT
-    int err = gpio_pin_configure_dt(&afe_reset_spec, GPIO_OUTPUT_INACTIVE);
-    if (err != 0) {
-        LOG_ERR("\n\nTIBareMetalWrapper::%s COULD NOT CONFIGURE AFE RESET AS GPIO\n\n", __FUNCTION__);
-    }
+    // // AFE RESET AND CHIP SELECT
+    // int err = gpio_pin_configure_dt(&afe_reset_spec, GPIO_OUTPUT_INACTIVE);
+    // if (err != 0) {
+    //     LOG_ERR("\n\nTIBareMetalWrapper::%s COULD NOT CONFIGURE AFE RESET AS GPIO\n\n", __FUNCTION__);
+    // }
 
-    // AFE DRDY
-    err = gpio_pin_configure_dt(&afe_drdy_spec, GPIO_INPUT);
-    if (err != 0) {
-        LOG_ERR("\n\nTIBareMetalWrapper::%s COULD NOT CONFIGURE AFE DRDY AS GPIO INPUT\n\n", __FUNCTION__);
-    }
+    // // AFE DRDY
+    // err = gpio_pin_configure_dt(&afe_drdy_spec, GPIO_INPUT);
+    // if (err != 0) {
+    //     LOG_ERR("\n\nTIBareMetalWrapper::%s COULD NOT CONFIGURE AFE DRDY AS GPIO INPUT\n\n", __FUNCTION__);
+    // }
 
-    err = gpio_pin_interrupt_configure_dt(&afe_drdy_spec, GPIO_INT_EDGE_FALLING);
-    if (err != 0) {
-        LOG_ERR("\n\nTIBareMetalWrapper::%s COULD NOT CONFIGURE AFE DRDY INTERRUPT\n\n", __FUNCTION__);
-    }
+    // err = gpio_pin_interrupt_configure_dt(&afe_drdy_spec, GPIO_INT_EDGE_FALLING);
+    // if (err != 0) {
+    //     LOG_ERR("\n\nTIBareMetalWrapper::%s COULD NOT CONFIGURE AFE DRDY INTERRUPT\n\n", __FUNCTION__);
+    // }
 
-    //*************************** Hard reset KILLS AFE ***************************//
-    ADS1299_Init(&afe_driver);
-    //*************************** Hard reset KILLS AFE ***************************//
-    LOG_INF("TIBareMetalWrapper::%s finished ads1299 init", __FUNCTION__);
+    // //*************************** Hard reset KILLS AFE ***************************//
+    // ADS1299_Init(&afe_driver);
+    // //*************************** Hard reset KILLS AFE ***************************//
+    // LOG_INF("TIBareMetalWrapper::%s finished ads1299 init", __FUNCTION__);
 
-    // Cycle start/stop ADC
-    StartADC();
-    StopADC();
+    // // Cycle start/stop ADC
+    // StartADC();
+    // StopADC();
 
-    // Setup register states internal to driver:
-    CheckAllRegisters();
+    // // Setup register states internal to driver:
+    // CheckAllRegisters();
 };
 
 // parent functions to override
@@ -315,10 +315,9 @@ void TIBareMetalWrapper::Start() {
     if (is_adc_on) { StopADC(); }
     if (afe_driver.config4.singleShot) { ConfigContinuousConversion(); }
 
-    // ********************************* SCARY ********************************* //
     // clear DMA buffer
+    DataBufferManager::Initialize();
     DataBufferManager::ResetBuffer();
-    // ********************************* SCARY ********************************* //
 
     // Write setting first, then start adc conversion
     LOG_INF("TIBareMetalWrapper::%s enabling continuous read at %u ms", __FUNCTION__, k_uptime_get_32());
@@ -691,6 +690,31 @@ void TIBareMetalWrapper::TestLoopbackSlave() {
     printk("\n");
 
     Transfer(tx, rx, len);
+}
+
+void TIBareMetalWrapper::TestFakeSampleDataBuffer() {
+    // NOTE: this is a blocking loop!
+    // clear DMA buffer
+    DataBufferManager::Initialize();
+
+    size_t num_fake_samples = sizeof(Utils::inputSignal) / sizeof(Utils::inputSignal[0]);
+    sample_t fake_sample = { 0 };
+
+    for(size_t i = 0; i < num_fake_samples; i++) {
+        fake_sample.ch1 = Utils::inputSignal[i];
+        fake_sample.ch2 = Utils::inputSignal[i];
+        fake_sample.ch3 = Utils::inputSignal[i];
+        fake_sample.ch4 = Utils::inputSignal[i];
+        fake_sample.ch5 = Utils::inputSignal[i];
+        fake_sample.ch6 = Utils::inputSignal[i];
+        fake_sample.ch7 = Utils::inputSignal[i];
+        fake_sample.ch8 = Utils::inputSignal[i];
+
+        DataBufferManager::WriteOneSample(fake_sample);
+
+        // simulate drdy toggle at 250hz
+        k_msleep(4);
+    }
 }
 
 void TIBareMetalWrapper::PrintCurrentSample(){

@@ -150,14 +150,14 @@ public:
         return true;
     }
 
-
     void prettyPrint() {
         printk("\nmatrix data:\n");
         for (int row = 0; row < matrix.numRows; row++ ) { 
             for (int col = 0; col < matrix.numCols; col++ ) 
             { 
                 printk("%.4f\t", this->at(row,col));
-            } 
+            }
+            printk("\n");
         } 
         printk("\n");
     };
@@ -282,30 +282,21 @@ public:
         ArmMatrixWrapper<MaxRows, 1> rawResult;
 
         // Temporary arrays to store initial data and intermediate FFT values
-        float32_t inputFFT[MaxRows];
-        float32_t outputFFT[1024];
-       
-       
-        // O indicates FFT and 1 indicates inverse FFT (This flag will not change)
-        const uint32_t ifftFlag = 0;
+        ArmMatrixWrapper<MaxRows, 1> inputFFT = this->get_column_vector_at(channel);
+
+        // 0 indicates FFT and 1 indicates inverse FFT (This flag will not change)
+        const uint8_t ifftFlag = 0;
 
         // Initalize the instance with the specified number of rows
-        arm_rfft_fast_instance_f32 fft_instance;
-        arm_rfft_fast_init_f32(&fft_instance, 1024 );
-        
-        for (uint32_t i = 0; i < 1024; i++)
-        {
-            inputFFT[i] = at(i, channel);
-        }
+        static arm_rfft_fast_instance_f32 fft_instance;
+        arm_rfft_fast_init_f32(&fft_instance, MaxRows);
 
         // Compute the FFT and store the outputs of the FFT in the array
-        arm_rfft_fast_f32(&fft_instance, inputFFT , outputFFT, ifftFlag);
+        arm_rfft_fast_f32(&fft_instance, inputFFT.data, rawResult.data, ifftFlag);
 
         // The first entry is the DC offset so simply set to 0
-        outputFFT[0] =  0;
-        
-        // Copy output FFT to result
-        memcpy(rawResult.data,  outputFFT, sizeof(outputFFT));
+        rawResult.data[0] =  0;
+
         return rawResult;
     };
 
@@ -315,51 +306,42 @@ public:
 
         // Struct to store the output of the FFT for one channel 
         ArmMatrixWrapper<MaxRows/2, 1> FFTResult;
-        
-        // Temporary arrays to store initial data and intermediate FFT values
-        float32_t outputFFTMag[matrix.numRows/2];
 
         // Extract the magnitude values because FFT values are complex and have both a magnitude and phase.
         // matrix.numRows/2 because we are looking at one-sided spectrum (# of magnitudes we want to look at)
         ArmMatrixWrapper<MaxRows, 1> rawFFTChannel = rawFFT(channel);
-        arm_cmplx_mag_f32(rawFFTChannel.data, outputFFTMag, matrix.numRows/2);
-
-        // Copy the output to the result matrix
-        memcpy(FFTResult.data, outputFFTMag, MaxBufferSize * sizeof(float32_t));
+    
+        // Input matrix is complex FFT size, output is complexFFT/2 size
+        arm_cmplx_mag_f32(rawFFTChannel.data, FFTResult.data, MaxRows/2);
 
         return FFTResult;
-
     }
 
     // Computes the single-sided Power given the single-sided FFT of a channel
     ArmMatrixWrapper<MaxRows/2, 1> singleSidePower(uint32_t channel) const {
         
         // Struct to store the output of the FFT for one channel 
-        ArmMatrixWrapper<MaxRows/2, 1> PowerResult;
-        
-        // Temporary arrays to store power FFT values
-        float32_t powerFFT[MaxRows/2];
+        ArmMatrixWrapper<MaxRows/2, 1> powerFFT;
 
         // Compute the power of the FFT
         ArmMatrixWrapper<MaxRows, 1> rawFFTChannel = rawFFT(channel);
-         arm_cmplx_mag_squared_f32(rawFFTChannel.data, powerFFT, matrix.numRows/2);
-        
+
+        // Input matrix is complex FFT size, output is complexFFT/2 size
+        arm_cmplx_mag_squared_f32(rawFFTChannel.data, powerFFT.data, MaxRows/2);
+
         // Check if the scaling is required for the above function
         // Copy the output to the result matrix
-       // memcpy(PowerResult.data, powerFFT, MaxBufferSize * sizeof(float32_t));
-        return PowerResult;
-
+        return powerFFT;
     }
 
     // Computes the single-sided Band Power given the single-sided FFT of a channel,
     // Pwelch of specified channel and specific band power range type
-    float32_t singleSideBandPower(uint32_t sampleFreq, uint32_t sampleNo, uint32_t bandSelect) const {
-        
+    float32_t singleSideBandPower(float32_t sampleFreq, float32_t sampleNo, uint32_t bandSelect) const {
         // The frequency resolution or frequency bin width
         float32_t freqRes = sampleFreq / sampleNo;
-
+        printk("lawl: %f\n", freqRes);
         // The following band limits: delta band, theta band, alpha band, beta band
-        float32_t bandRanges[] = {1,3,4,7,8,12,13,30};
+        float32_t bandRanges[] = {1.f,3.f,4.f,7.f,8.f,12.f,13.f,30.f};
 
         // Low and high limit for specified band range of frequencies
         uint32_t lowLimit = 0;
@@ -394,19 +376,21 @@ public:
             default:{
                 break;
             }
-
         }
 
         // Calculating the band power for specified band range of frequnencies
+        printk("high limit: %u, low limit: %u", highLimit, lowLimit);
         float32_t bandPower = 0;
         for(uint32_t i = lowLimit; i < highLimit; lowLimit++){
             bandPower += (data[i] * freqRes);
         }
+        printk("bandpower: %f", bandPower);
+
         return bandPower;
     }
 
     // Computes the single-sided Relative Band Power given the specified bandPower values
-   std::vector<float32_t> singleSideRelativeBandPower(std::vector<float32_t> bandPowers){
+    std::vector<float32_t> singleSideRelativeBandPower(std::vector<float32_t> bandPowers){
         
         std::vector<float32_t> relativeBandpowers(4);
 
