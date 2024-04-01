@@ -75,6 +75,7 @@ void SignalProcessingThread::StartProcessing()
             LOG_DBG("SigProc::%s reading epoch %u ms", __FUNCTION__, k_uptime_get_32());
             DataBufferManager::ReadEpoch(allChannels);
             ComputeSingleSidePower();
+            printk("shawt");
             ComputeBandPowers();
             epoch_count++;
             LOG_DBG("SigProc::%s finished epoch %u at %u ms", __FUNCTION__, epoch_count, k_uptime_get_32());
@@ -84,9 +85,9 @@ void SignalProcessingThread::StartProcessing()
 
     printk("pee");
     // stop sigproc
-    // k_event_post(&s_obj.sig_proc_complete, EVENT_SIG_PROC_COMPLETE);
+    k_event_post(&s_obj.sig_proc_complete, EVENT_SIG_PROC_COMPLETE);
     // done processing; return
-}
+};
 
 void SignalProcessingThread::TestValuesWooHoo()
 {
@@ -96,7 +97,7 @@ void SignalProcessingThread::TestValuesWooHoo()
     }
     allChannels.rawFFT(0);
     //allChannels.prettyPrint();
-}
+};
 
 void SignalProcessingThread::ComputeSingleSideFFT()
 {	
@@ -105,7 +106,7 @@ void SignalProcessingThread::ComputeSingleSideFFT()
     }
     printk("\nPrint single-sided FFT results:\n");
     channelFFTResults.prettyPrint();
-}
+};
  
 
 void SignalProcessingThread::ComputeSingleSidePower()
@@ -115,8 +116,8 @@ void SignalProcessingThread::ComputeSingleSidePower()
         channelPowerResults.set_column_vector_at(allChannels.singleSidePower(i), i);
     }
     printk("\nPrint single-sided power results:\n");
-    channelPowerResults.prettyPrint();
-}
+    // channelPowerResults.prettyPrint();
+};
 
 void SignalProcessingThread::ComputeBandPowerAtOneBand(const PowerBands powerBand)
 {
@@ -165,7 +166,7 @@ void SignalProcessingThread::ComputeBandPowerAtOneBand(const PowerBands powerBan
         default:
             break;
     }
-}
+};
 
 void SignalProcessingThread::ComputeBandPowers() {
     for (int i = 0; i < num_electrodes; i++) {   
@@ -185,7 +186,7 @@ void SignalProcessingThread::ComputeBandPowers() {
     }
 	printk("\nPrint band power results:\n");
     channelBandPowers.prettyPrint();
-}
+};
 
 void SignalProcessingThread::ComputeRelativeBandPowers()
 {
@@ -195,6 +196,6 @@ void SignalProcessingThread::ComputeRelativeBandPowers()
         // a 2D array. Outer index denotes the channel number, inner index denotes the band power value
         // channelRelativeBandPowers[i] = channelPowerResults[i].singleSideRelativeBandPower(channelBandPowers[i]);
     }
-}
+};
 
 

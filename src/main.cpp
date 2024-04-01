@@ -51,10 +51,10 @@ int main(void)
 		SignalProcessingThread::START_PROCESSING
 	);
 
-	// LOG_DBG("main thread waiting for sigproc done signal: %u ms", k_uptime_get_32());
-	// if(k_event_wait(&s_obj.sig_proc_complete, EVENT_SIG_PROC_COMPLETE, true, K_FOREVER)) {
-	//     LOG_DBG("main thread received sigproc done signal: %u ms", k_uptime_get_32());
-    // }
+	LOG_DBG("main thread waiting for sigproc done signal: %u ms", k_uptime_get_32());
+	if(k_event_wait(&s_obj.sig_proc_complete, EVENT_SIG_PROC_COMPLETE, true, K_FOREVER)) {
+	    LOG_DBG("main thread received sigproc done signal: %u ms", k_uptime_get_32());
+    }
 
 	while(1) {
 		LOG_DBG("main thread up time: %u ms", k_uptime_get_32());

@@ -381,7 +381,7 @@ public:
         // Calculating the band power for specified band range of frequnencies
         printk("high limit: %u, low limit: %u", highLimit, lowLimit);
         float32_t bandPower = 0;
-        for(uint32_t i = lowLimit; i < highLimit; lowLimit++){
+        for(uint32_t i = lowLimit; i < highLimit; i++){
             bandPower += (data[i] * freqRes);
         }
         printk("bandpower: %f", bandPower);
