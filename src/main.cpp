@@ -8,15 +8,12 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/logging/log_ctrl.h>
+#include <StateMachineThread.h>
 #include <zephyr/init.h>
-#include <zephyr/smf.h>
 
 extern "C" {
 #include <ble_handler.h>
 }
-
-#include <state_machine.h>
-#include <led_handler.h>
 
 #include <nrf.h>
 #include <nrfx.h>
@@ -32,9 +29,7 @@ int main(void)
 {
 	LOG_INF("Hello world from %s", CONFIG_BOARD);
 
-	state_machine_init();
-
-	LED1::init();
+	StateMachineThread::GetInstance().Initialize();
 
 	while(1) {
 		LOG_DBG("main thread up time: %u ms", k_uptime_get_32());
