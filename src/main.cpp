@@ -24,8 +24,8 @@ extern "C" {
 #include "ArmMatrixWrapper.h"
 #include "Events.h"
 
-LOG_MODULE_REGISTER(app_core_main, LOG_LEVEL_INF);
-#define LOG_DELAY_MS 5000
+LOG_MODULE_REGISTER(app_core_main, LOG_LEVEL_DBG);
+#define LOG_DELAY_MS 100000
 
 int main(void)
 {
@@ -42,7 +42,7 @@ int main(void)
 	// );
 
 	// testing DAQ and sigproc together
-	k_event_init(&s_obj.sig_proc_complete);
+	// k_event_init(&s_obj.sig_proc_complete);
 
 	DataAcquisitionThread::GetInstance().SendMessage(
 		DataAcquisitionThread::RUN_FAKE_SAMPLES_DATA_BUFFER_TEST
@@ -52,13 +52,12 @@ int main(void)
 	);
 
 	LOG_DBG("main thread waiting for sigproc done signal: %u ms", k_uptime_get_32());
-	if(k_event_wait(&s_obj.sig_proc_complete, EVENT_SIG_PROC_COMPLETE, true, K_FOREVER)) {
-	    LOG_DBG("main thread received sigproc done signal: %u ms", k_uptime_get_32());
-    }
+	k_event_wait(&s_obj.sig_proc_complete, EVENT_SIG_PROC_COMPLETE, true, K_FOREVER);
+    LOG_DBG("main thread received sigproc done signal: %u ms", k_uptime_get_32());
 
 	while(1) {
+        k_msleep(LOG_DELAY_MS);
 		LOG_DBG("main thread up time: %u ms", k_uptime_get_32());
-		k_msleep(LOG_DELAY_MS);
 	}
 
 	return 0;

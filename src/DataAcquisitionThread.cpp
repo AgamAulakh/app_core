@@ -76,11 +76,6 @@ void DataAcquisitionThread::Run() {
                 case RUN_FAKE_SAMPLES_DATA_BUFFER_TEST:
                     // calls a blocking loop
                     AFEWrapper.TestFakeSampleDataBuffer();
-                    AFEWrapper.TestFakeSampleDataBuffer();
-                    AFEWrapper.TestFakeSampleDataBuffer();
-                    AFEWrapper.TestFakeSampleDataBuffer();
-                    AFEWrapper.TestFakeSampleDataBuffer();
-                    AFEWrapper.TestFakeSampleDataBuffer();
                     break;
                 case INVALID:
                     break;

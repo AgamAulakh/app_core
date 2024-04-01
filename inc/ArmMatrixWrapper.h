@@ -336,10 +336,9 @@ public:
 
     // Computes the single-sided Band Power given the single-sided FFT of a channel,
     // Pwelch of specified channel and specific band power range type
-    float32_t singleSideBandPower(float32_t sampleFreq, float32_t sampleNo, uint32_t bandSelect) const {
+    float32_t singleSideBandPower(float32_t sampleFreq, float32_t sampleNo, uint32_t bandSelect, uint8_t electrode) const {
         // The frequency resolution or frequency bin width
         float32_t freqRes = sampleFreq / sampleNo;
-        printk("lawl: %f\n", freqRes);
         // The following band limits: delta band, theta band, alpha band, beta band
         float32_t bandRanges[] = {1.f,3.f,4.f,7.f,8.f,12.f,13.f,30.f};
 
@@ -379,13 +378,11 @@ public:
         }
 
         // Calculating the band power for specified band range of frequnencies
-        printk("high limit: %u, low limit: %u", highLimit, lowLimit);
         float32_t bandPower = 0;
         for(uint32_t i = lowLimit; i < highLimit; i++){
-            bandPower += (data[i] * freqRes);
+            bandPower += at(i, electrode);
         }
-        printk("bandpower: %f", bandPower);
-
+        bandPower = bandPower * freqRes;
         return bandPower;
     }
 

@@ -70,12 +70,10 @@ void SignalProcessingThread::StartProcessing()
     LOG_DBG("SigProc::%s starting %u ms", __FUNCTION__, k_uptime_get_32());
 
     while(epoch_count < max_epochs){
-        printk("shat");
         if(DataBufferManager::GetNumSaplesWritten() >= num_samples_per_epoch) {
             LOG_DBG("SigProc::%s reading epoch %u ms", __FUNCTION__, k_uptime_get_32());
             DataBufferManager::ReadEpoch(allChannels);
             ComputeSingleSidePower();
-            printk("shawt");
             ComputeBandPowers();
             epoch_count++;
             LOG_DBG("SigProc::%s finished epoch %u at %u ms", __FUNCTION__, epoch_count, k_uptime_get_32());
@@ -83,7 +81,8 @@ void SignalProcessingThread::StartProcessing()
         k_msleep(250);
     }
 
-    printk("pee");
+    LOG_DBG("SigProc::%s stopping %u at %u ms", __FUNCTION__, epoch_count, k_uptime_get_32());
+
     // stop sigproc
     k_event_post(&s_obj.sig_proc_complete, EVENT_SIG_PROC_COMPLETE);
     // done processing; return
@@ -115,7 +114,7 @@ void SignalProcessingThread::ComputeSingleSidePower()
     {
         channelPowerResults.set_column_vector_at(allChannels.singleSidePower(i), i);
     }
-    printk("\nPrint single-sided power results:\n");
+    // printk("\nPrint single-sided power results:");
     // channelPowerResults.prettyPrint();
 };
 
@@ -127,37 +126,37 @@ void SignalProcessingThread::ComputeBandPowerAtOneBand(const PowerBands powerBan
     switch (powerBand_enum) {
         case DELTA:{
             for (int i = 0; i < num_electrodes; i++) {   
-                channelBandPowers.set_at(
-                    channelPowerResults.singleSideBandPower(SAMPLE_FREQ, RAW_SAMPLE_NUMBER, DELTA), DELTA, i
-                );
-				printk("\nPrint delta power results: %.4f\n", channelBandPowers.at(DELTA,i));
+                // channelBandPowers.set_at(
+                //     channelPowerResults.singleSideBandPower(SAMPLE_FREQ, RAW_SAMPLE_NUMBER, DELTA, i), DELTA, i
+                // );
+				// printk("\nPrint delta power results: %.4f\n", channelBandPowers.at(DELTA,i));
 			}
             break;
         }   
         case THETA:{
             for (int i = 0; i < num_electrodes; i++) {   
-                channelBandPowers.set_at(
-                    channelPowerResults.singleSideBandPower(SAMPLE_FREQ, RAW_SAMPLE_NUMBER, THETA), THETA, i
-                );
-				printk("\nPrint theta power results: %.4f\n", channelBandPowers.at(THETA,i));
+                // channelBandPowers.set_at(
+                //     channelPowerResults.singleSideBandPower(SAMPLE_FREQ, RAW_SAMPLE_NUMBER, THETA, i), THETA, i
+                // );
+				// printk("\nPrint theta power results: %.4f\n", channelBandPowers.at(THETA,i));
             }
             break;
         }
         case ALPHA:{
             for (int i = 0; i < num_electrodes; i++) { 
-                channelBandPowers.set_at(
-                    channelPowerResults.singleSideBandPower(SAMPLE_FREQ, RAW_SAMPLE_NUMBER, ALPHA), ALPHA, i
-                );  
-				printk("\nPrint alpha power results: %.4f\n", channelBandPowers.at(ALPHA,i));
+                // channelBandPowers.set_at(
+                //     channelPowerResults.singleSideBandPower(SAMPLE_FREQ, RAW_SAMPLE_NUMBER, ALPHA, i), ALPHA, i
+                // );  
+				// printk("\nPrint alpha power results: %.4f\n", channelBandPowers.at(ALPHA,i));
 		    }
             break;
         }
         case BETA:{
             for (int i = 0; i < num_electrodes; i++) {
-                channelBandPowers.set_at(
-                    channelPowerResults.singleSideBandPower(SAMPLE_FREQ, RAW_SAMPLE_NUMBER, BETA), BETA, i
-                );
-				printk("\nPrint beta power results: %.4f\n", channelBandPowers.at(BETA,i));
+                // channelBandPowers.set_at(
+                //     channelPowerResults.singleSideBandPower(SAMPLE_FREQ, RAW_SAMPLE_NUMBER, BETA, i), BETA, i
+                // );
+				// printk("\nPrint beta power results: %.4f\n", channelBandPowers.at(BETA,i));
 			}
             break;
         }
@@ -169,23 +168,26 @@ void SignalProcessingThread::ComputeBandPowerAtOneBand(const PowerBands powerBan
 };
 
 void SignalProcessingThread::ComputeBandPowers() {
-    for (int i = 0; i < num_electrodes; i++) {   
-        channelBandPowers.set_at(
-            channelPowerResults.singleSideBandPower(SAMPLE_FREQ, RAW_SAMPLE_NUMBER, DELTA), DELTA, i
-        );
-        channelBandPowers.set_at(
-            channelPowerResults.singleSideBandPower(SAMPLE_FREQ, RAW_SAMPLE_NUMBER, THETA), THETA, i
-        );
-        channelBandPowers.set_at(
-            channelPowerResults.singleSideBandPower(SAMPLE_FREQ, RAW_SAMPLE_NUMBER, ALPHA), ALPHA, i
-        );
-        channelBandPowers.set_at(
-            channelPowerResults.singleSideBandPower(SAMPLE_FREQ, RAW_SAMPLE_NUMBER, BETA), BETA, i
-        );
-        printk("imagine dragons");
-    }
-	printk("\nPrint band power results:\n");
-    channelBandPowers.prettyPrint();
+    // bandpwer is (band) x (epochs) so we add columns
+    bandpwer_ch1.set_column_vector_at(ComputeBandPowersPerChannel(CH1_IDX), epoch_count);
+    bandpwer_ch2.set_column_vector_at(ComputeBandPowersPerChannel(CH2_IDX), epoch_count);
+    bandpwer_ch3.set_column_vector_at(ComputeBandPowersPerChannel(CH3_IDX), epoch_count);
+    bandpwer_ch4.set_column_vector_at(ComputeBandPowersPerChannel(CH4_IDX), epoch_count);
+    bandpwer_ch5.set_column_vector_at(ComputeBandPowersPerChannel(CH5_IDX), epoch_count);
+    bandpwer_ch6.set_column_vector_at(ComputeBandPowersPerChannel(CH6_IDX), epoch_count);
+    bandpwer_ch7.set_column_vector_at(ComputeBandPowersPerChannel(CH7_IDX), epoch_count);
+    bandpwer_ch8.set_column_vector_at(ComputeBandPowersPerChannel(CH8_IDX), epoch_count);
+	// printk("\nPrint band power results:");
+    // channelBandPowers.prettyPrint();
+};
+
+ArmMatrixWrapper<4,1> SignalProcessingThread::ComputeBandPowersPerChannel(uint32_t electrode) {
+    ArmMatrixWrapper<4 , 1> bandPowers;
+    bandPowers.set_at(channelPowerResults.singleSideBandPower(SAMPLE_FREQ, RAW_SAMPLE_NUMBER, DELTA, electrode), DELTA);
+    bandPowers.set_at(channelPowerResults.singleSideBandPower(SAMPLE_FREQ, RAW_SAMPLE_NUMBER, THETA, electrode), THETA);
+    bandPowers.set_at(channelPowerResults.singleSideBandPower(SAMPLE_FREQ, RAW_SAMPLE_NUMBER, ALPHA, electrode), ALPHA);
+    bandPowers.set_at(channelPowerResults.singleSideBandPower(SAMPLE_FREQ, RAW_SAMPLE_NUMBER, BETA, electrode), BETA);
+    return bandPowers;
 };
 
 void SignalProcessingThread::ComputeRelativeBandPowers()

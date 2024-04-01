@@ -13,7 +13,7 @@
 #include <Events.h>
 
 #define SIG_PROC_THREAD_STACK_SIZE_B 16384
-#define SIG_PROC_THREAD_PRIORITY 3 // max based on prj config
+#define SIG_PROC_THREAD_PRIORITY 4 // max based on prj config
 #define SIG_PROC_THREAD_MSG_Q_DEPTH 10
 
 // #ifndef RAW_SAMPLE_NUMBER
@@ -45,7 +45,15 @@ private:
    
     //vector<float32_t> bandPowers = vector<float32_t>(4);
     // Array of channels where each channel has 4 elements for 4 bandpowers
-    ArmMatrixWrapper<4, num_electrodes> channelBandPowers; 
+    ArmMatrixWrapper<4, max_epochs> bandpwer_ch1;
+    ArmMatrixWrapper<4, max_epochs> bandpwer_ch2;
+    ArmMatrixWrapper<4, max_epochs> bandpwer_ch3;
+    ArmMatrixWrapper<4, max_epochs> bandpwer_ch4;
+    ArmMatrixWrapper<4, max_epochs> bandpwer_ch5;
+    ArmMatrixWrapper<4, max_epochs> bandpwer_ch6;
+    ArmMatrixWrapper<4, max_epochs> bandpwer_ch7;
+    ArmMatrixWrapper<4, max_epochs> bandpwer_ch8;
+    
     //vector<vector<float32_t>> channelBandPowers = vector<vector<float32_t>>(1, bandPowers);
     ArmMatrixWrapper<4, num_electrodes> channelRelativeBandPowers;
     // Array of channels where each channel has 4 elements for 4 bandpowers
@@ -78,6 +86,7 @@ public:
     void ComputeSingleSideFFT();
     void ComputeSingleSidePower();
     void ComputeBandPowerAtOneBand(const PowerBands powerBand);
+    ArmMatrixWrapper<4,1> ComputeBandPowersPerChannel(uint32_t electrode);
     void ComputeBandPowers();
     void ComputeRelativeBandPowers();
 

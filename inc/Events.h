@@ -3,7 +3,7 @@
 
 #define EVENT_SIG_PROC_COMPLETE BIT(1)
 
-static struct s_object {
+struct s_object {
     struct smf_ctx ctx;
 
     /* Events */
@@ -12,3 +12,5 @@ static struct s_object {
     int32_t events;
     
 } s_obj;
+
+extern struct s_object s_obj;
