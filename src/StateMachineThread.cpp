@@ -1,7 +1,7 @@
 #include <StateMachineThread.h>
 #include <state_machine.h>
 
-LOG_MODULE_REGISTER(StateMachineThread, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(StateMachineThread, LOG_LEVEL_INF);
 K_THREAD_STACK_DEFINE(state_machine_thread_area, STATE_MACHINE_THREAD_STACK_SIZE);
 
 struct k_thread state_machine_thread_data;

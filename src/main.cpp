@@ -11,6 +11,7 @@
 #include <StateMachineThread.h>
 #include <HIDThread.h>
 #include <zephyr/init.h>
+#include <HIDThread.h>
 #include <nrf.h>
 #include <nrfx.h>
 
