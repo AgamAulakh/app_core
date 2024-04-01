@@ -9,6 +9,16 @@ extern const struct smf_state dev_states[];
 
 enum dev_state { INIT, IDLE, TEST, PROCESS, COMPLETE, CANCEL };
 
+/* User defined object */
+struct s_object {
+    struct smf_ctx ctx;
+
+    /* Events */
+    struct k_event button_press_event;
+    int32_t events;
+
+} s_obj;
+
 void StateMachine::init_run(void *obj) {
     // Setup threads
     LOG_DBG("init run state");
@@ -58,7 +68,7 @@ void StateMachine::test_run(void *obj) {
 
     /* We need to wait for either a button press to cancel or callback from sigproc
     data collection so we know which state to go to */
-    s_obj.events = k_event_wait(&s_obj.sig_proc_complete, EVENT_SIG_PROC_COMPLETE, true, K_FOREVER);
+    // s_obj.events = k_event_wait(&s_obj.button_press_event, EVENT_BTN_PRESS, true, K_FOREVER);
 
     /* If the button is pressed the user wants to terminate
     the test, move to CANCEL state */
@@ -85,34 +95,27 @@ void StateMachine::test_exit(void *obj) {
 
 void StateMachine::process_entry(void *obj) {
     LOG_DBG("process entry state");
+    LED1::set_flash_green();
 };
 
 void StateMachine::process_run(void *obj) {
     // Run signal processing
     LOG_DBG("process run state");
 
-    // Remove once sigproc can signal to state machine to change states
-    static uint8_t tempCounter = 5;
-
-    LED1::set_flash_green();
-
     /* We need to wait for either a button press to cancel or callback from sigproc
     data collection so we know which state to go to */
-    s_obj.events = k_event_wait(&s_obj.sig_proc_complete, EVENT_SIG_PROC_COMPLETE, true, K_FOREVER);
-    
-    LOG_DBG("button press %ld",(s_obj.events & EVENT_BTN_PRESS));
+    // s_obj.events = k_event_wait(&s_obj.button_press_event, EVENT_BTN_PRESS, true, K_FOREVER);
+
     if (s_obj.events & EVENT_BTN_PRESS) {
         /* If the button is pressed the user wants to terminate
         the test, move to CANCEL state */
         LOG_DBG("cancel processing");
         smf_set_state(SMF_CTX(&s_obj), &dev_states[CANCEL]);
     }
-    else if (tempCounter == 0) {
+    else {
         /* Otherwise if sigproc is done move to COMPLETE state */
         smf_set_state(SMF_CTX(&s_obj), &dev_states[COMPLETE]);
     }
-
-    tempCounter--;
 };
 
 void StateMachine::process_exit(void *obj) {
@@ -220,12 +223,10 @@ void TestButton::init() {
 void state_machine_init() {	
     uint8_t err;
 
-    LED1::init();
     TestButton::init();
 
     /* Initialize the event */
     k_event_init(&s_obj.button_press_event);
-    k_event_init(&s_obj.sig_proc_complete);
 
     /* Set initial state */
     smf_set_initial(SMF_CTX(&s_obj), &dev_states[INIT]);

@@ -7,10 +7,10 @@
 #include <zephyr/logging/log_ctrl.h>
 #include <zephyr/logging/log.h>
 #include "core/Thread.h"
+#include "core/Semaphore.h"
 #include "DataBufferManager.h"
 #include "Data.h"
 #include "Utils.h"
-#include <Events.h>
 
 #define SIG_PROC_THREAD_STACK_SIZE_B 16384
 #define SIG_PROC_THREAD_PRIORITY 4 // max based on prj config
@@ -61,12 +61,14 @@ private:
  
 
 public:
+    static Semaphore done_flag;
     enum SignalProcessingThreadMessage : uint8_t {
         COMPUTE_DEBUG_FFT_RESULTS = 0,
         COMPUTE_DEBUG_POWER_RESULTS,
         COMPUTE_DEBUG_BANDPOWER_RESULTS,
         COMPUTE_DEBUG_RELATIVEPOWER_RESULTS,
         START_PROCESSING,
+        FORCE_STOP_PROCESSING,
         INVALID,
     };
     enum PowerBands : uint8_t {
@@ -76,8 +78,6 @@ public:
         BETA,
         NONE,
     };
-
-    // static struct k_work_q epoch_work_queue;
 
     void Initialize() override;
     void Run() override;

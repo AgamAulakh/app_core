@@ -22,43 +22,80 @@ extern "C" {
 #include "DataAcquisitionThread.h"
 #include "SignalProcessingThread.h"
 #include "ArmMatrixWrapper.h"
-#include "Events.h"
 
 LOG_MODULE_REGISTER(app_core_main, LOG_LEVEL_DBG);
-#define LOG_DELAY_MS 100000
+
+static const struct pwm_dt_spec blue_pwm_led = PWM_DT_SPEC_GET(DT_ALIAS(blueled));
+
+#define LOG_DELAY_MS 3000
+#define LED_PERIOD 1000
+#define LED_OFF 0
+#define LED_CHANNEL 0
+#define LED_BLUE_PULSE_WIDTH 1000
 
 int main(void)
 {
+	LOG_INF("Hello world from %s", CONFIG_BOARD);
 
-	// state_machine_init();
-	LED1::init();
+	// DataAcquisitionThread::GetInstance().Initialize();
 
-	DataAcquisitionThread::GetInstance().Initialize();
-	SignalProcessingThread::GetInstance().Initialize();
-
-	k_msleep(2500);
 	// DataAcquisitionThread::GetInstance().SendMessage(
-	// 	DataAcquisitionThread::CHECK_AFE_REGISTERS
+	// 	DataAcquisitionThread::CHECK_AFE_ID
 	// );
 
-	// testing DAQ and sigproc together
-	// k_event_init(&s_obj.sig_proc_complete);
-
-	DataAcquisitionThread::GetInstance().SendMessage(
-		DataAcquisitionThread::RUN_FAKE_SAMPLES_DATA_BUFFER_TEST
-	);
-	SignalProcessingThread::GetInstance().SendMessage(
-		SignalProcessingThread::START_PROCESSING
-	);
-
-	LOG_DBG("main thread waiting for sigproc done signal: %u ms", k_uptime_get_32());
-	k_event_wait(&s_obj.sig_proc_complete, EVENT_SIG_PROC_COMPLETE, true, K_FOREVER);
-    LOG_DBG("main thread received sigproc done signal: %u ms", k_uptime_get_32());
+	TIBareMetalWrapper AFEWrapper;
+	k_msleep(2500);
+	AFEWrapper.Initialize();
 
 	while(1) {
-        k_msleep(LOG_DELAY_MS);
+		// DataAcquisitionThread::GetInstance().SendMessage(
+		// 	DataAcquisitionThread::READ_AFE_SAMPLE
+		// );
 		LOG_DBG("main thread up time: %u ms", k_uptime_get_32());
+		
+		pwm_set_dt(&blue_pwm_led, LED_PERIOD, LED_BLUE_PULSE_WIDTH);
+		k_msleep(LOG_DELAY_MS);
+
+		pwm_set_dt(&blue_pwm_led, LED_PERIOD, LED_OFF);
+		k_msleep(LOG_DELAY_MS);
+
+		AFEWrapper.RunInternalSquareWaveTest();
 	}
+	// LOG_INF("Hello world from %s", CONFIG_BOARD);
+
+	// // state_machine_init();
+	// LED1::init();
+
+
+	// DataAcquisitionThread::GetInstance().Initialize();
+	// SignalProcessingThread::GetInstance().Initialize();
+
+	// k_msleep(2500);
+
+	// DataAcquisitionThread::GetInstance().SendMessage(
+	// 	DataAcquisitionThread::INITIALIZE_AFE
+	// );
+	// DataAcquisitionThread::GetInstance().SendMessage(
+	// 	DataAcquisitionThread::RUN_INTERNAL_SQUARE_WAVE_TEST_BIG_FAST
+	// );
+	// SignalProcessingThread::GetInstance().SendMessage(
+	// 	SignalProcessingThread::START_PROCESSING
+	// );
+
+	// LOG_DBG("main thread waiting for sigproc done signal: %u ms", k_uptime_get_32());
+
+	// if(SignalProcessingThread::done_flag.wait()){
+	// 	DataAcquisitionThread::GetInstance().SendMessage(
+	// 		DataAcquisitionThread::STOP_READING_AFE
+	// 	);
+	// }
+	// // k_event_wait(&s_obj.sig_proc_complete, EVENT_SIG_PROC_COMPLETE, true, K_FOREVER);
+	// // LOG_DBG("main thread received sigproc done signal: %u ms", k_uptime_get_32());
+
+	// while(1) {
+	// 	k_msleep(LOG_DELAY_MS);
+	// 	LOG_DBG("main thread up time: %u ms", k_uptime_get_32());
+	// }
 
 	return 0;
 };

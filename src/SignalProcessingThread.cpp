@@ -3,6 +3,7 @@
 LOG_MODULE_REGISTER(eegals_app_core_sig_proc, LOG_LEVEL_DBG);
 K_THREAD_STACK_DEFINE(sig_proc_stack_area, SIG_PROC_THREAD_STACK_SIZE_B);
 struct k_thread sig_proc_thread_data;
+Semaphore SignalProcessingThread::done_flag = Semaphore();
 
 SignalProcessingThread::SignalProcessingThread() {
     epoch_count = 0;
@@ -52,8 +53,13 @@ void SignalProcessingThread::Run() {
                     break;
                 case START_PROCESSING:
                     epoch_count = 0;
+                    done_flag.wait();
                     StartProcessing();
+                    done_flag.give();
                     // to be set by state machine
+                    break;
+                case FORCE_STOP_PROCESSING:
+                	LOG_ERR("SigProc::%s cannot force processing (nothing running)", __FUNCTION__);
                     break;
                 case INVALID:
                     break;
@@ -68,8 +74,9 @@ void SignalProcessingThread::StartProcessing()
 {
     // wait until you can read one full epoch
     LOG_DBG("SigProc::%s starting %u ms", __FUNCTION__, k_uptime_get_32());
-
-    while(epoch_count < max_epochs){
+    uint8_t message;
+    bool is_forced_done = false;
+    while(epoch_count < max_epochs || !is_forced_done){
         if(DataBufferManager::GetNumSaplesWritten() >= num_samples_per_epoch) {
             LOG_DBG("SigProc::%s reading epoch %u ms", __FUNCTION__, k_uptime_get_32());
             DataBufferManager::ReadEpoch(allChannels);
@@ -78,13 +85,27 @@ void SignalProcessingThread::StartProcessing()
             epoch_count++;
             LOG_DBG("SigProc::%s finished epoch %u at %u ms", __FUNCTION__, epoch_count, k_uptime_get_32());
         }
+        // check for force stop message
+        if (message_queue.peak(message)) {
+            uint8_t message_enum = static_cast<SignalProcessingThreadMessage>(message);
+		    LOG_DBG("SigProc::%s -- received message: %u at: %u ms", __FUNCTION__, message_enum, k_uptime_get_32());
+            switch (message_enum) {
+                case FORCE_STOP_PROCESSING:
+                    is_forced_done = true;
+                    break;
+                default:
+                    LOG_ERR("SigProc::%s cannot respond to this message (process running)", __FUNCTION__);
+                    break;
+            }
+        }
+        // sleep until epoch is done
         k_msleep(250);
     }
 
     LOG_DBG("SigProc::%s stopping %u at %u ms", __FUNCTION__, epoch_count, k_uptime_get_32());
 
     // stop sigproc
-    k_event_post(&s_obj.sig_proc_complete, EVENT_SIG_PROC_COMPLETE);
+    // k_event_post(&s_obj.sig_proc_complete, EVENT_SIG_PROC_COMPLETE);
     // done processing; return
 };
 

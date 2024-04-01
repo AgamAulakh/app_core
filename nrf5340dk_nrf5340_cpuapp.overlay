@@ -1,3 +1,16 @@
+// To get started, press Ctrl+Space to bring up the completion menu and view the available nodes.
+
+// You can also use the buttons in the sidebar to perform actions on nodes.
+// Actions currently available include:
+
+// * Enabling / disabling the node
+// * Adding the bus to a bus
+// * Removing the node
+// * Connecting ADC channels
+
+// For more help, browse the DeviceTree documentation at https://docs.zephyrproject.org/latest/guides/dts/index.html
+// You can also visit the nRF DeviceTree extension documentation at https://nrfconnect.github.io/vscode-nrf-connect/devicetree/nrfdevicetree.html
+
 // #include "nrf5340_cpuapp_common-pinctrl.dtsi"
 #include <zephyr/dt-bindings/pwm/pwm.h>
 #include <zephyr/dt-bindings/input/input-event-codes.h>
@@ -72,12 +85,6 @@
         };
     };
 
-    // en_bat_sens: enable-battery-sense {
-    //     compatible = "regulator-fixed";
-    //     regulator-name = "en_bat_sens";
-    //     enable-gpios = <&gpioc 14 GPIO_ACTIVE_LOW>;
-    //     regulator-boot-on;
-    // };
     zephyr,user {
         afereset-gpios = <&gpio0 13 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
         afereset-label = "AFE Reset";
@@ -90,12 +97,6 @@
 
 /delete-node/ &pwm_led0;
 /delete-node/ &{/pin-controller/pwm0_sleep/group1/};
-
-&gpio_fwd {
-    uart {
-        gpios = <&gpio0 11 0>, <&gpio0 10 0>;
-    };
-};
 
 &pwm0_default {
     group1 {

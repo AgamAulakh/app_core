@@ -25,12 +25,13 @@ public:
     enum DataAcquisitionThreadMessage : uint8_t {
         STOP_READING_AFE = 0,
         START_READING_AFE,
-        READ_AFE_DEFAULT_EPOCH,
-        READ_AFE_SAMPLE,
+        READ_ONE_SAMPLE,
+        INITIALIZE_AFE,
         RESET_AFE,
         CHECK_AFE_REGISTERS,
         RUN_INPUT_SHORT_TEST,
-        RUN_INTERNAL_SQUARE_WAVE_TEST,
+        RUN_INTERNAL_SQUARE_WAVE_TEST_SMALL_SLOW,
+        RUN_INTERNAL_SQUARE_WAVE_TEST_BIG_FAST,
         RUN_FAKE_SAMPLES_DATA_BUFFER_TEST,
         INVALID,
     };
