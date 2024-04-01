@@ -67,6 +67,8 @@ void StateMachine::test_run(void *obj) {
     // begin data processing
     LOG_DBG("test run state");
 
+    LCD::display_testing();
+
     // Have this here a second time as for some reason it does not clear
     // properly when in the previous state?
     s_obj.events = k_event_clear(&s_obj.button_press_event, EVENT_BTN_PRESS);
