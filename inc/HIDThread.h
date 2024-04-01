@@ -15,7 +15,7 @@
 
 #define HID_THREAD_STACK_SIZE_B 4096
 #define HID_THREAD_PRIORITY 1
-#define HID_THREAD_MSG_Q_DEPTH 100
+#define HID_THREAD_MSG_Q_DEPTH 10
 
 
 class HIDThread : public Thread<HID_THREAD_MSG_Q_DEPTH>  {
@@ -30,6 +30,13 @@ public:
     static HIDThread& GetInstance() {
         static HIDThread instance;
         return instance;
+    };
+
+    enum HDIThreadMessage : uint8_t {
+        DISPLAY_STARTUP,
+        DISPLAY_TESTING,
+        DISPLAY_RESULTS,
+        DISPLAY_CANCEL,
     };
 
     void Initialize() override;

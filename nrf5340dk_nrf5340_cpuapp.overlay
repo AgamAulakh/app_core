@@ -72,8 +72,9 @@
         greenled = &green_pwm_led; // 0.03
         blueled = &blue_pwm_led; // 0.04
         redled = &red_pwm_led; // 0.05
-        databutton = &button_data_en; // 1.00
         afespi = &spi0;
+        button1 = &button_1; // 1.00
+        button2 = &button_2; // 1.00
     };
 
     chosen {
@@ -103,11 +104,18 @@
     
     buttons {
         compatible = "gpio-keys";
-        button_data_en: data_en {
-            gpios = <&gpio1 0 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
-            label = "Data Enable Button";
-            zephyr,code = <INPUT_KEY_0>;
-        };
+
+		button_1: button1 {
+			gpios = <&gpio1 0 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
+			label = "Data Enable Button";
+			zephyr,code = <INPUT_KEY_0>;
+		};
+
+        button_2: button2 {
+			gpios = <&gpio0 7 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
+			label = "Button 2";
+			zephyr,code = <INPUT_KEY_0>;
+		};
     };
 
     zephyr,user {
@@ -140,8 +148,8 @@ lcd_spi: &spi1 {
 		reset-gpios = <&gpio1 15 GPIO_ACTIVE_LOW>;	/* D8 */
 		width = <160>;
 		height = <80>;
-		// inversion-on;
-		// rgb-is-inverted;
+		inversion-on;
+		rgb-is-inverted;
 		x-offset = <1>;
 		y-offset = <26>;
 		pwctr1 = [62 02 04];
