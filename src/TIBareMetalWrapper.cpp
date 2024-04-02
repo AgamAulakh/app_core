@@ -79,19 +79,19 @@ TIBareMetalWrapper::TIBareMetalWrapper() {
 
 // callbacks needed for driver
 void TIBareMetalWrapper::SetCS(uint8_t state){
-    // if (state) {
-    //     int err_code = gpio_pin_set_dt(&spi_cfg.cs.gpio, 1);
-    //     err_code |= gpio_pin_set_dt(&afe_indicate_spec, 1);
-    //     if (err_code != 0) {
-    //         LOG_ERR("TIBareMetalWrapper::%s could not set chip select", __FUNCTION__);
-    //     }
-    // } else {
-    //     int err_code = gpio_pin_set_dt(&spi_cfg.cs.gpio, 0);
-    //     err_code |= gpio_pin_set_dt(&afe_indicate_spec, 0);
-    //     if (err_code != 0) {
-    //         LOG_ERR("TIBareMetalWrapper::%s could not reset chip select", __FUNCTION__);
-    //     }
-    // }
+    if (state) {
+        int err_code = gpio_pin_set_dt(&spi_cfg.cs.gpio, 1);
+        err_code |= gpio_pin_set_dt(&afe_indicate_spec, 1);
+        if (err_code != 0) {
+            LOG_ERR("TIBareMetalWrapper::%s could not set chip select", __FUNCTION__);
+        }
+    } else {
+        int err_code = gpio_pin_set_dt(&spi_cfg.cs.gpio, 0);
+        err_code |= gpio_pin_set_dt(&afe_indicate_spec, 0);
+        if (err_code != 0) {
+            LOG_ERR("TIBareMetalWrapper::%s could not reset chip select", __FUNCTION__);
+        }
+    }
 };
 
 void TIBareMetalWrapper::DelayMs(uint32_t delay) {
