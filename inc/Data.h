@@ -22,7 +22,7 @@
 
 // DAQ
 constexpr uint8_t num_electrodes = 8;
-constexpr uint8_t max_epochs = 8;
+constexpr uint8_t max_epochs = 2;
 constexpr uint8_t num_bytes_per_sample = 3 * (num_electrodes + 1);
 constexpr uint16_t num_samples_per_test = 250;
 constexpr uint16_t num_samples_per_epoch = 1024;

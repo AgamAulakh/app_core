@@ -1,4 +1,6 @@
 #include "SignalProcessingThread.h"
+#include "Events.h"
+
 #define RAW_SAMPLE_NUMBER 1024
 LOG_MODULE_REGISTER(eegals_app_core_sig_proc, LOG_LEVEL_DBG);
 K_THREAD_STACK_DEFINE(sig_proc_stack_area, SIG_PROC_THREAD_STACK_SIZE_B);
@@ -56,7 +58,7 @@ void SignalProcessingThread::Run() {
                     LOG_INF("SigProc:: -- RETURNING FROM PROCESSING");
                     break;
                 case FORCE_STOP_PROCESSING:
-                	LOG_ERR("SigProc:: cannot force processing (nothing running)");
+                	LOG_INF("SigProc:: cannot force processing (nothing running)");
                     break;
                 case INVALID:
                     break;
@@ -76,7 +78,7 @@ void SignalProcessingThread::StartProcessing()
     bool is_forced_done = false;
     epoch_count = 0;
 
-    while(epoch_count < max_epochs && !is_forced_done){
+    while(epoch_count < max_epochs && !is_forced_done) {
         if(DataBufferManager::GetNumSaplesWritten() >= num_samples_per_epoch) {
             LOG_DBG("SigProc::%s reading epoch", __FUNCTION__);
             DataBufferManager::ReadEpoch(allChannels);
@@ -107,7 +109,7 @@ void SignalProcessingThread::StartProcessing()
     LOG_DBG("SigProc::%s stopping %u", __FUNCTION__, epoch_count);
 
     // stop sigproc
-    // k_event_post(&s_obj.sig_proc_complete, EVENT_SIG_PROC_COMPLETE);
+    sig_proc_complete();
     // done processing; return
 };
 
