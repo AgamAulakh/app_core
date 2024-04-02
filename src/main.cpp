@@ -9,37 +9,48 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/logging/log_ctrl.h>
 #include <zephyr/init.h>
-#include <zephyr/smf.h>
-
-extern "C" {
-#include <ble_handler.h>
-}
-
-#include <state_machine.h>
-#include <led_handler.h>
-
 #include <nrf.h>
 #include <nrfx.h>
-#include <zephyr/logging/log.h>
 
 #include <stdlib.h>
 
-LOG_MODULE_REGISTER(app_core_main, LOG_LEVEL_INF);
+#include "ArmMatrixWrapper.h"
+#include "DataAcquisitionThread.h"
+#include "drivers/ads1299.h"
 
-#define LOG_DELAY_MS 1000
+// temporary
+#include <zephyr/drivers/pwm.h>
+
+LOG_MODULE_REGISTER(eegals_app_core, LOG_LEVEL_DBG);
+
+static const struct pwm_dt_spec blue_pwm_led = PWM_DT_SPEC_GET(DT_ALIAS(blueled));
+
+#define LOG_DELAY_MS 3000
+#define LED_PERIOD 1000
+#define LED_OFF 0
+#define LED_CHANNEL 0
+#define LED_BLUE_PULSE_WIDTH 1000
+
 
 int main(void)
 {
 	LOG_INF("Hello world from %s", CONFIG_BOARD);
 
-	state_machine_init();
-
-	LED1::init();
+	TIBareMetalWrapper AFEWrapper;
+	k_msleep(2500);
+	AFEWrapper.Initialize();
 
 	while(1) {
 		LOG_DBG("main thread up time: %u ms", k_uptime_get_32());
+		
+		pwm_set_dt(&blue_pwm_led, LED_PERIOD, LED_BLUE_PULSE_WIDTH);
 		k_msleep(LOG_DELAY_MS);
+
+		pwm_set_dt(&blue_pwm_led, LED_PERIOD, LED_OFF);
+		k_msleep(LOG_DELAY_MS);
+
+		AFEWrapper.RunInternalSquareWaveTest();
 	}
 
 	return 0;
-}
+};
