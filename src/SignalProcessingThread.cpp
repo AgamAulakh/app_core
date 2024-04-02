@@ -76,7 +76,7 @@ void SignalProcessingThread::StartProcessing()
     LOG_DBG("SigProc::%s starting %u ms", __FUNCTION__, k_uptime_get_32());
     uint8_t message;
     bool is_forced_done = false;
-    while(epoch_count < max_epochs || !is_forced_done){
+    while(!is_forced_done){
         if(DataBufferManager::GetNumSaplesWritten() >= num_samples_per_epoch) {
             LOG_DBG("SigProc::%s reading epoch %u ms", __FUNCTION__, k_uptime_get_32());
             DataBufferManager::ReadEpoch(allChannels);

@@ -7,7 +7,6 @@ struct k_thread data_acq_thread_data;
 DataAcquisitionThread::DataAcquisitionThread() : AFEWrapper() {
     // set up data manager to listen to AFE
     // DataBufferManager::spi_dma_setup(spi_dev);
-
 }
 
 void DataAcquisitionThread::Initialize() {
@@ -55,8 +54,11 @@ void DataAcquisitionThread::Run() {
                 case RUN_INPUT_SHORT_TEST:
                     AFEWrapper.RunInputShortTest();
                     break;
-                case RUN_INTERNAL_SQUARE_WAVE_TEST:
-                    AFEWrapper.RunInternalSquareWaveTest();
+                case RUN_INTERNAL_SQUARE_WAVE_TEST_SMALL_SLOW:
+                    AFEWrapper.RunInternalSquareWaveTest(true);
+                    break;
+                case RUN_INTERNAL_SQUARE_WAVE_TEST_BIG_FAST:
+                    AFEWrapper.RunInternalSquareWaveTest(false);
                     break;
                 case INVALID:
                     break;

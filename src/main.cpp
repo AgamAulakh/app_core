@@ -49,7 +49,7 @@ int main(void)
 		pwm_set_dt(&blue_pwm_led, LED_PERIOD, LED_OFF);
 		k_msleep(LOG_DELAY_MS);
 
-		AFEWrapper.RunInternalSquareWaveTest();
+		AFEWrapper.RunInternalSquareWaveTest(true);
 	}
 
 	return 0;

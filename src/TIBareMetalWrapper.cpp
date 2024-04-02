@@ -13,6 +13,8 @@ uint8_t TIBareMetalWrapper::rx_buffer[rx_buf_len] = {0};
 uint8_t TIBareMetalWrapper::sample_count = 0;
 uint8_t TIBareMetalWrapper::master_counter = 0;
 bool TIBareMetalWrapper::is_adc_on = false;
+bool TIBareMetalWrapper::is_test_on = false;
+bool TIBareMetalWrapper::is_small_wave = false;
 gpio_dt_spec TIBareMetalWrapper::afe_reset_spec = GPIO_DT_SPEC_GET(ZEPHYR_USER_NODE, afereset_gpios);
 gpio_dt_spec TIBareMetalWrapper::afe_drdy_spec = GPIO_DT_SPEC_GET(ZEPHYR_USER_NODE, afedrdy_gpios);
 gpio_dt_spec TIBareMetalWrapper::afe_indicate_spec = GPIO_DT_SPEC_GET(ZEPHYR_USER_NODE, afeindicator_gpios);
@@ -294,7 +296,7 @@ void TIBareMetalWrapper::RunInputShortTest() {
     LOG_DBG("TIBareMetalWrapper::%s end",__FUNCTION__);
 };
 
-void TIBareMetalWrapper::RunInternalSquareWaveTest() {
+void TIBareMetalWrapper::RunInternalSquareWaveTest(bool is_small_wave) {
     if (is_adc_on) { StopADC(); }
 
     LOG_DBG("TIBareMetalWrapper::%s starting square wave test",__FUNCTION__);
@@ -302,10 +304,19 @@ void TIBareMetalWrapper::RunInternalSquareWaveTest() {
     // set internal reference for power on test
     ADS1299_SetConfig3State(&afe_driver, ADS1299_CONFIG3_SETUP_REFBUF);
 
+    if (is_small_wave) {
+        // set devicc for DR = Fmod / 4096
+        ADS1299_SetConfig2State(&afe_driver, ADS1299_CONFIG2_SETUP_TEST_d002V_1d9HZ);
+    }
+    else {
+        // set device for DR = Fmod / 4096
+        ADS1299_SetConfig2State(&afe_driver, ADS1299_CONFIG2_SETUP_TEST_d004V_d9HZ);
+    }
+
     // set deviec for DR = Fmod / 4096
     ADS1299_SetConfig1State(&afe_driver, ADS1299_CONFIG1_SETUP_DEFAULT);
     // enable internal test signals
-    ADS1299_SetConfig2State(&afe_driver, ADS1299_CONFIG2_SETUP_TEST_d002V_d9HZ);
+    // ADS1299_SetConfig2State(&afe_driver, ADS1299_CONFIG2_SETUP_TEST_d002V_d9HZ);
 
     // set all channels read test signal
     ADS1299_SetCh1SetState(&afe_driver, ADS1299_CH_N_SET_SETUP_MUX_TEST);
@@ -345,6 +356,7 @@ void TIBareMetalWrapper::StopADC() {
     ADS1299_StopAdc(&afe_driver);
     is_adc_on = false;
 }
+
 
 void TIBareMetalWrapper::ConfigSingleShotConversion() {
     // NOTE: lead off is disabled!
@@ -621,15 +633,55 @@ void TIBareMetalWrapper::PrintCurrentSample(){
     );
 };
 
+// void TIBareMetalWrapper::HandleDRDYForFullTest(const device *dev, gpio_callback *cb, uint32_t pins){
+//     k_work_submit(&dma_test);
+// };
+
 void TIBareMetalWrapper::Wakeup() {
 };
 void TIBareMetalWrapper::Standby() {
 };
 void TIBareMetalWrapper::Reset() {
 };
+
+// Controlled by State Machine
 void TIBareMetalWrapper::Start() {
+    // defensive check agaisnt double-starting test:
+    if (is_test_on){
+        LOG_ERR("TIBareMetalWrapper::%s Test Is ALREADY Running!", __FUNCTION__);
+        return;
+    }
+
+    // Officially start sampling afe with no end in sight
+    if (is_adc_on) { StopADC(); }
+    if (afe_driver.config4.singleShot) { ConfigContinuousConversion(); }
+
+    // clear DMA buffer
+    DataBufferManager::Initialize();
+    DataBufferManager::ResetBuffer();
+
+    // Write setting first, then start adc conversion
+    LOG_INF("TIBareMetalWrapper::%s enabling continuous read at %u ms", __FUNCTION__, k_uptime_get_32());
+
+    // send RDATAC command, then start adc conversion
+    ADS1299_EnableContRead(&afe_driver);
+    StartADC();
+
+    // run our own DMA handler
+    gpio_init_callback(&afe_drdy_cb_data, HandleDRDY, BIT(afe_drdy_spec.pin));
+    gpio_add_callback(afe_drdy_spec.port, &afe_drdy_cb_data);
 };
+
 void TIBareMetalWrapper::Stop() {
+    // defensive check agaisnt double-starting test:
+    if (!is_test_on){
+        LOG_ERR("TIBareMetalWrapper::%s Test Is NOT Running!", __FUNCTION__);
+        return;
+    }
+
+    // Officially stop sampling afe
+    k_work_submit(&dma_cleanup);
 };
+
 void TIBareMetalWrapper::ReadData() {
 };

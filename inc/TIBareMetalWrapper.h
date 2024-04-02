@@ -24,6 +24,8 @@ private:
     static uint8_t tx_buffer[rx_buf_len];
     static uint8_t rx_buffer[rx_buf_len];
     static bool is_adc_on;
+    static bool is_test_on;
+    static bool is_small_wave;
     static uint8_t master_counter;
 
     // experimental
@@ -39,6 +41,7 @@ private:
     static void SetStart(uint8_t state);
     static void SetPWDN(uint8_t state);
     static void HandleDRDY(const device *dev, gpio_callback *cb, uint32_t pins);
+    // static void HandleDRDYForFullTest(const device *dev, gpio_callback *cb, uint32_t pins);
 
     static void StartADC();
     static void StopADC();
@@ -59,7 +62,7 @@ public:
     void ReadData() override;
 
     static void RunInputShortTest();    
-    static void RunInternalSquareWaveTest();    
+    static void RunInternalSquareWaveTest(bool is_small_wave);    
     static void CheckID();
     static void CheckChannels();
     static void CheckConfigRegs();
