@@ -7,7 +7,6 @@ Semaphore SignalProcessingThread::done_flag = Semaphore();
 
 SignalProcessingThread::SignalProcessingThread() {
     epoch_count = 0;
-    // NEED TO DO CHECKS
 };
 
 void SignalProcessingThread::Initialize() {
@@ -52,10 +51,7 @@ void SignalProcessingThread::Run() {
                     ComputeRelativeBandPowers();
                     break;
                 case START_PROCESSING:
-                    epoch_count = 0;
-                    done_flag.wait();
                     StartProcessing();
-                    done_flag.give();
                     // to be set by state machine
                     break;
                 case FORCE_STOP_PROCESSING:
@@ -74,9 +70,12 @@ void SignalProcessingThread::StartProcessing()
 {
     // wait until you can read one full epoch
     LOG_DBG("SigProc::%s starting %u ms", __FUNCTION__, k_uptime_get_32());
+
     uint8_t message;
     bool is_forced_done = false;
-    while(!is_forced_done){
+    epoch_count = 0;
+
+    while(epoch_count < max_epochs || !is_forced_done){
         if(DataBufferManager::GetNumSaplesWritten() >= num_samples_per_epoch) {
             LOG_DBG("SigProc::%s reading epoch %u ms", __FUNCTION__, k_uptime_get_32());
             DataBufferManager::ReadEpoch(allChannels);

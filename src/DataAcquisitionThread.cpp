@@ -11,6 +11,9 @@ DataAcquisitionThread::DataAcquisitionThread() : AFEWrapper() {
 
 void DataAcquisitionThread::Initialize() {
     LOG_DBG("DataAcq::%s -- initializing AFE Wrapper", __FUNCTION__);
+
+    // sleep for a second to allow SPI to initialize?
+    k_msleep(1000);
     AFEWrapper.Initialize();
 
     if (id == nullptr) {
@@ -37,9 +40,10 @@ void DataAcquisitionThread::Run() {
 		    LOG_DBG("DataAcq::%s -- received message: %u at: %u ms", __FUNCTION__, message_enum, k_uptime_get_32());
             switch (message_enum) {
                 case STOP_READING_AFE:
-                    // AFEWrapper.Stop();
+                    AFEWrapper.Stop();
                     break;
-                case START_READING_AFE_CONTINUOUS:
+                case START_READING_AFE:
+                    AFEWrapper.Start();
                     break;
                 case READ_AFE_SAMPLE:
                     AFEWrapper.ReadOneSample();

@@ -26,7 +26,7 @@ private:
 public:
     enum DataAcquisitionThreadMessage : uint8_t {
         STOP_READING_AFE = 0,
-        START_READING_AFE_CONTINUOUS,
+        START_READING_AFE,
         READ_AFE_SAMPLE,
         RESET_AFE,
         CHECK_AFE_REGISTERS,

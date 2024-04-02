@@ -21,15 +21,12 @@ private:
     static struct spi_config spi_cfg;
     static struct k_poll_signal spi_done_sig;
 
-    static uint8_t tx_buffer[rx_buf_len];
-    static uint8_t rx_buffer[rx_buf_len];
     static bool is_adc_on;
     static bool is_test_on;
     static bool is_small_wave;
     static uint8_t master_counter;
 
     // experimental
-    static uint8_t sample_count;
     static struct k_work_q dma_work_queue;
 
     static void DelayMs(uint32_t delay);
@@ -62,17 +59,21 @@ public:
     void ReadData() override;
 
     static void RunInputShortTest();    
-    static void RunInternalSquareWaveTest(bool is_small_wave);    
+    static void RunInternalSquareWaveTest(bool is_small_wave);  
+    static void CheckAllRegisters();  
     static void CheckID();
     static void CheckChannels();
     static void CheckConfigRegs();
     static void CheckBiasSensPReg();
     static void CheckBiasSensNReg();
+    static void CheckLoffSensPState();
+    static void CheckLoffSensNState();
+    static void CheckLoffFlipState();
     static void ReadOneSample();
     static void ReadContinuous();
     static void PrintCurrentSample();
     static void TestLoopbackSlave();
-
+    static void TestFakeSampleDataBuffer();
 
     // experimental
     static void DMAWorkHandler(struct k_work *item);
