@@ -15,7 +15,9 @@
 #include <stdlib.h>
 
 #include "ArmMatrixWrapper.h"
+#include "led_handler.h"
 #include "DataAcquisitionThread.h"
+#include "SignalProcessingThread.h"
 #include "drivers/ads1299.h"
 
 // temporary
@@ -34,22 +36,39 @@ static const struct pwm_dt_spec blue_pwm_led = PWM_DT_SPEC_GET(DT_ALIAS(blueled)
 
 int main(void)
 {
-	LOG_INF("Hello world from %s", CONFIG_BOARD);
+	// state_machine_init();
+	LED1::init();
 
-	TIBareMetalWrapper AFEWrapper;
-	k_msleep(2500);
-	AFEWrapper.Initialize();
+	DataAcquisitionThread::GetInstance().Initialize();
+	SignalProcessingThread::GetInstance().Initialize();
+
+	// DataAcquisitionThread::GetInstance().SendMessage(
+	// 	DataAcquisitionThread::CHECK_AFE_REGISTERS
+	// );
+
+	// testing DAQ and sigproc together
+
+	DataAcquisitionThread::GetInstance().SendMessage(
+		DataAcquisitionThread::RUN_INTERNAL_SQUARE_WAVE_TEST_BIG_FAST
+	);
+	SignalProcessingThread::GetInstance().SendMessage(
+		SignalProcessingThread::START_PROCESSING
+	);
+
+	// sleep for 10 seconds
+	k_msleep(10000);
+
+	// stop processing manually
+	SignalProcessingThread::GetInstance().SendMessage(
+		SignalProcessingThread::FORCE_STOP_PROCESSING
+	);
+	DataAcquisitionThread::GetInstance().SendMessage(
+		DataAcquisitionThread::STOP_READING_AFE
+	);
 
 	while(1) {
 		LOG_DBG("main thread up time: %u ms", k_uptime_get_32());
-		
-		pwm_set_dt(&blue_pwm_led, LED_PERIOD, LED_BLUE_PULSE_WIDTH);
 		k_msleep(LOG_DELAY_MS);
-
-		pwm_set_dt(&blue_pwm_led, LED_PERIOD, LED_OFF);
-		k_msleep(LOG_DELAY_MS);
-
-		AFEWrapper.RunInternalSquareWaveTest(true);
 	}
 
 	return 0;
