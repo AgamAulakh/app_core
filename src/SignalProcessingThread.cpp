@@ -30,6 +30,7 @@ void SignalProcessingThread::Initialize() {
 void SignalProcessingThread::Run() {
     uint8_t message = 0;
     while (true) {
+        LOG_INF("SigProc::%s -- STARTING TO WAIT FOR NEW MESSAGE");
         if (message_queue.get_with_blocking_wait(message)) {
             uint8_t message_enum = static_cast<SignalProcessingThreadMessage>(message);
 		    LOG_DBG("SigProc::%s -- received message: %u at: %u ms", __FUNCTION__, message_enum, k_uptime_get_32());
@@ -52,7 +53,7 @@ void SignalProcessingThread::Run() {
                     break;
                 case START_PROCESSING:
                     StartProcessing();
-                    // to be set by state machine
+                    LOG_INF("SigProc::%s -- RETURNING FROM PROCESSING");
                     break;
                 case FORCE_STOP_PROCESSING:
                 	LOG_ERR("SigProc::%s cannot force processing (nothing running)", __FUNCTION__);
@@ -75,7 +76,7 @@ void SignalProcessingThread::StartProcessing()
     bool is_forced_done = false;
     epoch_count = 0;
 
-    while(epoch_count < max_epochs || !is_forced_done){
+    while(epoch_count < max_epochs && !is_forced_done){
         if(DataBufferManager::GetNumSaplesWritten() >= num_samples_per_epoch) {
             LOG_DBG("SigProc::%s reading epoch %u ms", __FUNCTION__, k_uptime_get_32());
             DataBufferManager::ReadEpoch(allChannels);
@@ -91,6 +92,8 @@ void SignalProcessingThread::StartProcessing()
             switch (message_enum) {
                 case FORCE_STOP_PROCESSING:
                     is_forced_done = true;
+                    // remove the message from the queue instead of just peaking:
+                    message_queue.get(message);
                     break;
                 default:
                     LOG_ERR("SigProc::%s cannot respond to this message (process running)", __FUNCTION__);

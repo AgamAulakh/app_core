@@ -318,13 +318,19 @@ void TIBareMetalWrapper::RunInternalSquareWaveTest(bool is_small_wave) {
     CheckConfigRegs();
     CheckChannels();
 
+    // set test flag
+    is_test_on = true;
+
+    // clear DMA buffer
+    DataBufferManager::Initialize();
+    DataBufferManager::ResetBuffer();    
+
     // ReadContinuous: activate converstion, DRDY should toggle at Fclk/8192
     // ReadContinuous: put device back in RDATAC mode
     // look for DRDY and issue 24 + 8x24 SCLKs
     // DRDY toggles at 2000000 / 8192 ~= 245
     // should be approx 250 samples
     ReadContinuous();
-    // stop continuous read mode
 
     LOG_DBG("TIBareMetalWrapper::%s end",__FUNCTION__);
 };
@@ -367,9 +373,6 @@ void TIBareMetalWrapper::Stop() {
     }
 
     is_test_on = false;
-
-    // also clean up data manager
-    DataBufferManager::ResetBuffer();
 
     // Officially stop sampling afe
     k_work_submit(&dma_cleanup);
@@ -459,6 +462,9 @@ void TIBareMetalWrapper::DMACleanUpHandler(struct k_work *item) {
     // Stop adc conversion, then send SDATAC command
     StopADC();
     ADS1299_DisableContRead(&afe_driver);
+
+    // clean up buffer
+    DataBufferManager::ResetBuffer();
 }
 
 void TIBareMetalWrapper::CheckID() {
