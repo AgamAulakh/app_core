@@ -12,7 +12,7 @@
 #include "Data.h"
 #include "Utils.h"
 
-#define SIG_PROC_THREAD_STACK_SIZE_B 16384
+#define SIG_PROC_THREAD_STACK_SIZE_B 32768
 #define SIG_PROC_THREAD_PRIORITY 4 // max based on prj config
 #define SIG_PROC_THREAD_MSG_Q_DEPTH 10
 

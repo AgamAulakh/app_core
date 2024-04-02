@@ -354,7 +354,7 @@ void TIBareMetalWrapper::Start() {
     DataBufferManager::ResetBuffer();
 
     // Write setting first, then start adc conversion
-    LOG_INF("TIBareMetalWrapper::%s enabling continuous read at %u ms", __FUNCTION__, k_uptime_get_32());
+    LOG_INF("TIBareMetalWrapper::%s enabling continuous read", __FUNCTION__);
 
     // send RDATAC command, then start adc conversion
     ADS1299_EnableContRead(&afe_driver);
@@ -438,7 +438,7 @@ void TIBareMetalWrapper::ReadContinuous() {
     if (afe_driver.config4.singleShot) { ConfigContinuousConversion(); }
 
     // Write setting first, then start adc conversion
-    LOG_INF("TIBareMetalWrapper::%s enabling continuous read at %u ms", __FUNCTION__, k_uptime_get_32());
+    LOG_INF("TIBareMetalWrapper::%s enabling continuous read", __FUNCTION__);
 
     // send RDATAC command, then start adc conversion
     ADS1299_EnableContRead(&afe_driver);
@@ -449,7 +449,7 @@ void TIBareMetalWrapper::ReadContinuous() {
 };
 
 void TIBareMetalWrapper::DMAWorkHandler(struct k_work *item) {
-    // LOG_INF("TIBareMetalWrapper::%s DRDY signal caught, reading sample at %u ms", __FUNCTION__, k_uptime_get_32());
+    // LOG_INF("TIBareMetalWrapper::%s DRDY signal caught, reading sample", __FUNCTION__);
     ADS1299_ReadOutputSample(&afe_driver);
     PrintCurrentSample();
     DataBufferManager::WriteOneSample(afe_driver.sample);
@@ -457,7 +457,7 @@ void TIBareMetalWrapper::DMAWorkHandler(struct k_work *item) {
 
 void TIBareMetalWrapper::DMACleanUpHandler(struct k_work *item) {
     gpio_remove_callback(afe_drdy_spec.port, &afe_drdy_cb_data);
-    LOG_INF("TIBareMetalWrapper::%s disabling continuous read at %u ms", __FUNCTION__, k_uptime_get_32());
+    LOG_INF("TIBareMetalWrapper::%s disabling continuous read", __FUNCTION__);
 
     // Stop adc conversion, then send SDATAC command
     StopADC();

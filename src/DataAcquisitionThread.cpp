@@ -35,10 +35,10 @@ void DataAcquisitionThread::Run() {
     // set AFE in continuous read mode
     uint8_t message = 0;
     while (true) {
-        LOG_INF("DataAcq::%s -- STARTING TO WAIT FOR NEW MESSAGE");
+        LOG_INF("DataAcq::%s -- STARTING TO WAIT FOR NEW MESSAGE", __FUNCTION__);
         if (message_queue.get_with_blocking_wait(message)) {
             uint8_t message_enum = static_cast<DataAcquisitionThreadMessage>(message);
-		    LOG_DBG("DataAcq::%s -- received message: %u at: %u ms", __FUNCTION__, message_enum, k_uptime_get_32());
+		    LOG_DBG("DataAcq::%s -- received message: %u", __FUNCTION__, message_enum);
             switch (message_enum) {
                 case STOP_READING_AFE:
                     AFEWrapper.Stop();
@@ -61,11 +61,11 @@ void DataAcquisitionThread::Run() {
                     break;
                 case RUN_INTERNAL_SQUARE_WAVE_TEST_SMALL_SLOW:
                     AFEWrapper.RunInternalSquareWaveTest(true);
-                    LOG_INF("DataAcq::%s -- RETURNING FROM SQUARE WAVE SET UP");
+                    LOG_INF("DataAcq::%s -- RETURNING FROM SQUARE WAVE SET UP", __FUNCTION__);
                     break;
                 case RUN_INTERNAL_SQUARE_WAVE_TEST_BIG_FAST:
                     AFEWrapper.RunInternalSquareWaveTest(false);
-                    LOG_INF("DataAcq::%s -- RETURNING FROM SQUARE WAVE SET UP");
+                    LOG_INF("DataAcq::%s -- RETURNING FROM SQUARE WAVE SET UP", __FUNCTION__);
                     break;
                 case INVALID:
                     break;

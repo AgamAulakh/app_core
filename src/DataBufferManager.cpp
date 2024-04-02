@@ -10,9 +10,8 @@ bool DataBufferManager::is_buffer_initialized = false;
 void DataBufferManager::Initialize(){
     if (!is_buffer_initialized) {
         ring_buf_init(&buffer, total_size_ring_buffer_B, reinterpret_cast<uint8_t*>(data_buffer));
-        LOG_DBG("DataBufferManager::%s -- Initialized Buffer at ms: %u",
-            __FUNCTION__,
-            k_uptime_get_32()
+        LOG_DBG("DataBufferManager::%s -- Initialized Buffer",
+            __FUNCTION__
         );
         is_buffer_initialized = true;
     }

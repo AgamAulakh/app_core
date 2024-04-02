@@ -67,7 +67,7 @@ int main(void)
 	);
 
 	while(1) {
-		LOG_DBG("main thread up time: %u ms", k_uptime_get_32());
+		LOG_DBG("main thread Hello World");
 		k_msleep(LOG_DELAY_MS);
 	}
 
