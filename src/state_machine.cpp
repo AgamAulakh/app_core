@@ -90,7 +90,7 @@ void StateMachine::test_run(void *obj) {
 	);
 
 	// sleep for 10 seconds
-	k_msleep(10000);
+	// k_msleep(10000);
 
 	// stop processing manually
 	// SignalProcessingThread::GetInstance().SendMessage(
