@@ -58,6 +58,7 @@ public:
     void Stop() override;
     void ReadData() override;
 
+    static void SetDefaultConfigRegisters();
     static void RunInputShortTest();    
     static void RunInternalSquareWaveTest(bool is_small_wave);  
     static void CheckAllRegisters();  

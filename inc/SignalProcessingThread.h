@@ -11,6 +11,7 @@
 #include "DataBufferManager.h"
 #include "Data.h"
 #include "Utils.h"
+#include "lcd_handler.h"
 
 #define SIG_PROC_THREAD_STACK_SIZE_B 32768
 #define SIG_PROC_THREAD_PRIORITY 4 // max based on prj config
@@ -89,6 +90,7 @@ public:
     ArmMatrixWrapper<4,1> ComputeBandPowersPerChannel(uint32_t electrode);
     void ComputeBandPowers();
     void ComputeRelativeBandPowers();
+    void ConvertBandPowerArmMatrixToResult(Result& to_write);
 
     void TestValuesWooHoo();
 

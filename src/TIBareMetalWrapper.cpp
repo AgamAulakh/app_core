@@ -215,6 +215,16 @@ void TIBareMetalWrapper::SetPWDN(uint8_t state){
 // parent functions to override
 void TIBareMetalWrapper::Initialize() {
     // write application-specific settings
+    SetDefaultConfigRegisters();
+
+    // check all registers were updated:
+    CheckAllRegisters();
+
+    // set up data buffer!
+    DataBufferManager::Initialize();
+};
+
+void TIBareMetalWrapper::SetDefaultConfigRegisters() {
     ADS1299_SetConfig1State(&afe_driver, ADS1299_CONFIG1_SETUP_ARDUINO_250);
     ADS1299_SetConfig2State(&afe_driver, ADS1299_CONFIG2_SETUP_TEST_d004V_d9HZ);
     ADS1299_SetConfig3State(&afe_driver, ADS1299_CONFIG3_SETUP_REF_BIAS);
@@ -238,11 +248,6 @@ void TIBareMetalWrapper::Initialize() {
 
     ADS1299_SetLoffSensPState(&afe_driver, ADS1299_LOFF_SENSX_ALL_OFF);
     ADS1299_SetLoffSensNState(&afe_driver, ADS1299_LOFF_SENSX_ALL_OFF);
-
-    // check all registers were updated:
-    CheckAllRegisters();
-
-    DataBufferManager::Initialize();
 };
 
 void TIBareMetalWrapper::RunInputShortTest() {
@@ -361,7 +366,6 @@ void TIBareMetalWrapper::Start() {
     StartADC();
 
     // run our own DMA handler
-    gpio_init_callback(&afe_drdy_cb_data, HandleDRDY, BIT(afe_drdy_spec.pin));
     gpio_add_callback(afe_drdy_spec.port, &afe_drdy_cb_data);
 };
 
@@ -462,6 +466,9 @@ void TIBareMetalWrapper::DMACleanUpHandler(struct k_work *item) {
     // Stop adc conversion, then send SDATAC command
     StopADC();
     ADS1299_DisableContRead(&afe_driver);
+
+    // set default registers
+    SetDefaultConfigRegisters();
 
     // clean up buffer
     DataBufferManager::ResetBuffer();

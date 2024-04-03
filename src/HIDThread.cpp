@@ -31,7 +31,7 @@ void HIDThread::Initialize() {
 void HIDThread::Run() {
     uint8_t message = 0;
 
-    lcd_init();
+    LCD::lcd_init();
 
     while (true) {
         if (message_queue.get_with_blocking_wait(message)) {
@@ -47,7 +47,7 @@ void HIDThread::Run() {
                     LCD::display_testing();
                     break;
                 case DISPLAY_RESULTS:
-                    LCD::display_complete(0,0,0,0);
+                    LCD::display_complete();
                     break;
                 case DISPLAY_CANCEL:
                     LCD::display_cancel();

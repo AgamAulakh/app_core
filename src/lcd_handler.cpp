@@ -15,6 +15,11 @@ using namespace std;
 
 LOG_MODULE_REGISTER(lcd_handler, LOG_LEVEL_DBG);
 
+// static fields
+Result LCD::most_recent_result = { 0 };
+MessageQueue<Result, LCD_RESULTS_MSG_Q_DEPTH> LCD::result_queue;
+
+// device tree fields
 const struct device *display_dev;
 lv_obj_t *display_label;
 
@@ -48,56 +53,39 @@ void LCD::display_testing() {
     lv_task_handler();
 }
 
-void LCD::display_complete(float *alphaPower, float *betaPower, float *deltaPower, float *thetaPower) {
+void LCD::display_complete() {
     lv_label_set_text(display_label, "Testing complete");
     lv_obj_set_align(display_label, LV_ALIGN_CENTER);
     lv_task_handler();
 
-    std::ostringstream myString1;
-    myString1 << "Alpha: " << alphaPower;
-    std::string alphaResult = myString1.str();
+    // try to update current result with data in queue
+    // if get from queue fails, the most_recent_result should be the same as previous (is not consumed)
+    // if get from queue passes, then we have a new result!
+    if(result_queue.get_with_timeout(most_recent_result, RESULT_READ_TIMEOUT_TICKS)) {
+        LOG_INF("updated the result");
+    }
+    else {
+        LOG_ERR("did not read the result from queue");
+    }
 
-    std::ostringstream myString2;
-    myString2 << "Beta: " << betaPower;
-    std::string betaResult = myString2.str();
+    std::string results_to_print[num_electrodes];
 
-    std::ostringstream myString3;
-    myString3 << "Delta: " << deltaPower;
-    std::string deltaResult = myString3.str();
+    for (int electrode = 0; electrode < num_electrodes; electrode++) {
+        results_to_print[electrode] = "ELECTRODE " + std::to_string(electrode) +
+            "\nDelta: " + std::to_string(most_recent_result.band_powers[electrode].delta) +
+            "\nTheta: " + std::to_string(most_recent_result.band_powers[electrode].theta) +
+            "\nAlpha: " + std::to_string(most_recent_result.band_powers[electrode].alpha) +
+            "\nBeta: " + std::to_string(most_recent_result.band_powers[electrode].beta);
+        printk("%s",results_to_print[electrode]);
+    }
 
-    std::ostringstream myString4;
-    myString4 << "Theta: " << thetaPower;
-    std::string thetaResult = myString4.str();
+    for (int electrode = 0; electrode < num_electrodes; electrode++) {
+        k_sleep(K_MSEC(3000));
 
-    k_sleep(K_MSEC(3000));
-
-    // std::string formattedResults = std::string("%c\n%c\n%c\n%c", alphaResult.c_str(), betaResult.c_str(), deltaResult.c_str(), thetaResult.c_str());
-
-    std::string combined = alphaResult + std::string("\n") + betaResult + std::string("\n") + deltaResult + std::string("\n") + thetaResult;
-
-    lv_label_set_text(display_label, combined.c_str());
-    lv_obj_set_align(display_label, LV_ALIGN_CENTER);
-    lv_task_handler();
-
-    k_sleep(K_MSEC(3000));
-
-    lv_label_set_text(display_label, combined.c_str());
-    lv_obj_set_align(display_label, LV_ALIGN_CENTER);
-    lv_task_handler();
-    
-    k_sleep(K_MSEC(3000));
-
-    lv_label_set_text(display_label, combined.c_str());
-    lv_obj_set_align(display_label, LV_ALIGN_CENTER);
-    lv_task_handler();
-
-    k_sleep(K_MSEC(3000));
-
-    lv_label_set_text(display_label, combined.c_str());
-    lv_obj_set_align(display_label, LV_ALIGN_CENTER);
-    lv_task_handler();
-
-    k_sleep(K_MSEC(3000));
+        lv_label_set_text(display_label, results_to_print[electrode].c_str());
+        lv_obj_set_align(display_label, LV_ALIGN_CENTER);
+        lv_task_handler();
+    }
 
     return_to_idle();
 }
@@ -115,7 +103,7 @@ void LCD::display_demo_mode() {
 }
 
 
-void lcd_init(void)
+void LCD::lcd_init(void)
 {
     int ret;
 

@@ -24,8 +24,8 @@ public:
         return true;
     };
 
-    bool push_with_timeout(element_type& msg, int64_t ticks) {
-        if (k_msgq_put(&queue, static_cast<void*>(&msg), k_timeout_t(ticks)) != 0) {
+    bool push_with_timeout(element_type& msg, k_timeout_t ticks) {
+        if (k_msgq_put(&queue, static_cast<void*>(&msg), ticks) != 0) {
             return false;
         }
         return true;
@@ -39,8 +39,8 @@ public:
         return true;
     };
 
-    bool get_with_timeout(element_type& msg, int64_t ticks) {
-        if (k_msgq_get(&queue, static_cast<void*>(&msg), k_timeout_t(ticks)) != 0) {
+    bool get_with_timeout(element_type& msg, k_timeout_t ticks) {
+        if (k_msgq_get(&queue, static_cast<void*>(&msg), ticks) != 0) {
             return false;
         }
         return true;
