@@ -83,19 +83,11 @@ void StateMachine::test_run(void *obj) {
     s_obj.events = k_event_clear(&s_obj.sm_event, EVENT_BTN1_PRESS);
 
     DataAcquisitionThread::GetInstance().SendMessage(
-		DataAcquisitionThread::RUN_INTERNAL_SQUARE_WAVE_TEST_BIG_FAST
+		DataAcquisitionThread::START_READING_AFE
 	);
 	SignalProcessingThread::GetInstance().SendMessage(
 		SignalProcessingThread::START_PROCESSING
 	);
-
-	// sleep for 10 seconds
-	// k_msleep(10000);
-
-	// stop processing manually
-	// SignalProcessingThread::GetInstance().SendMessage(
-	// 	SignalProcessingThread::FORCE_STOP_PROCESSING
-	// );
 
     /* We need to wait for either a button press to cancel or callback from sigproc
     data collection so we know which state to go to */
@@ -125,12 +117,12 @@ void StateMachine::test_exit(void *obj) {
     /* If the user wants to terminate the test, stop
     data processing and discard data */
     if (s_obj.ctx.current == &dev_states[CANCEL]) {
-        // SignalProcessingThread::GetInstance().SendMessage(
-        //     SignalProcessingThread::FORCE_STOP_PROCESSING
-        // );
-        // DataAcquisitionThread::GetInstance().SendMessage(
-        //     DataAcquisitionThread::STOP_READING_AFE
-        // );
+        SignalProcessingThread::GetInstance().SendMessage(
+            SignalProcessingThread::FORCE_STOP_PROCESSING
+        );
+        DataAcquisitionThread::GetInstance().SendMessage(
+            DataAcquisitionThread::STOP_READING_AFE
+        );
     }
 };
 
@@ -193,8 +185,48 @@ void StateMachine::demo_entry(void *obj) {
 
 void StateMachine::demo_run(void *obj) {
 
+    // add demo display text on lcd
+
+    LED1::set_flash_purple();
+
+    DataAcquisitionThread::GetInstance().SendMessage(
+		DataAcquisitionThread::RUN_INTERNAL_SQUARE_WAVE_TEST_BIG_FAST
+	);
+	SignalProcessingThread::GetInstance().SendMessage(
+		SignalProcessingThread::START_PROCESSING
+	);
+
+    s_obj.events = k_event_wait(&s_obj.sm_event, EVENT_SIG_PROC_COMPLETE, true, K_FOREVER);
+    s_obj.events = k_event_clear(&s_obj.sm_event, EVENT_SIG_PROC_COMPLETE); 
+
+	DataAcquisitionThread::GetInstance().SendMessage(
+		DataAcquisitionThread::STOP_READING_AFE
+	);
+
+    // sleep for 2 seconds
+	k_msleep(2000);
+
+    DataAcquisitionThread::GetInstance().SendMessage(
+		DataAcquisitionThread::RUN_INTERNAL_SQUARE_WAVE_TEST_SMALL_SLOW
+	);
+	SignalProcessingThread::GetInstance().SendMessage(
+		SignalProcessingThread::START_PROCESSING
+	);
+
+    s_obj.events = k_event_wait(&s_obj.sm_event, EVENT_SIG_PROC_COMPLETE, true, K_FOREVER);
+    s_obj.events = k_event_clear(&s_obj.sm_event, EVENT_SIG_PROC_COMPLETE);
+
+	DataAcquisitionThread::GetInstance().SendMessage(
+		DataAcquisitionThread::STOP_READING_AFE
+	);
+
+    // sleep for 2 seconds
+	k_msleep(2000);
+
+    // Add display for demo
+
     /* If button 1 is pressed the user wants to start a demo 
-       If button 2 is pressed return to IDLE state*/
+       If button 2 is pressed return to IDLE state */
     s_obj.events = k_event_wait(&s_obj.sm_event, (EVENT_BTN1_PRESS | EVENT_BTN2_PRESS), true, K_FOREVER);
 
     // Clear button press
@@ -205,66 +237,6 @@ void StateMachine::demo_run(void *obj) {
     else if (s_obj.events & EVENT_BTN1_PRESS) {
         s_obj.events = k_event_clear(&s_obj.sm_event, EVENT_BTN1_PRESS);
     }
-
-    LED1::set_flash_purple();
-
-    k_msleep(1000);
-
-    // DataAcquisitionThread::GetInstance().SendMessage(
-	// 	DataAcquisitionThread::RUN_INTERNAL_SQUARE_WAVE_TEST_BIG_FAST
-	// );
-	// SignalProcessingThread::GetInstance().SendMessage(
-	// 	SignalProcessingThread::START_PROCESSING
-	// );
-
-	// // sleep for 10 seconds
-	// k_msleep(10000);
-
-	// // stop processing manually
-	// SignalProcessingThread::GetInstance().SendMessage(
-	// 	SignalProcessingThread::FORCE_STOP_PROCESSING
-	// );
-	// DataAcquisitionThread::GetInstance().SendMessage(
-	// 	DataAcquisitionThread::STOP_READING_AFE
-	// );
-
-    // DataAcquisitionThread::GetInstance().SendMessage(
-	// 	DataAcquisitionThread::RUN_INTERNAL_SQUARE_WAVE_TEST_SMALL_SLOW
-	// );
-	// SignalProcessingThread::GetInstance().SendMessage(
-	// 	SignalProcessingThread::START_PROCESSING
-	// );
-
-    s_obj.events = k_event_wait(&s_obj.sm_event, (EVENT_BTN1_PRESS | EVENT_SIG_PROC_COMPLETE), true, K_FOREVER);
-    if (s_obj.events & EVENT_BTN1_PRESS) {
-        // Cancel demo
-        smf_set_state(SMF_CTX(&s_obj), &dev_states[DEMO]);
-        s_obj.events = k_event_clear(&s_obj.sm_event, EVENT_BTN1_PRESS);
-        // exit state early here?
-    } else {
-        s_obj.events = k_event_clear(&s_obj.sm_event, EVENT_SIG_PROC_COMPLETE);
-    }
-
-	// sleep for 10 seconds
-	k_msleep(10000);
-
-	// stop processing manually
-	SignalProcessingThread::GetInstance().SendMessage(
-		SignalProcessingThread::FORCE_STOP_PROCESSING
-	);
-	DataAcquisitionThread::GetInstance().SendMessage(
-		DataAcquisitionThread::STOP_READING_AFE
-	);
-
-    s_obj.events = k_event_wait(&s_obj.sm_event, (EVENT_BTN1_PRESS | EVENT_SIG_PROC_COMPLETE), true, K_FOREVER);
-    if (s_obj.events & EVENT_BTN1_PRESS) {
-        // Cancel demo
-        smf_set_state(SMF_CTX(&s_obj), &dev_states[DEMO]);
-        s_obj.events = k_event_clear(&s_obj.sm_event, EVENT_BTN1_PRESS);
-    }
-
-    smf_set_state(SMF_CTX(&s_obj), &dev_states[IDLE]);
-    s_obj.events = k_event_clear(&s_obj.sm_event, EVENT_SIG_PROC_COMPLETE);
 };
 
 void StateMachine::demo_exit(void *obj) {
@@ -367,8 +339,6 @@ void state_machine_init() {
     uint8_t err;
 
     LOG_DBG("State Machine Initialization");
-
-    // HIDThread::GetInstance().Initialize();
 
     /* Initalize namespaces */
     LED1::init();

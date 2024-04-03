@@ -24,13 +24,6 @@ static const struct gpio_dt_spec backlight_pin = GPIO_DT_SPEC_GET(BACKLIGHT_NODE
 
 
 void LCD::display_init() {
-    // lv_label_set_text(display_label, "Welcome\nEEG Data Collection Device");
-    // // lv_label_set_long_mode(display_label, LV_LABEL_LONG_WRAP);
-    // lv_obj_set_align(display_label, LV_ALIGN_CENTER);
-    // lv_task_handler();
-
-    // k_sleep(K_MSEC(5000));
-
     lv_label_set_text(display_label, "Please press the\nbutton to begin");
     lv_obj_set_align(display_label, LV_ALIGN_CENTER);
     lv_task_handler();
@@ -112,8 +105,6 @@ void lcd_init(void)
 		LOG_ERR("Device not ready, aborting");
 		return; 
     }
-
-    // display_blanking_off(display_dev);
 
 	if (!gpio_is_ready_dt(&backlight_pin)) {
 		return;
