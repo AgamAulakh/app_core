@@ -19,15 +19,13 @@
 #define CHANNELS_TEST 1 // Just for testing one channel 
 #define BANDS 4
 
-
 // DAQ
 constexpr uint8_t num_electrodes = 8;
-constexpr uint8_t max_epochs = 2;
+constexpr uint8_t max_epochs = 8;
 constexpr uint8_t num_bytes_per_sample = 3 * (num_electrodes + 1);
 constexpr uint16_t num_samples_per_test = 250;
-constexpr uint16_t num_samples_per_epoch = 1024;
+constexpr uint16_t num_samples_per_epoch = 512;
 constexpr uint16_t default_rx_buf_len = num_bytes_per_sample * num_samples_per_test;
-constexpr uint16_t rx_buf_len = num_bytes_per_sample * num_samples_per_test;
 
 // Data Buffer Manager
 constexpr uint16_t max_samples_ring_buffer = 2048;

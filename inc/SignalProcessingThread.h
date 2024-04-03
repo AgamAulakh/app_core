@@ -12,7 +12,9 @@
 #include "Data.h"
 #include "Utils.h"
 
-#define SIG_PROC_THREAD_STACK_SIZE_B 32768
+using namespace std;
+
+#define SIG_PROC_THREAD_STACK_SIZE_B 16384
 #define SIG_PROC_THREAD_PRIORITY 4 // max based on prj config
 #define SIG_PROC_THREAD_MSG_Q_DEPTH 10
 
@@ -30,8 +32,7 @@ private:
     SignalProcessingThread(const SignalProcessingThread &) = delete;
     SignalProcessingThread& operator=(const SignalProcessingThread&) = delete;
 
-
-    // heehee variables
+    // Counter for epochs
     uint8_t epoch_count;
 
     // Matrix of raw data
@@ -43,7 +44,6 @@ private:
     // Array of Power spectrum of all 8 channels 
     ArmMatrixWrapper<num_samples_per_epoch/2, num_electrodes> channelPowerResults;
    
-    //vector<float32_t> bandPowers = vector<float32_t>(4);
     // Array of channels where each channel has 4 elements for 4 bandpowers
     ArmMatrixWrapper<4, max_epochs> bandpwer_ch1;
     ArmMatrixWrapper<4, max_epochs> bandpwer_ch2;
@@ -54,11 +54,9 @@ private:
     ArmMatrixWrapper<4, max_epochs> bandpwer_ch7;
     ArmMatrixWrapper<4, max_epochs> bandpwer_ch8;
     
-    //vector<vector<float32_t>> channelBandPowers = vector<vector<float32_t>>(1, bandPowers);
-    ArmMatrixWrapper<4, num_electrodes> channelRelativeBandPowers;
-    // Array of channels where each channel has 4 elements for 4 bandpowers
-    //vector<vector<float32_t>> channelRelativeBandPowers = vector<vector<float32_t> >(1, bandPowers);
- 
+    ArmMatrixWrapper<4, num_electrodes> averageBandPowers;
+    ArmMatrixWrapper<4, num_electrodes> relativeBandPowers;
+
 
 public:
     static Semaphore done_flag;
@@ -69,10 +67,11 @@ public:
         COMPUTE_DEBUG_RELATIVEPOWER_RESULTS,
         START_PROCESSING,
         FORCE_STOP_PROCESSING,
+        DEBUG_CLASSIFICATION,
         INVALID,
     };
     enum PowerBands : uint8_t {
-        DELTA = 0,
+        DELTA = 0, // 
         THETA,
         ALPHA,
         BETA,
@@ -85,12 +84,14 @@ public:
 
     void ComputeSingleSideFFT();
     void ComputeSingleSidePower();
-    void ComputeBandPowerAtOneBand(const PowerBands powerBand);
+ 
     ArmMatrixWrapper<4,1> ComputeBandPowersPerChannel(uint32_t electrode);
     void ComputeBandPowers();
+    void ComputeAverageBandPowers();
     void ComputeRelativeBandPowers();
+    void PopulateTestValues();
 
-    void TestValuesWooHoo();
+    bool Classification();
 
     static SignalProcessingThread& GetInstance() {
         // NOTE: this method of using static local variable is thread-safe

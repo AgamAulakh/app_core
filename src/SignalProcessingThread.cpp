@@ -1,7 +1,5 @@
 #include "SignalProcessingThread.h"
-#include "Events.h"
-
-#define RAW_SAMPLE_NUMBER 1024
+#define RAW_SAMPLE_NUMBER 512
 LOG_MODULE_REGISTER(eegals_app_core_sig_proc, LOG_LEVEL_DBG);
 K_THREAD_STACK_DEFINE(sig_proc_stack_area, SIG_PROC_THREAD_STACK_SIZE_B);
 struct k_thread sig_proc_thread_data;
@@ -9,6 +7,7 @@ Semaphore SignalProcessingThread::done_flag = Semaphore();
 
 SignalProcessingThread::SignalProcessingThread() {
     epoch_count = 0;
+    // NEED TO DO CHECKS
 };
 
 void SignalProcessingThread::Initialize() {
@@ -32,34 +31,40 @@ void SignalProcessingThread::Initialize() {
 void SignalProcessingThread::Run() {
     uint8_t message = 0;
     while (true) {
-        LOG_INF("SigProc:: -- STARTING TO WAIT FOR NEW MESSAGE");
         if (message_queue.get_with_blocking_wait(message)) {
             uint8_t message_enum = static_cast<SignalProcessingThreadMessage>(message);
-		    LOG_DBG("SigProc:: -- received message: %u", message_enum);
+		    LOG_DBG("SigProc::%s -- received message: %u at: %u ms", __FUNCTION__, message_enum, k_uptime_get_32());
             switch (message_enum) {
                 case COMPUTE_DEBUG_FFT_RESULTS:
-					TestValuesWooHoo();
-                   // ComputeSingleSideFFT();
+					PopulateTestValues();
+                    ComputeSingleSideFFT();
                     break;
                 case COMPUTE_DEBUG_POWER_RESULTS:
-					TestValuesWooHoo();
+					PopulateTestValues();
                     ComputeSingleSidePower();
                     break;
                 case COMPUTE_DEBUG_BANDPOWER_RESULTS:
-					TestValuesWooHoo();
+					PopulateTestValues();
                     ComputeSingleSidePower();
-                    //ComputeBandPowers(PowerBands::DELTA);
+                    ComputeBandPowers();
+                    ComputeAverageBandPowers();
+                    Classification();
                     break;
                 case COMPUTE_DEBUG_RELATIVEPOWER_RESULTS:
                     ComputeRelativeBandPowers();
                     break;
                 case START_PROCESSING:
+                    epoch_count = 0;
+                    done_flag.wait();
                     StartProcessing();
-                    LOG_INF("SigProc:: -- RETURNING FROM PROCESSING");
+                    done_flag.give();
+                    // to be set by state machine
                     break;
                 case FORCE_STOP_PROCESSING:
-                	LOG_INF("SigProc:: cannot force processing (nothing running)");
+                	LOG_ERR("SigProc::%s cannot force processing (nothing running)", __FUNCTION__);
                     break;
+                case DEBUG_CLASSIFICATION:
+                    Classification();
                 case INVALID:
                     break;
                 default:
@@ -72,30 +77,25 @@ void SignalProcessingThread::Run() {
 void SignalProcessingThread::StartProcessing()
 {
     // wait until you can read one full epoch
-    LOG_DBG("SigProc::%s starting", __FUNCTION__);
-
+    LOG_DBG("SigProc::%s starting %u ms", __FUNCTION__, k_uptime_get_32());
     uint8_t message;
     bool is_forced_done = false;
-    epoch_count = 0;
-
-    while(epoch_count < max_epochs && !is_forced_done) {
+    while(epoch_count < max_epochs || !is_forced_done){
         if(DataBufferManager::GetNumSaplesWritten() >= num_samples_per_epoch) {
-            LOG_DBG("SigProc::%s reading epoch", __FUNCTION__);
+            LOG_DBG("SigProc::%s reading epoch %u ms", __FUNCTION__, k_uptime_get_32());
             DataBufferManager::ReadEpoch(allChannels);
             ComputeSingleSidePower();
             ComputeBandPowers();
             epoch_count++;
-            LOG_DBG("SigProc::%s finished epoch %u", __FUNCTION__, epoch_count);
+            LOG_DBG("SigProc::%s finished epoch %u at %u ms", __FUNCTION__, epoch_count, k_uptime_get_32());
         }
         // check for force stop message
         if (message_queue.peak(message)) {
             uint8_t message_enum = static_cast<SignalProcessingThreadMessage>(message);
-		    LOG_DBG("SigProc::%s -- received message: %u", __FUNCTION__, message_enum);
+		    LOG_DBG("SigProc::%s -- received message: %u at: %u ms", __FUNCTION__, message_enum, k_uptime_get_32());
             switch (message_enum) {
                 case FORCE_STOP_PROCESSING:
                     is_forced_done = true;
-                    // remove the message from the queue instead of just peaking:
-                    // message_queue.get(message);
                     break;
                 default:
                     LOG_ERR("SigProc::%s cannot respond to this message (process running)", __FUNCTION__);
@@ -106,21 +106,35 @@ void SignalProcessingThread::StartProcessing()
         k_msleep(250);
     }
 
-    LOG_DBG("SigProc::%s stopping %u", __FUNCTION__, epoch_count);
+    LOG_DBG("SigProc::%s stopping %u at %u ms", __FUNCTION__, epoch_count, k_uptime_get_32());
 
     // stop sigproc
-    sig_proc_complete();
+    // k_event_post(&s_obj.sig_proc_complete, EVENT_SIG_PROC_COMPLETE);
     // done processing; return
 };
 
-void SignalProcessingThread::TestValuesWooHoo()
+void SignalProcessingThread::PopulateTestValues()
 {
-    printk("\nFilling up allChannels with sample data Woo Hoo\n");
-	for (int i = 0; i < RAW_SAMPLE_NUMBER; i++) {
-       allChannels.set_at(Utils::inputSignal[i], i, 0);
+    printk("\nFilling up all Channels with Square Wave values\n");
+    for (int i = 0; i < num_electrodes; i++) {
+
+        for (int j = 0; j < RAW_SAMPLE_NUMBER; j++) {
+
+            allChannels.set_at(Utils::inputSignal[j], j, i);
+        }
     }
-    allChannels.rawFFT(0);
-    //allChannels.prettyPrint();
+    // Populate for the square wave test 
+	// for (int i = 0; i < RAW_SAMPLE_NUMBER; i++) {
+    //     allChannels.set_at(Utils::channelOne[i], i, 0);
+    //     allChannels.set_at(Utils::channelTwo[i], i, 1);
+    //     allChannels.set_at(Utils::channelThree[i], i, 2);
+    //     allChannels.set_at(Utils::channelFour[i], i, 3);
+    //     allChannels.set_at(Utils::channelFive[i], i, 4);
+    //     allChannels.set_at(Utils::channelSix[i], i, 5);
+    //     allChannels.set_at(Utils::channelSeven[i], i, 6);
+    //     allChannels.set_at(Utils::channelEight[i], i, 7);
+    // }
+   //allChannels.prettyPrint();
 };
 
 void SignalProcessingThread::ComputeSingleSideFFT()
@@ -139,71 +153,21 @@ void SignalProcessingThread::ComputeSingleSidePower()
     {
         channelPowerResults.set_column_vector_at(allChannels.singleSidePower(i), i);
     }
-    // printk("\nPrint single-sided power results:");
-    // channelPowerResults.prettyPrint();
-};
-
-void SignalProcessingThread::ComputeBandPowerAtOneBand(const PowerBands powerBand)
-{
-	printk("\nPrint band power results:\n");
-    uint8_t powerBand_enum = static_cast<PowerBands>(powerBand);
-    // Computation of bandpowers
-    switch (powerBand_enum) {
-        case DELTA:{
-            for (int i = 0; i < num_electrodes; i++) {   
-                // channelBandPowers.set_at(
-                //     channelPowerResults.singleSideBandPower(SAMPLE_FREQ, RAW_SAMPLE_NUMBER, DELTA, i), DELTA, i
-                // );
-				// printk("\nPrint delta power results: %.4f\n", channelBandPowers.at(DELTA,i));
-			}
-            break;
-        }   
-        case THETA:{
-            for (int i = 0; i < num_electrodes; i++) {   
-                // channelBandPowers.set_at(
-                //     channelPowerResults.singleSideBandPower(SAMPLE_FREQ, RAW_SAMPLE_NUMBER, THETA, i), THETA, i
-                // );
-				// printk("\nPrint theta power results: %.4f\n", channelBandPowers.at(THETA,i));
-            }
-            break;
-        }
-        case ALPHA:{
-            for (int i = 0; i < num_electrodes; i++) { 
-                // channelBandPowers.set_at(
-                //     channelPowerResults.singleSideBandPower(SAMPLE_FREQ, RAW_SAMPLE_NUMBER, ALPHA, i), ALPHA, i
-                // );  
-				// printk("\nPrint alpha power results: %.4f\n", channelBandPowers.at(ALPHA,i));
-		    }
-            break;
-        }
-        case BETA:{
-            for (int i = 0; i < num_electrodes; i++) {
-                // channelBandPowers.set_at(
-                //     channelPowerResults.singleSideBandPower(SAMPLE_FREQ, RAW_SAMPLE_NUMBER, BETA, i), BETA, i
-                // );
-				// printk("\nPrint beta power results: %.4f\n", channelBandPowers.at(BETA,i));
-			}
-            break;
-        }
-        case INVALID:
-            break;
-        default:
-            break;
-    }
 };
 
 void SignalProcessingThread::ComputeBandPowers() {
     // bandpwer is (band) x (epochs) so we add columns
-    bandpwer_ch1.set_column_vector_at(ComputeBandPowersPerChannel(CH1_IDX), epoch_count);
-    bandpwer_ch2.set_column_vector_at(ComputeBandPowersPerChannel(CH2_IDX), epoch_count);
-    bandpwer_ch3.set_column_vector_at(ComputeBandPowersPerChannel(CH3_IDX), epoch_count);
-    bandpwer_ch4.set_column_vector_at(ComputeBandPowersPerChannel(CH4_IDX), epoch_count);
-    bandpwer_ch5.set_column_vector_at(ComputeBandPowersPerChannel(CH5_IDX), epoch_count);
-    bandpwer_ch6.set_column_vector_at(ComputeBandPowersPerChannel(CH6_IDX), epoch_count);
-    bandpwer_ch7.set_column_vector_at(ComputeBandPowersPerChannel(CH7_IDX), epoch_count);
-    bandpwer_ch8.set_column_vector_at(ComputeBandPowersPerChannel(CH8_IDX), epoch_count);
-	// printk("\nPrint band power results:");
-    // channelBandPowers.prettyPrint();
+     for (int epoch_i = 0; epoch_i < 8; epoch_i++) 
+    {
+        bandpwer_ch1.set_column_vector_at(ComputeBandPowersPerChannel(CH1_IDX), epoch_i);
+        bandpwer_ch2.set_column_vector_at(ComputeBandPowersPerChannel(CH2_IDX), epoch_i);
+        bandpwer_ch3.set_column_vector_at(ComputeBandPowersPerChannel(CH3_IDX), epoch_i);
+        bandpwer_ch4.set_column_vector_at(ComputeBandPowersPerChannel(CH4_IDX), epoch_i);
+        bandpwer_ch5.set_column_vector_at(ComputeBandPowersPerChannel(CH5_IDX), epoch_i);
+        bandpwer_ch6.set_column_vector_at(ComputeBandPowersPerChannel(CH6_IDX), epoch_i);
+        bandpwer_ch7.set_column_vector_at(ComputeBandPowersPerChannel(CH7_IDX), epoch_i);
+        bandpwer_ch8.set_column_vector_at(ComputeBandPowersPerChannel(CH8_IDX), epoch_i);
+     }
 };
 
 ArmMatrixWrapper<4,1> SignalProcessingThread::ComputeBandPowersPerChannel(uint32_t electrode) {
@@ -215,14 +179,92 @@ ArmMatrixWrapper<4,1> SignalProcessingThread::ComputeBandPowersPerChannel(uint32
     return bandPowers;
 };
 
-void SignalProcessingThread::ComputeRelativeBandPowers()
+void SignalProcessingThread::ComputeAverageBandPowers() 
 {
-    for (int i = 0; i < num_electrodes; i++) 
+    for (int band = 0; band < BANDS; band++) 
     {
-        // Each channel's power spectrum calculates the relative band powers of the 4 bands and stores them into 
-        // a 2D array. Outer index denotes the channel number, inner index denotes the band power value
-        // channelRelativeBandPowers[i] = channelPowerResults[i].singleSideRelativeBandPower(channelBandPowers[i]);
+        averageBandPowers.set_at(bandpwer_ch1.get_row_vector_at(band).mean(), band, 0);
+        averageBandPowers.set_at(bandpwer_ch2.get_row_vector_at(band).mean(), band, 1);
+        averageBandPowers.set_at(bandpwer_ch3.get_row_vector_at(band).mean(), band, 2);
+        averageBandPowers.set_at(bandpwer_ch4.get_row_vector_at(band).mean(), band, 3);
+        averageBandPowers.set_at(bandpwer_ch5.get_row_vector_at(band).mean(), band, 4);
+        averageBandPowers.set_at(bandpwer_ch6.get_row_vector_at(band).mean(), band, 5);
+        averageBandPowers.set_at(bandpwer_ch7.get_row_vector_at(band).mean(), band, 6);
+        averageBandPowers.set_at(bandpwer_ch8.get_row_vector_at(band).mean(), band, 7);
+           
     }
-};
+    printk("\nAverage Band Power Results:\n");
+    averageBandPowers.prettyPrint();
+}
+
+void SignalProcessingThread::ComputeRelativeBandPowers(){
+
+    for (int i = 0; i < num_electrodes; i++) {
+        relativeBandPowers.set_column_vector_at(channelPowerResults.singleSideRelativeBandPower(averageBandPowers.get_column_vector_at(i), i), i);
+    }
+}
+
+bool SignalProcessingThread::Classification(){
+
+    // For Square Wave Test Config2: 01
+    // Frequency = 1.9531 Hz
+    // Expected Amplitude = 1.875 mV
+    bool concussion = false;
+    // Four if statements for classification for the four bands (Delta, Theta, Alpha, Beta)
+    // for the Square Wave. We should have a standard of give or take +-0.0005
+    float32_t deviation = 0.0005;
+    
+    float32_t standardDelta = 0.1773;
+    float32_t lowDelta = standardDelta - deviation;
+    float32_t highDelta = standardDelta + deviation;
+    
+    float32_t standardTheta = 0.0196;
+    float32_t lowTheta = standardTheta - deviation;
+    float32_t highTheta = standardTheta + deviation;
+
+    float32_t standardAlpha = 0.0070;
+    float32_t lowAlpha = standardAlpha - deviation;
+    float32_t highAlpha = standardAlpha + deviation;
+
+    float32_t standardBeta = 0.0086;
+    float32_t lowBeta = standardBeta - deviation;
+    float32_t highBeta = standardBeta + deviation;
+
+    for (int electrode = 0; electrode < num_electrodes; electrode++) 
+    {
+        
+        if (averageBandPowers.at(DELTA, electrode) > highDelta || averageBandPowers.at(DELTA, electrode) < lowDelta){
+            concussion = true;
+            break;
+        }
+
+        if (averageBandPowers.at(THETA, electrode) > highTheta || averageBandPowers.at(THETA, electrode) < lowTheta){
+            concussion = true;
+            break;
+        }
+
+        if (averageBandPowers.at(ALPHA, electrode) > highAlpha || averageBandPowers.at(ALPHA, electrode) < lowAlpha){
+            concussion = true;
+            break;
+        }
+
+        if (averageBandPowers.at(BETA, electrode) > highBeta || averageBandPowers.at(BETA, electrode) < lowBeta){
+            concussion = true;
+            break;
+        }
+    
+    }
+
+    if(concussion)
+    {
+        printk("\nYou have a concussion\n");
+    }
+    else 
+    {
+        printk("\nYou DO NOT have a concussion\n");
+    }
+    
+    return concussion;
+}
 
 

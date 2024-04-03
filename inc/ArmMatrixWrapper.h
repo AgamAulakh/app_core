@@ -283,7 +283,14 @@ public:
 
         // Temporary arrays to store initial data and intermediate FFT values
         ArmMatrixWrapper<MaxRows, 1> inputFFT = this->get_column_vector_at(channel);
-
+       
+        // Calculate the mean of the inputFFT for preprocessing
+        float32_t rawInputFFTMean = inputFFT.mean();
+       
+        // Subtract the mean for preprocessing to reduce noise
+        for (int i = 0; i < MaxRows; i++) {
+            inputFFT.data[i] = inputFFT.data[i] -  rawInputFFTMean;
+        }
         // 0 indicates FFT and 1 indicates inverse FFT (This flag will not change)
         const uint8_t ifftFlag = 0;
 
@@ -295,7 +302,7 @@ public:
         arm_rfft_fast_f32(&fft_instance, inputFFT.data, rawResult.data, ifftFlag);
 
         // The first entry is the DC offset so simply set to 0
-        rawResult.data[0] =  0;
+        //rawResult.data[0] =  0;
 
         return rawResult;
     };
@@ -313,6 +320,12 @@ public:
     
         // Input matrix is complex FFT size, output is complexFFT/2 size
         arm_cmplx_mag_f32(rawFFTChannel.data, FFTResult.data, MaxRows/2);
+        
+        // We need to multiply by 2 because we have single-sided spectrum
+        // Start at index 1 since we theoretically do not care about the signal at frequency 0
+        for (int i = 1; i < MaxRows; i++) {
+            FFTResult.data[i] =  2 * FFTResult.data[i];
+        } 
 
         return FFTResult;
     }
@@ -329,6 +342,16 @@ public:
         // Input matrix is complex FFT size, output is complexFFT/2 size
         arm_cmplx_mag_squared_f32(rawFFTChannel.data, powerFFT.data, MaxRows/2);
 
+        // Scaling factor for power
+        float32_t scale = (1/(float32_t)MaxRows) * 250;
+
+        //Apply scaling and double to preserve power
+        for (int i = 0; i < MaxRows; i++) {
+            powerFFT.data[i] =  scale * powerFFT.data[i];
+            if(i != 0){
+                powerFFT.data[i] = 2.0 * powerFFT.data[i];
+            }
+        } 
         // Check if the scaling is required for the above function
         // Copy the output to the result matrix
         return powerFFT;
@@ -341,11 +364,10 @@ public:
         float32_t freqRes = sampleFreq / sampleNo;
         // The following band limits: delta band, theta band, alpha band, beta band
         float32_t bandRanges[] = {1.f,3.f,4.f,7.f,8.f,12.f,13.f,30.f};
-
         // Low and high limit for specified band range of frequencies
         uint32_t lowLimit = 0;
         uint32_t highLimit = 0;
-
+        
         switch(bandSelect){
 
             // delta band (Note: make an enum for the different band types)
@@ -379,7 +401,7 @@ public:
 
         // Calculating the band power for specified band range of frequnencies
         float32_t bandPower = 0;
-        for(uint32_t i = lowLimit; i < highLimit; i++){
+        for(uint32_t i = lowLimit; i <= highLimit; i++){
             bandPower += at(i, electrode);
         }
         bandPower = bandPower * freqRes;
@@ -387,20 +409,23 @@ public:
     }
 
     // Computes the single-sided Relative Band Power given the specified bandPower values
-    std::vector<float32_t> singleSideRelativeBandPower(std::vector<float32_t> bandPowers){
+    ArmMatrixWrapper<4,1>  singleSideRelativeBandPower(ArmMatrixWrapper<4,1> bandPowers, uint8_t electrode){
         
-        std::vector<float32_t> relativeBandpowers(4);
+        ArmMatrixWrapper<4,1> relativeBandpowers;
+
+        // Temporary array to store power results for one channel
+        ArmMatrixWrapper<MaxRows, 1> electrodePowerResult = this->get_column_vector_at(electrode);
 
         // Calculate summation of total power for one channel
         float32_t totalPower = 0;
-        for(uint32_t i = 0; i < MaxBufferSize; i++){
-            totalPower += data[i];
+        for(int i = 0; i < MaxRows; i++){
+            totalPower += electrodePowerResult.data[i];
         }
 
         // Calculate relative band power relative to the total power of one channel
-        for(uint32_t i = 0; i < bandPowers.size(); i++){
+        for(int i = 0; i < 4; i++){
 
-            relativeBandpowers[i] = bandPowers[i] / totalPower;
+            relativeBandpowers.data[i] = bandPowers.data[i] / totalPower;
         }
 
         return relativeBandpowers;
