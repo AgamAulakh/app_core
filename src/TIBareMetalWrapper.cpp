@@ -468,7 +468,18 @@ void TIBareMetalWrapper::DMACleanUpHandler(struct k_work *item) {
     ADS1299_DisableContRead(&afe_driver);
 
     // set default registers
-    SetDefaultConfigRegisters();
+    uint8_t channel_state = ADS1299_CH_N_SET_SETUP_NO
+                            | ADS1299_CH_N_SET_SETUP_GAIN_4
+                            | ADS1299_CH_N_SET_SETUP_SRB2_CL
+                            | ADS1299_CH_N_SET_SETUP_MUX_NEI;
+    ADS1299_SetCh1SetState(&afe_driver, channel_state);
+    ADS1299_SetCh2SetState(&afe_driver, channel_state);
+    ADS1299_SetCh3SetState(&afe_driver, channel_state);
+    ADS1299_SetCh4SetState(&afe_driver, channel_state);
+    ADS1299_SetCh5SetState(&afe_driver, channel_state);
+    ADS1299_SetCh6SetState(&afe_driver, channel_state);
+    ADS1299_SetCh7SetState(&afe_driver, channel_state);
+    ADS1299_SetCh8SetState(&afe_driver, channel_state);
 
     // clean up buffer
     DataBufferManager::ResetBuffer();

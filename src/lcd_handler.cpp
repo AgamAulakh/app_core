@@ -15,10 +15,7 @@ LOG_MODULE_REGISTER(lcd_handler, LOG_LEVEL_DBG);
 
 // static fields
 Result LCD::most_recent_result = { 0 };
-std::string LCD::delta_str;
-std::string LCD::theta_str;
-std::string LCD::alpha_str;
-std::string LCD::beta_str;
+char LCD::result_str[100] = {0};
 MessageQueue<Result, LCD_RESULTS_MSG_Q_DEPTH> LCD::result_queue;
 
 // device tree fields
@@ -70,44 +67,30 @@ void LCD::display_complete() {
         LOG_ERR("did not read the result from queue");
     }
 
+    lv_obj_set_style_text_font(display_label, &lv_font_montserrat_14, 0);
     for (int electrode = 0; electrode < num_electrodes; electrode++) {
-        delta_str = std::to_string(most_recent_result.band_powers[electrode].delta);
-        theta_str = std::to_string(most_recent_result.band_powers[electrode].theta);
-        alpha_str = std::to_string(most_recent_result.band_powers[electrode].alpha);
-        beta_str = std::to_string(most_recent_result.band_powers[electrode].beta);
+        sprintf(result_str, "Electrode: %d\nDelta: %d.%d\nTheta: %d.%d\nAlpha: %d.%d\nBeta: %d.%d",
+            (electrode + 1),
+            (int)(most_recent_result.band_powers[electrode].delta),
+            (int)(most_recent_result.band_powers[electrode].delta - int(most_recent_result.band_powers[electrode].delta) * 1000),
+            (int)(most_recent_result.band_powers[electrode].theta),
+            (int)(most_recent_result.band_powers[electrode].theta - int(most_recent_result.band_powers[electrode].theta) * 1000),
+            (int)(most_recent_result.band_powers[electrode].alpha),
+            (int)(most_recent_result.band_powers[electrode].alpha - int(most_recent_result.band_powers[electrode].alpha) * 1000),
+            (int)(most_recent_result.band_powers[electrode].beta),
+            (int)(most_recent_result.band_powers[electrode].beta - int(most_recent_result.band_powers[electrode].beta) * 1000)
+        );
 
         LOG_INF("DUMP: %f, %f, %f, %f", most_recent_result.band_powers[electrode].delta, most_recent_result.band_powers[electrode].theta, most_recent_result.band_powers[electrode].alpha, most_recent_result.band_powers[electrode].beta);
-        // Format strings to 3 decimal precision
-        // size_t decimal_pos = delta_str.find('.');
-        // if (decimal_pos != std::string::npos && delta_str.size() > decimal_pos + 4) {
-        //     delta_str = delta_str.substr(0, decimal_pos + 4);
-        // }
-        // decimal_pos = theta_str.find('.');
-        // if (decimal_pos != std::string::npos && theta_str.size() > decimal_pos + 4) {
-        //     theta_str = theta_str.substr(0, decimal_pos + 4);
-        // }
-        // decimal_pos = alpha_str.find('.');
-        // if (decimal_pos != std::string::npos && alpha_str.size() > decimal_pos + 4) {
-        //     alpha_str = alpha_str.substr(0, decimal_pos + 4);
-        // }
-        // decimal_pos = beta_str.find('.');
-        // if (decimal_pos != std::string::npos && beta_str.size() > decimal_pos + 4) {
-        //     beta_str = beta_str.substr(0, decimal_pos + 4);
-        // }
-
-        // std::string results_to_print = "ELECTRODE " + std::to_string(electrode) +
-        //     "\nDelta: " + delta_str +
-        //     "\nTheta: " + theta_str +
-        //     "\nAlpha: " + alpha_str +
-        //     "\nBeta: " + beta_str;
-    
         k_sleep(K_MSEC(3000));
 
-        // lv_label_set_text(display_label, results_to_print.c_str());
-        // lv_obj_set_align(display_label, LV_ALIGN_CENTER);
-        // lv_task_handler();
+        lv_label_set_text(display_label, result_str);
+        lv_obj_set_align(display_label, LV_ALIGN_CENTER);
+        lv_task_handler();
     }
 
+    lv_obj_set_style_text_font(display_label, &lv_font_montserrat_16, 0);
+    k_sleep(K_MSEC(3000));
     return_to_idle();
 }
 
@@ -115,6 +98,10 @@ void LCD::display_cancel() {
     lv_label_set_text(display_label, "Test cancelled,\nreturning to home");
     lv_obj_set_align(display_label, LV_ALIGN_CENTER);
     lv_task_handler();
+}
+
+void LCD::prepare_queue_for_new_result() {
+    result_queue.resetMessageQueue();
 }
 
 void LCD::display_demo_mode() {

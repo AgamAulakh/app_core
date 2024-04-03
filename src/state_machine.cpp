@@ -82,6 +82,9 @@ void StateMachine::test_run(void *obj) {
     // properly when in the previous state?
     s_obj.events = k_event_clear(&s_obj.sm_event, EVENT_BTN1_PRESS);
 
+    // clear msg q of lcd in case a demo result is still there
+    LCD::prepare_queue_for_new_result();
+
     DataAcquisitionThread::GetInstance().SendMessage(
 		DataAcquisitionThread::START_READING_AFE
 	);

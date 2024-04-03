@@ -18,10 +18,7 @@ class LCD {
 public:
     static Result most_recent_result;
     static MessageQueue<Result, LCD_RESULTS_MSG_Q_DEPTH> result_queue;
-    static std::string delta_str;
-    static std::string theta_str;
-    static std::string alpha_str;
-    static std::string beta_str;
+    static char result_str[100];
 
     static bool SendResult(Result to_write) {
         if (result_queue.push(to_write) == false) {
@@ -36,5 +33,6 @@ public:
     static void display_processing();
     static void display_complete();
     static void display_cancel();
+    static void prepare_queue_for_new_result();
     static void display_demo_mode();
 };
