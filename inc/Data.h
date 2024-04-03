@@ -46,5 +46,5 @@ typedef struct {
 
 typedef struct {
     Electrode band_powers[num_electrodes];
-    uint64_t timestamp_ms;
+    // uint64_t timestamp_ms;
 } Result;

@@ -727,18 +727,19 @@ void TIBareMetalWrapper::TestFakeSampleDataBuffer() {
     // clear DMA buffer
     DataBufferManager::Initialize();
 
-    size_t num_fake_samples = sizeof(Utils::inputSignal) / sizeof(Utils::inputSignal[0]);
+    // size_t num_fake_samples = sizeof(Utils::inputSignal) / sizeof(Utils::inputSignal[0]);
+    size_t num_fake_samples = 1024;
     sample_t fake_sample = { 0 };
 
     for(size_t i = 0; i < num_fake_samples; i++) {
-        fake_sample.ch1 = Utils::inputSignal[i];
-        fake_sample.ch2 = Utils::inputSignal[i];
-        fake_sample.ch3 = Utils::inputSignal[i];
-        fake_sample.ch4 = Utils::inputSignal[i];
-        fake_sample.ch5 = Utils::inputSignal[i];
-        fake_sample.ch6 = Utils::inputSignal[i];
-        fake_sample.ch7 = Utils::inputSignal[i];
-        fake_sample.ch8 = Utils::inputSignal[i];
+        fake_sample.ch1 = 1.0f;
+        fake_sample.ch2 = 1.0f;
+        fake_sample.ch3 = 1.0f;
+        fake_sample.ch4 = 1.0f;
+        fake_sample.ch5 = 1.0f;
+        fake_sample.ch6 = 1.0f;
+        fake_sample.ch7 = 1.0f;
+        fake_sample.ch8 = 1.0f;
 
         DataBufferManager::WriteOneSample(fake_sample);
 

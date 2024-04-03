@@ -248,6 +248,9 @@ public:
     //**** NOTE **** //
     // to avoid making unnecessary column/row vectors, we implement this ourselves:
     float32_t mean_row(uint32_t row_index) const {
+        if (matrix.numCols == 0) {
+            return 0;
+        }
         float32_t sum = 0.0f;
         for (uint32_t j = 0; j < matrix.numCols; ++j) {
             sum += at(row_index, j);
@@ -256,6 +259,9 @@ public:
     };
 
     float32_t mean_column(uint32_t col_index) const {
+        if (matrix.numRows == 0) {
+            return 0;
+        }
         float32_t sum = 0.0f;
         for (uint32_t i = 0; i < matrix.numRows; ++i) {
             sum += at(i, col_index);
