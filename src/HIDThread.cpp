@@ -52,6 +52,9 @@ void HIDThread::Run() {
                 case DISPLAY_CANCEL:
                     LCD::display_cancel();
                     break;
+                case DISPLAY_DEMO:
+                    LCD::display_demo_mode();
+                    break;
                 default:
                     break;
             }

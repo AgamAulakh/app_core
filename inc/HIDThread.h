@@ -37,6 +37,7 @@ public:
         DISPLAY_TESTING,
         DISPLAY_RESULTS,
         DISPLAY_CANCEL,
+        DISPLAY_DEMO,
     };
 
     void Initialize() override;

@@ -23,7 +23,8 @@
 /* List of events */
 #define EVENT_BTN1_PRESS BIT(0)
 #define EVENT_BTN2_PRESS BIT(1)
-#define EVENT_SIG_PROC_COMPLETE BIT(3)
+#define EVENT_SIG_PROC_COMPLETE BIT(2)
+#define EVENT_RETURN_TO_IDLE BIT(3)
 
 namespace Button1 {
     static const struct gpio_dt_spec button1 = GPIO_DT_SPEC_GET_OR(BUTTON1, gpios, {0});

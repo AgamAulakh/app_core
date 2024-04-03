@@ -204,6 +204,20 @@ void LED1::set_flash_purple() {
             printk("Error %d: solid red write failed\n", err);
             return;
         }
+
+        k_msleep(500);
+
+        err = pwm_set_pulse_dt(&LED1::blue_pwm_led, 0);
+        if (err != 0) {
+            printk("Error %d: blue write failed\n", err);
+            return;
+        }
+
+        err = pwm_set_pulse_dt(&LED1::red_pwm_led, 0);
+        if (err) {
+            printk("Error %d: solid red write failed\n", err);
+            return;
+        }
     }
 }
 

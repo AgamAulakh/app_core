@@ -13,6 +13,7 @@ namespace LCD {
     void display_processing();
     void display_complete(float *alphaPower, float *betaPower, float *deltaPower, float *thetaPower);
     void display_cancel();
+    void display_demo_mode();
 };
 
 void lcd_init();
