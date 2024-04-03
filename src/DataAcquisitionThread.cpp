@@ -13,7 +13,7 @@ void DataAcquisitionThread::Initialize() {
     LOG_DBG("DataAcq::%s -- initializing AFE Wrapper", __FUNCTION__);
 
     // sleep for a second to allow SPI to initialize?
-    k_msleep(1000);
+    k_msleep(5000);
     AFEWrapper.Initialize();
 
     if (id == nullptr) {

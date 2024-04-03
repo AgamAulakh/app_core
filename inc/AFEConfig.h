@@ -22,9 +22,9 @@
 #define AFE_INDICATE_DEV DT_PROP(ZEPHYR_USER_NODE, afeindicator_gpios)
 
 // AFE RESET LED METHOD
-#define LED1_RESET DT_NODELABEL(led1)
-#define LED1_RESET_DEV DT_PHANDLE(LED1_RESET, gpios)
-#define LED1_RESET_PIN DT_PHA(LED1_RESET, gpios, pin)
-#define LED1_RESET_FLAGS DT_PHA(LED1_RESET, gpios, flags)
+// #define LED1_RESET DT_NODELABEL(led1)
+// #define LED1_RESET_DEV DT_PHANDLE(LED1_RESET, gpios)
+// #define LED1_RESET_PIN DT_PHA(LED1_RESET, gpios, pin)
+// #define LED1_RESET_FLAGS DT_PHA(LED1_RESET, gpios, flags)
 
 #endif

@@ -63,47 +63,6 @@ void LED1::set_yellow() {
     }
 }
 
-// PROCESS state LED
-void LED1::set_flash_green() {
-    int err;
-    uint32_t flash_green;
-
-    LOG_DBG("set LED to flashing green");
-
-    // Turn off red and blue LED's
-    err = pwm_set_pulse_dt(&LED1::red_pwm_led, 0);
-    if (err) {
-        printk("Error %d: solid red write failed\n", err);
-        return;
-    }
-    
-    err = pwm_set_pulse_dt(&LED1::blue_pwm_led, 0);
-    if (err) {
-        printk("Error %d: blue write failed\n", err);
-        return;
-    }
-
-    // Turn on green LED flashing
-   for (flash_green = 0U; flash_green <= LED1::green_pwm_led.period; flash_green += (STEP_SIZE)) {
-        // Change loop to run forever in LED thread until state is changed // set interrupt
-        err = pwm_set_pulse_dt(&LED1::green_pwm_led, STEP_SIZE);
-        if (err) {
-            printk("Error %d: flash green write failed\n", err);
-            return;
-        }
-
-        k_sleep(K_MSEC(500));
-
-        err = pwm_set_pulse_dt(&LED1::green_pwm_led, 0);
-        if (err) {
-            printk("Error %d: flash green write failed\n", err);
-            return;
-        }
-
-        k_sleep(K_MSEC(500));
-    }
-}
-
 // COMPLETE state LED
 void LED1::set_solid_green() {
     int err;
@@ -187,6 +146,64 @@ void LED1::set_solid_red() {
     if (err) {
         printk("Error %d: blue write failed\n", err);
         return;
+    }
+}
+
+// DEMO MODE LED
+void LED1::set_solid_purple() {
+    int err;
+
+    LOG_DBG("set LED to purple");
+
+    // Turn on blue and red LEDs for purple
+    err = pwm_set_pulse_dt(&LED1::blue_pwm_led, STEP_SIZE);
+        if (err != 0) {
+            printk("Error %d: blue write failed\n",
+                    err);
+            return;
+        }
+
+    err = pwm_set_pulse_dt(&LED1::red_pwm_led, STEP_SIZE);
+    if (err) {
+        printk("Error %d: solid red write failed\n", err);
+        return;
+    }
+
+    // Turn off green LED
+    err = pwm_set_pulse_dt(&LED1::green_pwm_led, 0);
+    if (err) {
+        printk("Error %d: solid green write failed\n", err);
+        return;
+    }
+}
+
+// DEMO MODE TESTING LED
+void LED1::set_flash_purple() {
+    int err;
+    uint32_t flash_purple;
+
+    LOG_DBG("set LED to purple flashing");
+
+    // Turn off green LED
+    err = pwm_set_pulse_dt(&LED1::green_pwm_led, 0);
+    if (err) {
+        printk("Error %d: solid green write failed\n", err);
+        return;
+    }
+
+    for (flash_purple = 0U; flash_purple <= LED1::red_pwm_led.period; flash_purple += STEP_SIZE) {
+        // Turn on blue and red LEDs for purple
+        err = pwm_set_pulse_dt(&LED1::blue_pwm_led, flash_purple);
+        if (err != 0) {
+            printk("Error %d: blue write failed\n", err);
+            return;
+        }
+
+        err = pwm_set_pulse_dt(&LED1::red_pwm_led, flash_purple);
+        if (err) {
+            printk("Error %d: solid red write failed\n", err);
+            return;
+        }
     }
 }
 

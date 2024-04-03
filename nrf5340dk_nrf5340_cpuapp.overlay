@@ -45,14 +45,40 @@
     };
 };
 
+&pinctrl {
+    lcd_spi_default: lcd_spi_default {
+        group1 {
+            psels = <NRF_PSEL(SPIM_MISO, 0, 17)>, <NRF_PSEL(SPIM_SCK, 0, 19)>;
+        };
+
+        group2 {
+            psels = <NRF_PSEL(SPIM_MOSI, 0, 14)>;
+            nordic,invert;
+        };
+    };
+    // lcd_spi_sleep: lcd_spi_sleep {
+    //     group1 {
+    //         psels = <NRF_PSEL(SPIM_MISO, 0, 17)>,
+    //                 <NRF_PSEL(SPIM_MOSI, 0, 14)>,
+    //                 <NRF_PSEL(SPIM_SCK, 0, 19)>;
+    //         low-power-enable;
+    //     };
+    // };
+};
+
 / {
     aliases {
         pwm-led0 = &fake_led;
         greenled = &green_pwm_led; // 0.03
         blueled = &blue_pwm_led; // 0.04
         redled = &red_pwm_led; // 0.05
-        databutton = &button_data_en; // 1.00
         afespi = &spi0;
+        button1 = &button_1; // 1.00
+        button2 = &button_2; // 1.00
+    };
+
+    chosen {
+        zephyr,display = &lcd;
     };
 
     pwmleds {
@@ -78,11 +104,18 @@
     
     buttons {
         compatible = "gpio-keys";
-        button_data_en: data_en {
-            gpios = <&gpio1 0 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
-            label = "Data Enable Button";
-            zephyr,code = <INPUT_KEY_0>;
-        };
+
+		button_1: button1 {
+			gpios = <&gpio1 0 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
+			label = "Data Enable Button";
+			zephyr,code = <INPUT_KEY_0>;
+		};
+
+        button_2: button2 {
+			gpios = <&gpio0 7 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
+			label = "Button 2";
+			zephyr,code = <INPUT_KEY_0>;
+		};
     };
 
     zephyr,user {
@@ -97,6 +130,55 @@
 
 /delete-node/ &pwm_led0;
 /delete-node/ &{/pin-controller/pwm0_sleep/group1/};
+
+lcd_spi: &spi1 {
+	// compatible = "nordic,nrf-spim";
+	status = "okay";
+	pinctrl-0 = <&lcd_spi_default>;
+    // pinctrl-1 = <&lcd_spi_sleep>;
+	pinctrl-names = "default";
+    cs-gpios = <&gpio0 15 (GPIO_ACTIVE_LOW)>;
+
+    lcd: st7735r@0 {
+        compatible = "sitronix,st7735r";
+		spi-max-frequency = <20000000>;
+		reg = <0>;
+        // lcd-logic-power-gpios = <&gpio0 5 GPIO_ACTIVE_HIGH>;	/* D7 */
+		// lcd-backlight-power-gpios = <&gpio1 13 GPIO_ACTIVE_HIGH>;	/* D4 */
+		cmd-data-gpios = <&gpio1 14 GPIO_ACTIVE_LOW>;	/* D9 */
+		reset-gpios = <&gpio1 15 GPIO_ACTIVE_LOW>;	/* D8 */
+		width = <160>;
+		height = <80>;
+		inversion-on;
+		rgb-is-inverted;
+		x-offset = <1>;
+		y-offset = <26>;
+		pwctr1 = [62 02 04];
+		pwctr2 = [C0];
+		pwctr3 = [0D 00];
+		pwctr4 = [8D 6A];
+		pwctr5 = [8D EE];
+		invctr = <3>;
+		frmctr1 = [05 3A 3A];
+		frmctr2 = [05 3A 3A];
+		frmctr3 = [05 3A 3A 05 3A 3A];
+		vmctr1 = <14>;
+		gamctrp1 = [10 0E 02 03 0E 07 02 07 0A 12 27 37 00 0D 0E 10];
+		gamctrn1 = [10 0E 03 03 0F 06 02 08 0A 13 26 36 00 0D 0E 10];
+		colmod = <5>;
+		madctl = <120>;
+		caset = [00 01 00 a0];
+		raset = [00 1a 00 69];
+
+		// spi-max-frequency = <4000000>;
+    };
+};
+
+&gpio_fwd {
+    uart {
+        gpios = <&gpio0 11 0>, <&gpio0 10 0>;
+    };
+};
 
 &pwm0_default {
     group1 {
@@ -145,4 +227,30 @@ afe_spi: &spi4 {
 };
 &gpiote {
     status = "okay";
+};
+
+&qspi_default {
+    group1 {
+        psels = <NRF_PSEL(QSPI_IO0, 0, 13)>,
+                <NRF_PSEL(QSPI_IO3, 0, 16)>,
+                <NRF_PSEL(QSPI_CSN, 0, 18)>;
+    };
+};
+
+&qspi_sleep {
+    group1 {
+        psels = <NRF_PSEL(QSPI_IO0, 0, 13)>, <NRF_PSEL(QSPI_IO3, 0, 16)>;
+    };
+};
+
+&uart0_default {
+    group1 {
+        psels = <NRF_PSEL(UART_TX, 0, 20)>;
+    };
+};
+
+&uart0_sleep {
+    group1 {
+        psels = <NRF_PSEL(UART_TX, 0, 20)>, <NRF_PSEL(UART_RX, 0, 22)>, <NRF_PSEL(UART_CTS, 0, 21)>;
+    };
 };
