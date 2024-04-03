@@ -93,17 +93,25 @@ void StateMachine::test_run(void *obj) {
     data collection so we know which state to go to */
     s_obj.events = k_event_wait(&s_obj.sm_event, (EVENT_BTN1_PRESS | EVENT_SIG_PROC_COMPLETE), true, K_FOREVER);
 
-    DataAcquisitionThread::GetInstance().SendMessage(
-		DataAcquisitionThread::STOP_READING_AFE
-	);
-
     /* If the button is pressed the user wants to terminate
     the test, move to CANCEL state */
     if (s_obj.events & EVENT_BTN1_PRESS) {
+        // Currently breaks everything
+        SignalProcessingThread::GetInstance().SendMessage(
+		    SignalProcessingThread::FORCE_STOP_PROCESSING
+	    );
+        DataAcquisitionThread::GetInstance().SendMessage(
+		    DataAcquisitionThread::STOP_READING_AFE
+	    );
+
         smf_set_state(SMF_CTX(&s_obj), &dev_states[CANCEL]);
         s_obj.events = k_event_clear(&s_obj.sm_event, EVENT_BTN1_PRESS);
     }
     else {
+        DataAcquisitionThread::GetInstance().SendMessage(
+		    DataAcquisitionThread::STOP_READING_AFE
+	    );
+
         // Once processing and data collection is done move to COMPLETE state
         smf_set_state(SMF_CTX(&s_obj), &dev_states[COMPLETE]);
         s_obj.events = k_event_clear(&s_obj.sm_event, EVENT_SIG_PROC_COMPLETE);
@@ -117,12 +125,7 @@ void StateMachine::test_exit(void *obj) {
     /* If the user wants to terminate the test, stop
     data processing and discard data */
     if (s_obj.ctx.current == &dev_states[CANCEL]) {
-        SignalProcessingThread::GetInstance().SendMessage(
-            SignalProcessingThread::FORCE_STOP_PROCESSING
-        );
-        DataAcquisitionThread::GetInstance().SendMessage(
-            DataAcquisitionThread::STOP_READING_AFE
-        );
+        s_obj.events = k_event_clear(&s_obj.sm_event, EVENT_BTN1_PRESS);
     }
 };
 
@@ -139,9 +142,9 @@ void StateMachine::complete_run(void *obj) {
         HIDThread::DISPLAY_RESULTS
     );
 
-    // Delay
-    k_sleep(K_MSEC(1000));
-
+    // Wait to return to idle
+    s_obj.events = k_event_wait(&s_obj.sm_event, EVENT_RETURN_TO_IDLE, true, K_FOREVER);
+    s_obj.events = k_event_clear(&s_obj.sm_event, EVENT_RETURN_TO_IDLE);
     // Move to IDLE state
     smf_set_state(SMF_CTX(&s_obj), &dev_states[IDLE]);
 };
@@ -162,6 +165,11 @@ void StateMachine::cancel_run(void *obj) {
     // print error on LCD screen
     LOG_DBG("cancel run state");
 
+    // Cancel does not work right, cannot rerun after cancel
+    // device hard faults, data access violation
+
+    s_obj.events = k_event_clear(&s_obj.sm_event, EVENT_BTN1_PRESS);
+
     HIDThread::GetInstance().SendMessage(
         HIDThread::DISPLAY_CANCEL
     );
@@ -181,13 +189,17 @@ void StateMachine::cancel_exit(void *obj) {
 void StateMachine::demo_entry(void *obj) {
     LOG_DBG("demo entry state");
     LED1::set_solid_purple();
+
+    HIDThread::GetInstance().SendMessage(
+        HIDThread::DISPLAY_DEMO
+    );
+
 };
 
 void StateMachine::demo_run(void *obj) {
+    LOG_DBG("demo run state");
 
-    // add demo display text on lcd
-
-    LED1::set_flash_purple();
+    // LED1::set_flash_purple();
 
     DataAcquisitionThread::GetInstance().SendMessage(
 		DataAcquisitionThread::RUN_INTERNAL_SQUARE_WAVE_TEST_BIG_FAST
@@ -223,8 +235,6 @@ void StateMachine::demo_run(void *obj) {
     // sleep for 2 seconds
 	k_msleep(2000);
 
-    // Add display for demo
-
     /* If button 1 is pressed the user wants to start a demo 
        If button 2 is pressed return to IDLE state */
     s_obj.events = k_event_wait(&s_obj.sm_event, (EVENT_BTN1_PRESS | EVENT_BTN2_PRESS), true, K_FOREVER);
@@ -252,17 +262,16 @@ const struct smf_state dev_states[] = {
     [DEMO] =  SMF_CREATE_STATE(StateMachine::demo_entry, StateMachine::demo_run, StateMachine::demo_exit)
 };
 
-// from idle, button2 button goes to demo
-// from demo button2 button goes back to idle
-// from demo button1 starts demo
-// from complete button1 flips through values per electrode
-// from complete button2 go back through values
-// from complete at the end of values, we display ur gonna go back to idle if you press button 1 again or go back to values with button2
-
 void sig_proc_complete(void) {
     /* Generate Sig Proc Complete Event */
     LOG_DBG("Sig proc event");
     k_event_post(&s_obj.sm_event, EVENT_SIG_PROC_COMPLETE);
+}
+
+void return_to_idle(void) {
+    /* Generate Return to Idle Event if user is done viewing results */
+    LOG_DBG("Sig proc event");
+    k_event_post(&s_obj.sm_event, EVENT_RETURN_TO_IDLE);
 }
 
 void Button1::button_press(const struct device *dev,

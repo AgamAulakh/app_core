@@ -9,13 +9,13 @@
 #include <zephyr/logging/log.h>
 #include <lcd_handler.h>
 #include <sstream>
+#include "Events.h"
 
 using namespace std;
 
 LOG_MODULE_REGISTER(lcd_handler, LOG_LEVEL_DBG);
 
 const struct device *display_dev;
-lv_obj_t *hello_world_label;
 lv_obj_t *display_label;
 
 
@@ -24,6 +24,13 @@ static const struct gpio_dt_spec backlight_pin = GPIO_DT_SPEC_GET(BACKLIGHT_NODE
 
 
 void LCD::display_init() {
+    lv_label_set_text(display_label, "Welcome\nPowering Up");
+    lv_obj_set_align(display_label, LV_ALIGN_CENTER);
+    lv_task_handler();
+
+    // Allow time for DAQ and Sig Proc threads to initialize
+    k_msleep(5000);
+
     lv_label_set_text(display_label, "Please press the\nbutton to begin");
     lv_obj_set_align(display_label, LV_ALIGN_CENTER);
     lv_task_handler();
@@ -34,7 +41,7 @@ void LCD::display_testing() {
     lv_obj_set_align(display_label, LV_ALIGN_CENTER);
     lv_task_handler();
 
-    k_sleep(K_MSEC(1000));
+    k_msleep(2000);
 
     lv_label_set_text(display_label, "Testing in progress,\n DO NOT move!");
     lv_obj_set_align(display_label, LV_ALIGN_CENTER);
@@ -62,38 +69,51 @@ void LCD::display_complete(float *alphaPower, float *betaPower, float *deltaPowe
     myString4 << "Theta: " << thetaPower;
     std::string thetaResult = myString4.str();
 
-    k_sleep(K_MSEC(1000));
+    k_sleep(K_MSEC(3000));
 
-    lv_label_set_text(display_label, alphaResult.c_str());
+    // std::string formattedResults = std::string("%c\n%c\n%c\n%c", alphaResult.c_str(), betaResult.c_str(), deltaResult.c_str(), thetaResult.c_str());
+
+    std::string combined = alphaResult + std::string("\n") + betaResult + std::string("\n") + deltaResult + std::string("\n") + thetaResult;
+
+    lv_label_set_text(display_label, combined.c_str());
     lv_obj_set_align(display_label, LV_ALIGN_CENTER);
     lv_task_handler();
 
-    k_sleep(K_MSEC(1000));
+    k_sleep(K_MSEC(3000));
 
-    lv_label_set_text(display_label, betaResult.c_str());
+    lv_label_set_text(display_label, combined.c_str());
     lv_obj_set_align(display_label, LV_ALIGN_CENTER);
     lv_task_handler();
     
-    k_sleep(K_MSEC(1000));
+    k_sleep(K_MSEC(3000));
 
-    lv_label_set_text(display_label, deltaResult.c_str());
+    lv_label_set_text(display_label, combined.c_str());
     lv_obj_set_align(display_label, LV_ALIGN_CENTER);
     lv_task_handler();
 
-    k_sleep(K_MSEC(1000));
+    k_sleep(K_MSEC(3000));
 
-    lv_label_set_text(display_label, thetaResult.c_str());
+    lv_label_set_text(display_label, combined.c_str());
     lv_obj_set_align(display_label, LV_ALIGN_CENTER);
     lv_task_handler();
+
+    k_sleep(K_MSEC(3000));
+
+    return_to_idle();
 }
 
 void LCD::display_cancel() {
     lv_label_set_text(display_label, "Test cancelled,\nreturning to home");
     lv_obj_set_align(display_label, LV_ALIGN_CENTER);
     lv_task_handler();
-
-    k_sleep(K_MSEC(1000));
 }
+
+void LCD::display_demo_mode() {
+    lv_label_set_text(display_label, "Demo Mode");
+    lv_obj_set_align(display_label, LV_ALIGN_CENTER);
+    lv_task_handler();
+}
+
 
 void lcd_init(void)
 {
@@ -116,6 +136,8 @@ void lcd_init(void)
 	}
 
     display_label = lv_label_create(lv_scr_act());
+    lv_obj_set_style_text_font(display_label, &lv_font_montserrat_16, 0);
+
     display_blanking_off(display_dev);
 
 	return;
