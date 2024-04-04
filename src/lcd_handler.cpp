@@ -11,9 +11,9 @@
 LOG_MODULE_REGISTER(lcd_handler, LOG_LEVEL_DBG);
 
 // static fields
-Result LCD::most_recent_result = { 0 };
+Result LCD::most_recent_result = {0};
 char LCD::result_str[100] = {0};
-MessageQueue<Result, LCD_RESULTS_MSG_Q_DEPTH> LCD::result_queue;
+// MessageQueue<Result, LCD_RESULTS_MSG_Q_DEPTH> LCD::result_queue;
 
 // device tree fields
 const struct device *display_dev;
@@ -51,6 +51,14 @@ void LCD::display_testing() {
     lv_task_handler();
 }
 
+void LCD::update_most_recent_result(Result& to_update) {
+    for (int i = 0; i < num_electrodes; i++) {
+        most_recent_result.band_powers[i].theta = to_update.band_powers[i].theta;
+        most_recent_result.band_powers[i].delta = to_update.band_powers[i].delta;
+        most_recent_result.band_powers[i].alpha = to_update.band_powers[i].alpha;
+        most_recent_result.band_powers[i].beta = to_update.band_powers[i].beta;
+    }
+}
 void LCD::display_complete() {
     lv_label_set_text(display_label, "Testing complete");
     lv_obj_set_align(display_label, LV_ALIGN_CENTER);
@@ -60,25 +68,26 @@ void LCD::display_complete() {
     // try to update current result with data in queue
     // if get from queue fails, the most_recent_result should be the same as previous (is not consumed)
     // if get from queue passes, then we have a new result!
-    if(result_queue.get_with_timeout(most_recent_result, RESULT_READ_TIMEOUT_TICKS)) {
-        LOG_INF("updated the result");
-    }
-    else {
-        LOG_ERR("did not read the result from queue");
-    }
+    // if(result_queue.get_with_blocking_wait(most_recent_result)) {
+    //     most_recent_result = static_cast<Result>(most_recent_result);
+    //     LOG_INF("updated the result");
+    // }
+    // else {
+    //     LOG_ERR("did not read the result from queue");
+    // }
 
     lv_obj_set_style_text_font(display_label, &lv_font_montserrat_14, 0);
     for (int electrode = 0; electrode < num_electrodes; electrode++) {
         sprintf(result_str, "Electrode: %d\nDelta: %d.%d\nTheta: %d.%d\nAlpha: %d.%d\nBeta: %d.%d",
             (electrode + 1),
-            (int)(most_recent_result.band_powers[electrode].delta),
-            (int)(most_recent_result.band_powers[electrode].delta - int(most_recent_result.band_powers[electrode].delta) * 100000),
-            (int)(most_recent_result.band_powers[electrode].theta),
-            (int)(most_recent_result.band_powers[electrode].theta - int(most_recent_result.band_powers[electrode].theta) * 100000),
-            (int)(most_recent_result.band_powers[electrode].alpha),
-            (int)(most_recent_result.band_powers[electrode].alpha - int(most_recent_result.band_powers[electrode].alpha) * 100000),
-            (int)(most_recent_result.band_powers[electrode].beta),
-            (int)(most_recent_result.band_powers[electrode].beta - int(most_recent_result.band_powers[electrode].beta) * 100000)
+            Utils::get_whole_number_from_float(most_recent_result.band_powers[electrode].delta),
+            Utils::get_decimal_number_from_float(most_recent_result.band_powers[electrode].delta, 3),
+            Utils::get_whole_number_from_float(most_recent_result.band_powers[electrode].theta),
+            Utils::get_decimal_number_from_float(most_recent_result.band_powers[electrode].theta, 3),
+            Utils::get_whole_number_from_float(most_recent_result.band_powers[electrode].alpha),
+            Utils::get_decimal_number_from_float(most_recent_result.band_powers[electrode].alpha, 3),
+            Utils::get_whole_number_from_float(most_recent_result.band_powers[electrode].beta),
+            Utils::get_decimal_number_from_float(most_recent_result.band_powers[electrode].beta, 3)
         );
 
         // LOG_INF("DUMP: %.3f, %.3f, %.3f, %.3f", most_recent_result.band_powers[electrode].delta, most_recent_result.band_powers[electrode].theta, most_recent_result.band_powers[electrode].alpha, most_recent_result.band_powers[electrode].beta);
@@ -100,7 +109,8 @@ void LCD::display_cancel() {
 }
 
 void LCD::prepare_queue_for_new_result() {
-    result_queue.resetMessageQueue();
+    // result_queue.resetMessageQueue();
+    LOG_ERR("CCRAAAZZYYYYY YOU'RE DELETING THIS QUEUE??????????????????????");
 }
 
 void LCD::display_demo_mode() {

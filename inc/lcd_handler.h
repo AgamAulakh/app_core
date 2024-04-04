@@ -1,4 +1,6 @@
 #pragma once
+#include <stdio.h>
+#include <string>
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
@@ -7,8 +9,7 @@
 #include <inttypes.h>
 #include <zephyr/logging/log.h>
 #include "Data.h"
-#include <stdio.h>
-#include <string>
+#include "Utils.h"
 #include "core/MessageQueue.h"
 
 #define LCD_RESULTS_MSG_Q_DEPTH 10
@@ -16,17 +17,17 @@
 
 class LCD {
 public:
-    static Result most_recent_result;
-    static MessageQueue<Result, LCD_RESULTS_MSG_Q_DEPTH> result_queue;
+    // static MessageQueue<Result, LCD_RESULTS_MSG_Q_DEPTH> result_queue;
+    // static bool SendResult(Result to_write) {
+    //     if (result_queue.push(to_write) == false) {
+    //         printk("YIKES failed to push");
+    //         return false;
+    //     }
+    //     return true;
+    // };
+
     static char result_str[100];
-
-    static bool SendResult(Result to_write) {
-        if (result_queue.push(to_write) == false) {
-            return false;
-        }
-        return true;
-    };
-
+    static Result most_recent_result;
     static void lcd_init();
     static void display_idle();
     static void display_init();
@@ -36,4 +37,5 @@ public:
     static void display_cancel();
     static void prepare_queue_for_new_result();
     static void display_demo_mode();
+    static void update_most_recent_result(Result& to_update);
 };

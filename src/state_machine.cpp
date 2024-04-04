@@ -91,7 +91,7 @@ void StateMachine::test_run(void *obj) {
     s_obj.events = k_event_clear(&s_obj.sm_event, EVENT_BTN1_PRESS);
 
     // clear msg q of lcd in case a demo result is still there
-    LCD::prepare_queue_for_new_result();
+    // LCD::prepare_queue_for_new_result();
 
     DataAcquisitionThread::GetInstance().SendMessage(
 		DataAcquisitionThread::START_READING_AFE
@@ -209,7 +209,7 @@ void StateMachine::demo_entry(void *obj) {
 void StateMachine::demo_run(void *obj) {
     LOG_DBG("demo run state");
 
-    LCD::prepare_queue_for_new_result();
+    // LCD::prepare_queue_for_new_result();
 
     DataAcquisitionThread::GetInstance().SendMessage(
 		DataAcquisitionThread::RUN_INTERNAL_SQUARE_WAVE_TEST_BIG_FAST
@@ -241,7 +241,7 @@ void StateMachine::demo_run(void *obj) {
         HIDThread::DISPLAY_DEMO
     );
 
-    LCD::prepare_queue_for_new_result();
+    // LCD::prepare_queue_for_new_result();
 
     // sleep for 2 seconds
 	k_msleep(2000);

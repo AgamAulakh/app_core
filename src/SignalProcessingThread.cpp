@@ -112,8 +112,7 @@ void SignalProcessingThread::StartProcessing()
     Result to_write = {};
     // to_write.timestamp_ms = k_uptime_get();
     ConvertBandPowerArmMatrixToResult(to_write);
-    LCD::SendResult(to_write);
-
+    LCD::update_most_recent_result(to_write);
     // stop sigproc
     sig_proc_complete();
     // done processing; return
@@ -246,6 +245,12 @@ void SignalProcessingThread::ConvertBandPowerArmMatrixToResult(Result& to_write)
     to_write.band_powers[CH1_IDX].theta = bandpwer_ch1.mean_row(THETA_IDX);
     to_write.band_powers[CH1_IDX].alpha = bandpwer_ch1.mean_row(ALPHA_IDX);
     to_write.band_powers[CH1_IDX].beta = bandpwer_ch1.mean_row(BETA_IDX);
+    LOG_INF("delta: %f, theta: %f, alpha: %f, beta: %f",
+        to_write.band_powers[CH1_IDX].delta,
+        to_write.band_powers[CH1_IDX].theta,
+        to_write.band_powers[CH1_IDX].alpha,
+        to_write.band_powers[CH1_IDX].beta
+    );
 
     // CH2
     bandpwer_ch2.prettyPrint();
@@ -253,6 +258,12 @@ void SignalProcessingThread::ConvertBandPowerArmMatrixToResult(Result& to_write)
     to_write.band_powers[CH2_IDX].theta = bandpwer_ch2.mean_row(THETA_IDX);
     to_write.band_powers[CH2_IDX].alpha = bandpwer_ch2.mean_row(ALPHA_IDX);
     to_write.band_powers[CH2_IDX].beta = bandpwer_ch2.mean_row(BETA_IDX);
+    LOG_INF("delta: %f, theta: %f, alpha: %f, beta: %f",
+        to_write.band_powers[CH2_IDX].delta,
+        to_write.band_powers[CH2_IDX].theta,
+        to_write.band_powers[CH2_IDX].alpha,
+        to_write.band_powers[CH2_IDX].beta
+    );
 
     // CH3
     bandpwer_ch3.prettyPrint();
@@ -260,6 +271,12 @@ void SignalProcessingThread::ConvertBandPowerArmMatrixToResult(Result& to_write)
     to_write.band_powers[CH3_IDX].theta = bandpwer_ch3.mean_row(THETA_IDX);
     to_write.band_powers[CH3_IDX].alpha = bandpwer_ch3.mean_row(ALPHA_IDX);
     to_write.band_powers[CH3_IDX].beta = bandpwer_ch3.mean_row(BETA_IDX);
+    LOG_INF("delta: %f, theta: %f, alpha: %f, beta: %f",
+        to_write.band_powers[CH3_IDX].delta,
+        to_write.band_powers[CH3_IDX].theta,
+        to_write.band_powers[CH3_IDX].alpha,
+        to_write.band_powers[CH3_IDX].beta
+    );
 
     // CH4
     bandpwer_ch4.prettyPrint();
@@ -267,6 +284,12 @@ void SignalProcessingThread::ConvertBandPowerArmMatrixToResult(Result& to_write)
     to_write.band_powers[CH4_IDX].theta = bandpwer_ch4.mean_row(THETA_IDX);
     to_write.band_powers[CH4_IDX].alpha = bandpwer_ch4.mean_row(ALPHA_IDX);
     to_write.band_powers[CH4_IDX].beta = bandpwer_ch4.mean_row(BETA_IDX);
+    LOG_INF("delta: %f, theta: %f, alpha: %f, beta: %f",
+        to_write.band_powers[CH4_IDX].delta,
+        to_write.band_powers[CH4_IDX].theta,
+        to_write.band_powers[CH4_IDX].alpha,
+        to_write.band_powers[CH4_IDX].beta
+    );
 
     // CH5
     bandpwer_ch5.prettyPrint();
@@ -274,6 +297,12 @@ void SignalProcessingThread::ConvertBandPowerArmMatrixToResult(Result& to_write)
     to_write.band_powers[CH5_IDX].theta = bandpwer_ch5.mean_row(THETA_IDX);
     to_write.band_powers[CH5_IDX].alpha = bandpwer_ch5.mean_row(ALPHA_IDX);
     to_write.band_powers[CH5_IDX].beta = bandpwer_ch5.mean_row(BETA_IDX);
+    LOG_INF("delta: %f, theta: %f, alpha: %f, beta: %f",
+        to_write.band_powers[CH5_IDX].delta,
+        to_write.band_powers[CH5_IDX].theta,
+        to_write.band_powers[CH5_IDX].alpha,
+        to_write.band_powers[CH5_IDX].beta
+    );
 
     // CH6
     bandpwer_ch6.prettyPrint();
@@ -281,6 +310,12 @@ void SignalProcessingThread::ConvertBandPowerArmMatrixToResult(Result& to_write)
     to_write.band_powers[CH6_IDX].theta = bandpwer_ch6.mean_row(THETA_IDX);
     to_write.band_powers[CH6_IDX].alpha = bandpwer_ch6.mean_row(ALPHA_IDX);
     to_write.band_powers[CH6_IDX].beta = bandpwer_ch6.mean_row(BETA_IDX);
+    LOG_INF("delta: %f, theta: %f, alpha: %f, beta: %f",
+        to_write.band_powers[CH6_IDX].delta,
+        to_write.band_powers[CH6_IDX].theta,
+        to_write.band_powers[CH6_IDX].alpha,
+        to_write.band_powers[CH6_IDX].beta
+    );
 
     // CH7
     bandpwer_ch7.prettyPrint();
@@ -288,6 +323,12 @@ void SignalProcessingThread::ConvertBandPowerArmMatrixToResult(Result& to_write)
     to_write.band_powers[CH7_IDX].theta = bandpwer_ch7.mean_row(THETA_IDX);
     to_write.band_powers[CH7_IDX].alpha = bandpwer_ch7.mean_row(ALPHA_IDX);
     to_write.band_powers[CH7_IDX].beta = bandpwer_ch7.mean_row(BETA_IDX);
+    LOG_INF("delta: %f, theta: %f, alpha: %f, beta: %f",
+        to_write.band_powers[CH7_IDX].delta,
+        to_write.band_powers[CH7_IDX].theta,
+        to_write.band_powers[CH7_IDX].alpha,
+        to_write.band_powers[CH7_IDX].beta
+    );
 
     // CH8
     bandpwer_ch8.prettyPrint();
@@ -295,4 +336,10 @@ void SignalProcessingThread::ConvertBandPowerArmMatrixToResult(Result& to_write)
     to_write.band_powers[CH8_IDX].theta = bandpwer_ch8.mean_row(THETA_IDX);
     to_write.band_powers[CH8_IDX].alpha = bandpwer_ch8.mean_row(ALPHA_IDX);
     to_write.band_powers[CH8_IDX].beta = bandpwer_ch8.mean_row(BETA_IDX);
+    LOG_INF("delta: %f, theta: %f, alpha: %f, beta: %f",
+        to_write.band_powers[CH8_IDX].delta,
+        to_write.band_powers[CH8_IDX].theta,
+        to_write.band_powers[CH8_IDX].alpha,
+        to_write.band_powers[CH8_IDX].beta
+    );
 }
