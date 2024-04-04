@@ -12,6 +12,7 @@ uint8_t TIBareMetalWrapper::master_counter = 0;
 bool TIBareMetalWrapper::is_adc_on = false;
 bool TIBareMetalWrapper::is_test_on = false;
 bool TIBareMetalWrapper::is_small_wave = false;
+bool TIBareMetalWrapper::kill_one_channel = false;
 gpio_dt_spec TIBareMetalWrapper::afe_reset_spec = GPIO_DT_SPEC_GET(ZEPHYR_USER_NODE, afereset_gpios);
 gpio_dt_spec TIBareMetalWrapper::afe_drdy_spec = GPIO_DT_SPEC_GET(ZEPHYR_USER_NODE, afedrdy_gpios);
 gpio_dt_spec TIBareMetalWrapper::afe_indicate_spec = GPIO_DT_SPEC_GET(ZEPHYR_USER_NODE, afeindicator_gpios);
@@ -298,6 +299,7 @@ void TIBareMetalWrapper::RunInternalSquareWaveTest(bool is_small_wave) {
     if (is_small_wave) {
         // set devicc for DR = Fmod / 4096
         ADS1299_SetConfig2State(&afe_driver, ADS1299_CONFIG2_SETUP_TEST_d002V_1d9HZ);
+        kill_one_channel = true;
     }
     else {
         // set device for DR = Fmod / 4096
@@ -377,6 +379,7 @@ void TIBareMetalWrapper::Stop() {
     }
 
     is_test_on = false;
+    kill_one_channel = false;
 
     // Officially stop sampling afe
     k_work_submit(&dma_cleanup);
@@ -455,6 +458,11 @@ void TIBareMetalWrapper::ReadContinuous() {
 void TIBareMetalWrapper::DMAWorkHandler(struct k_work *item) {
     // LOG_INF("TIBareMetalWrapper::%s DRDY signal caught, reading sample", __FUNCTION__);
     ADS1299_ReadOutputSample(&afe_driver);
+
+    if (kill_one_channel) {
+        afe_driver.sample.ch1 = 0.0f;
+    }
+
     PrintCurrentSample();
     DataBufferManager::WriteOneSample(afe_driver.sample);
 };

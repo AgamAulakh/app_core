@@ -29,10 +29,18 @@ void StateMachine::idle_entry(void *obj) {
     LOG_DBG("idle entry state");
     LED1::set_blue();
 
-    // Clear any remaining button press if not yet cleared
+    // Clear any remaining events if not yet cleared
     if (s_obj.events & EVENT_BTN1_PRESS) {
-        smf_set_state(SMF_CTX(&s_obj), &dev_states[TEST]);
         s_obj.events = k_event_clear(&s_obj.sm_event, EVENT_BTN1_PRESS);
+    }
+    if (s_obj.events & EVENT_BTN2_PRESS) {
+        s_obj.events = k_event_clear(&s_obj.sm_event, EVENT_BTN2_PRESS);
+    }
+    if (s_obj.events & EVENT_SIG_PROC_COMPLETE) {
+        s_obj.events = k_event_clear(&s_obj.sm_event, EVENT_SIG_PROC_COMPLETE);
+    }
+    if (s_obj.events & EVENT_RETURN_TO_IDLE) {
+        s_obj.events = k_event_clear(&s_obj.sm_event, EVENT_RETURN_TO_IDLE);
     }
 };
 
@@ -40,7 +48,7 @@ void StateMachine::idle_run(void *obj) {
     LOG_DBG("idle run state");
 
     HIDThread::GetInstance().SendMessage(
-        HIDThread::DISPLAY_STARTUP
+        HIDThread::DISPLAY_IDLE
     );
 
     /* If the button is pressed the user wants to start a test,
@@ -196,13 +204,12 @@ void StateMachine::demo_entry(void *obj) {
     HIDThread::GetInstance().SendMessage(
         HIDThread::DISPLAY_DEMO
     );
-
 };
 
 void StateMachine::demo_run(void *obj) {
     LOG_DBG("demo run state");
 
-    // LED1::set_flash_purple();
+    LCD::prepare_queue_for_new_result();
 
     DataAcquisitionThread::GetInstance().SendMessage(
 		DataAcquisitionThread::RUN_INTERNAL_SQUARE_WAVE_TEST_BIG_FAST
@@ -217,6 +224,24 @@ void StateMachine::demo_run(void *obj) {
 	DataAcquisitionThread::GetInstance().SendMessage(
 		DataAcquisitionThread::STOP_READING_AFE
 	);
+
+    // sleep for 2 seconds
+	k_msleep(2000);
+
+    HIDThread::GetInstance().SendMessage(
+        HIDThread::DISPLAY_RESULTS
+    );
+
+    // Wait for results to finish being displayed
+    s_obj.events = k_event_wait(&s_obj.sm_event, EVENT_RETURN_TO_IDLE, true, K_FOREVER);
+    s_obj.events = k_event_clear(&s_obj.sm_event, EVENT_RETURN_TO_IDLE);
+
+    
+    HIDThread::GetInstance().SendMessage(
+        HIDThread::DISPLAY_DEMO
+    );
+
+    LCD::prepare_queue_for_new_result();
 
     // sleep for 2 seconds
 	k_msleep(2000);
@@ -238,17 +263,29 @@ void StateMachine::demo_run(void *obj) {
     // sleep for 2 seconds
 	k_msleep(2000);
 
+    HIDThread::GetInstance().SendMessage(
+        HIDThread::DISPLAY_RESULTS
+    );
+
+    // Wait for results to finish being displayed
+    s_obj.events = k_event_wait(&s_obj.sm_event, EVENT_RETURN_TO_IDLE, true, K_FOREVER);
+    s_obj.events = k_event_clear(&s_obj.sm_event, EVENT_RETURN_TO_IDLE);
+
+    HIDThread::GetInstance().SendMessage(
+        HIDThread::DISPLAY_DEMO
+    );
+
     /* If button 1 is pressed the user wants to start a demo 
        If button 2 is pressed return to IDLE state */
     s_obj.events = k_event_wait(&s_obj.sm_event, (EVENT_BTN1_PRESS | EVENT_BTN2_PRESS), true, K_FOREVER);
 
     // Clear button press
-    if (s_obj.events & EVENT_BTN2_PRESS) {
-        smf_set_state(SMF_CTX(&s_obj), &dev_states[IDLE]);
-        s_obj.events = k_event_clear(&s_obj.sm_event, EVENT_BTN2_PRESS);
-    }
-    else if (s_obj.events & EVENT_BTN1_PRESS) {
+    if (s_obj.events & EVENT_BTN1_PRESS) {
         s_obj.events = k_event_clear(&s_obj.sm_event, EVENT_BTN1_PRESS);
+        smf_set_state(SMF_CTX(&s_obj), &dev_states[IDLE]);
+    }
+    else if (s_obj.events & EVENT_BTN2_PRESS) {
+        s_obj.events = k_event_clear(&s_obj.sm_event, EVENT_BTN2_PRESS);
     }
 };
 
@@ -363,6 +400,10 @@ void state_machine_init() {
 
     /* Set initial state */
     smf_set_initial(SMF_CTX(&s_obj), &dev_states[IDLE]);
+
+    HIDThread::GetInstance().SendMessage(
+        HIDThread::DISPLAY_INIT
+    );
 
     /* Run the state machine */
     while(1) {

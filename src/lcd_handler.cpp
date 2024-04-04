@@ -6,10 +6,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <lcd_handler.h>
-#include <sstream>
 #include "Events.h"
-
-using namespace std;
 
 LOG_MODULE_REGISTER(lcd_handler, LOG_LEVEL_DBG);
 
@@ -34,7 +31,9 @@ void LCD::display_init() {
 
     // Allow time for DAQ and Sig Proc threads to initialize
     k_msleep(5000);
+}
 
+void LCD::display_idle() {
     lv_label_set_text(display_label, "Please press the\nbutton to begin");
     lv_obj_set_align(display_label, LV_ALIGN_CENTER);
     lv_task_handler();
@@ -56,6 +55,7 @@ void LCD::display_complete() {
     lv_label_set_text(display_label, "Testing complete");
     lv_obj_set_align(display_label, LV_ALIGN_CENTER);
     lv_task_handler();
+    k_sleep(K_MSEC(1500));
 
     // try to update current result with data in queue
     // if get from queue fails, the most_recent_result should be the same as previous (is not consumed)
@@ -72,25 +72,24 @@ void LCD::display_complete() {
         sprintf(result_str, "Electrode: %d\nDelta: %d.%d\nTheta: %d.%d\nAlpha: %d.%d\nBeta: %d.%d",
             (electrode + 1),
             (int)(most_recent_result.band_powers[electrode].delta),
-            (int)(most_recent_result.band_powers[electrode].delta - int(most_recent_result.band_powers[electrode].delta) * 1000),
+            (int)(most_recent_result.band_powers[electrode].delta - int(most_recent_result.band_powers[electrode].delta) * 100000),
             (int)(most_recent_result.band_powers[electrode].theta),
-            (int)(most_recent_result.band_powers[electrode].theta - int(most_recent_result.band_powers[electrode].theta) * 1000),
+            (int)(most_recent_result.band_powers[electrode].theta - int(most_recent_result.band_powers[electrode].theta) * 100000),
             (int)(most_recent_result.band_powers[electrode].alpha),
-            (int)(most_recent_result.band_powers[electrode].alpha - int(most_recent_result.band_powers[electrode].alpha) * 1000),
+            (int)(most_recent_result.band_powers[electrode].alpha - int(most_recent_result.band_powers[electrode].alpha) * 100000),
             (int)(most_recent_result.band_powers[electrode].beta),
-            (int)(most_recent_result.band_powers[electrode].beta - int(most_recent_result.band_powers[electrode].beta) * 1000)
+            (int)(most_recent_result.band_powers[electrode].beta - int(most_recent_result.band_powers[electrode].beta) * 100000)
         );
 
-        LOG_INF("DUMP: %f, %f, %f, %f", most_recent_result.band_powers[electrode].delta, most_recent_result.band_powers[electrode].theta, most_recent_result.band_powers[electrode].alpha, most_recent_result.band_powers[electrode].beta);
-        k_sleep(K_MSEC(3000));
-
+        // LOG_INF("DUMP: %.3f, %.3f, %.3f, %.3f", most_recent_result.band_powers[electrode].delta, most_recent_result.band_powers[electrode].theta, most_recent_result.band_powers[electrode].alpha, most_recent_result.band_powers[electrode].beta);
         lv_label_set_text(display_label, result_str);
         lv_obj_set_align(display_label, LV_ALIGN_CENTER);
         lv_task_handler();
+        k_sleep(K_MSEC(1500));
     }
 
     lv_obj_set_style_text_font(display_label, &lv_font_montserrat_16, 0);
-    k_sleep(K_MSEC(3000));
+
     return_to_idle();
 }
 

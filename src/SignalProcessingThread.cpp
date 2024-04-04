@@ -209,7 +209,9 @@ void SignalProcessingThread::ComputeBandPowers() {
     bandpwer_ch6.set_column_vector_at(ComputeBandPowersPerChannel(CH6_IDX), epoch_count);
     bandpwer_ch7.set_column_vector_at(ComputeBandPowersPerChannel(CH7_IDX), epoch_count);
     bandpwer_ch8.set_column_vector_at(ComputeBandPowersPerChannel(CH8_IDX), epoch_count);
-	// printk("\nPrint band power results:");
+	//printk("\nPrint band power results:");
+    //printk("Lisa loves pretty print\n");
+    
     // channelBandPowers.prettyPrint();
 };
 
@@ -219,6 +221,9 @@ ArmMatrixWrapper<4,1> SignalProcessingThread::ComputeBandPowersPerChannel(uint32
     bandPowers.set_at(channelPowerResults.singleSideBandPower(SAMPLE_FREQ, RAW_SAMPLE_NUMBER, THETA, electrode), THETA);
     bandPowers.set_at(channelPowerResults.singleSideBandPower(SAMPLE_FREQ, RAW_SAMPLE_NUMBER, ALPHA, electrode), ALPHA);
     bandPowers.set_at(channelPowerResults.singleSideBandPower(SAMPLE_FREQ, RAW_SAMPLE_NUMBER, BETA, electrode), BETA);
+
+    // printk("Lisa loves pretty print\n");
+    // bandPowers.prettyPrint();
     return bandPowers;
 };
 

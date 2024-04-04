@@ -24,6 +24,7 @@ private:
     static bool is_adc_on;
     static bool is_test_on;
     static bool is_small_wave;
+    static bool kill_one_channel;
     static uint8_t master_counter;
 
     // experimental

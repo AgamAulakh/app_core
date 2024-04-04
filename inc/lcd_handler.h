@@ -28,6 +28,7 @@ public:
     };
 
     static void lcd_init();
+    static void display_idle();
     static void display_init();
     static void display_testing();
     static void display_processing();

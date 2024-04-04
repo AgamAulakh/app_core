@@ -33,7 +33,8 @@ public:
     };
 
     enum HDIThreadMessage : uint8_t {
-        DISPLAY_STARTUP,
+        DISPLAY_INIT,
+        DISPLAY_IDLE,
         DISPLAY_TESTING,
         DISPLAY_RESULTS,
         DISPLAY_CANCEL,

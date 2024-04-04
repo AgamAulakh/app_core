@@ -40,8 +40,11 @@ void HIDThread::Run() {
 		    LOG_DBG("HDI::%s -- received message: %u at: %u ms", __FUNCTION__, message_enum, k_uptime_get_32());
 
             switch (message_enum) {
-                case DISPLAY_STARTUP:
+                case DISPLAY_INIT:
                     LCD::display_init();
+                    break;
+                case DISPLAY_IDLE:
+                    LCD::display_idle();
                     break;
                 case DISPLAY_TESTING:
                     LCD::display_testing();
