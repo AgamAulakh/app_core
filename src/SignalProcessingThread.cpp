@@ -108,11 +108,23 @@ void SignalProcessingThread::StartProcessing()
 
     LOG_DBG("SigProc::%s stopping %u", __FUNCTION__, epoch_count);
 
+    // need to get average band powers for relative bps
+    ComputeAverageBandPowers();
+    ComputeRelativeBandPowers();
+    // only need to calculate relative bpVar
+    RelativeBandPowerVariance();
+    varianceSummation();
+
     // construct the final result for output:
     Result to_write = {};
-    // to_write.timestamp_ms = k_uptime_get();
+
+    // write the concussion reuslt (true = abnormal)
+    to_write.is_abnormal = Classification();
     ConvertBandPowerArmMatrixToResult(to_write);
+
+    // update LCD screen
     LCD::update_most_recent_result(to_write);
+
     // stop sigproc
     sig_proc_complete();
     // done processing; return
@@ -226,16 +238,101 @@ ArmMatrixWrapper<4,1> SignalProcessingThread::ComputeBandPowersPerChannel(uint32
     return bandPowers;
 };
 
-void SignalProcessingThread::ComputeRelativeBandPowers()
+void SignalProcessingThread::ComputeAverageBandPowers() 
 {
-    for (int i = 0; i < num_electrodes; i++) 
+    for (int band = 0; band < BANDS; band++) 
     {
-        // Each channel's power spectrum calculates the relative band powers of the 4 bands and stores them into 
-        // a 2D array. Outer index denotes the channel number, inner index denotes the band power value
-        // channelRelativeBandPowers[i] = channelPowerResults[i].singleSideRelativeBandPower(channelBandPowers[i]);
+        averageBandPowers.set_at(bandpwer_ch1.get_row_vector_at(band).mean(), band, 0);
+        averageBandPowers.set_at(bandpwer_ch2.get_row_vector_at(band).mean(), band, 1);
+        averageBandPowers.set_at(bandpwer_ch3.get_row_vector_at(band).mean(), band, 2);
+        averageBandPowers.set_at(bandpwer_ch4.get_row_vector_at(band).mean(), band, 3);
+        averageBandPowers.set_at(bandpwer_ch5.get_row_vector_at(band).mean(), band, 4);
+        averageBandPowers.set_at(bandpwer_ch6.get_row_vector_at(band).mean(), band, 5);
+        averageBandPowers.set_at(bandpwer_ch7.get_row_vector_at(band).mean(), band, 6);
+        averageBandPowers.set_at(bandpwer_ch8.get_row_vector_at(band).mean(), band, 7);
+           
     }
-};
+    //printk("\nAverage Band Power Results:\n");
+    //averageBandPowers.prettyPrint();
+}
 
+void SignalProcessingThread::ComputeRelativeBandPowers(){
+    for (int i = 0; i < num_electrodes; i++) {
+        relativeBandPowers.set_column_vector_at(channelPowerResults.singleSideRelativeBandPower(averageBandPowers.get_column_vector_at(i), i), i);
+    }
+
+    relativeBandPowers.prettyPrint();
+}
+
+void SignalProcessingThread::AverageBandPowerVariance()
+{    
+    // Matrix is 4 x 8 but set to one that is 4 x 1
+    averageBandPowersVariance.set_at(averageBandPowers.get_row_vector_at(DELTA).variance(), DELTA, 0);
+    averageBandPowersVariance.set_at(averageBandPowers.get_row_vector_at(THETA).variance(), THETA, 0);
+    averageBandPowersVariance.set_at(averageBandPowers.get_row_vector_at(ALPHA).variance(), ALPHA, 0);
+    averageBandPowersVariance.set_at(averageBandPowers.get_row_vector_at(BETA).variance(), BETA, 0);
+    
+    printk("\nAVERAGE BAND POWER VARIANCE:\n");
+    averageBandPowersVariance.prettyPrint();
+   // }
+}
+
+void SignalProcessingThread::RelativeBandPowerVariance()
+{
+    // Matrix is 4 x 8 but set to one that is 4 x 1
+    relativeBandPowersVariance.set_at(relativeBandPowers.get_row_vector_at(DELTA).variance(), DELTA, 0);
+    relativeBandPowersVariance.set_at(relativeBandPowers.get_row_vector_at(THETA).variance(), THETA, 0);
+    relativeBandPowersVariance.set_at(relativeBandPowers.get_row_vector_at(ALPHA).variance(), ALPHA, 0);
+    relativeBandPowersVariance.set_at(relativeBandPowers.get_row_vector_at(BETA).variance(), BETA, 0);
+    
+    printk("\nRELATIVE BAND POWER VARIANCE:\n");
+    relativeBandPowersVariance.prettyPrint();
+    
+}
+
+void SignalProcessingThread::varianceSummation()
+{
+    float32_t averageBandPowerVarianceSum = 0;
+    float32_t relativeBandPowerVarianceSum = 0;
+
+    // Summation of the variance across all brain waves
+    averageBandPowerVarianceSum += averageBandPowersVariance.at(DELTA,0);
+    averageBandPowerVarianceSum += averageBandPowersVariance.at(THETA,0);
+    averageBandPowerVarianceSum += averageBandPowersVariance.at(ALPHA,0);
+    averageBandPowerVarianceSum += averageBandPowersVariance.at(BETA,0);
+
+    relativeBandPowerVarianceSum += relativeBandPowersVariance.at(DELTA,0);
+    relativeBandPowerVarianceSum += relativeBandPowersVariance.at(THETA,0);
+    relativeBandPowerVarianceSum += relativeBandPowersVariance.at(ALPHA,0);
+    relativeBandPowerVarianceSum += relativeBandPowersVariance.at(BETA,0);
+   
+    printk("\nLISA PRINT AVERAGE BAND POWER VARIANCE SUM %.10f:\n",  averageBandPowerVarianceSum);
+    printk("\nLISA PRINT RELATIVE BAND POWER VARIANCE SUM %.10f:\n",  relativeBandPowerVarianceSum);
+
+    classificationVariance = relativeBandPowerVarianceSum;
+}
+
+bool SignalProcessingThread::Classification(){
+
+// Based on the variance values of the bands for one dropped electrode, 
+// if sum is more than the order of magnitude of 1E-5 then it is abnormal
+    bool concussion = false;
+    if (0.0039911643f <= classificationVariance)
+    {
+        concussion = true;
+    }
+
+    if(concussion)
+    {
+        printk("\nYou have a concussion\n");
+    }
+    else 
+    {
+        printk("\nYou DO NOT have a concussion\n");
+    }
+
+    return concussion;
+}
 
 void SignalProcessingThread::ConvertBandPowerArmMatrixToResult(Result& to_write)
 {

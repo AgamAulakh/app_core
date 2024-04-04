@@ -57,7 +57,10 @@ void LCD::update_most_recent_result(Result& to_update) {
         most_recent_result.band_powers[i].delta = to_update.band_powers[i].delta;
         most_recent_result.band_powers[i].alpha = to_update.band_powers[i].alpha;
         most_recent_result.band_powers[i].beta = to_update.band_powers[i].beta;
+        LOG_INF("theta: %f delta: %f alpha: %f beta: %f", to_update.band_powers[i].theta, to_update.band_powers[i].delta, to_update.band_powers[i].alpha, to_update.band_powers[i].beta);
     }
+    LOG_INF("is abnormal: %d", to_update.is_abnormal);
+    most_recent_result.is_abnormal = to_update.is_abnormal;
 }
 void LCD::display_complete() {
     lv_label_set_text(display_label, "Testing complete");
@@ -96,6 +99,17 @@ void LCD::display_complete() {
         lv_task_handler();
         k_sleep(K_MSEC(1500));
     }
+
+    if(most_recent_result.is_abnormal) {
+        lv_label_set_text(display_label, "Results Indicate\nABNORMAL\nBrain State");
+    }
+    else {
+        lv_label_set_text(display_label, "Results Indicate\nNormal\nBrain State");
+    }
+    lv_obj_set_align(display_label, LV_ALIGN_CENTER);
+    lv_task_handler();
+
+    k_sleep(K_MSEC(4000));
 
     lv_obj_set_style_text_font(display_label, &lv_font_montserrat_16, 0);
 

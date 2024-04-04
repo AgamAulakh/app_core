@@ -56,7 +56,14 @@ private:
     ArmMatrixWrapper<4, max_epochs> bandpwer_ch8;
     
     //vector<vector<float32_t>> channelBandPowers = vector<vector<float32_t>>(1, bandPowers);
-    ArmMatrixWrapper<4, num_electrodes> channelRelativeBandPowers;
+    ArmMatrixWrapper<4, num_electrodes> averageBandPowers;
+    ArmMatrixWrapper<4, num_electrodes> relativeBandPowers;
+
+    ArmMatrixWrapper<4, 1> averageBandPowersVariance;
+    ArmMatrixWrapper<4, 1> relativeBandPowersVariance;
+
+    float32_t classificationVariance;
+
     // Array of channels where each channel has 4 elements for 4 bandpowers
     //vector<vector<float32_t>> channelRelativeBandPowers = vector<vector<float32_t> >(1, bandPowers);
  
@@ -88,11 +95,19 @@ public:
     void ComputeSingleSidePower();
     void ComputeBandPowerAtOneBand(const PowerBands powerBand);
     ArmMatrixWrapper<4,1> ComputeBandPowersPerChannel(uint32_t electrode);
-    void ComputeBandPowers();
-    void ComputeRelativeBandPowers();
-    void ConvertBandPowerArmMatrixToResult(Result& to_write);
 
+    void ComputeBandPowers();
+    void ComputeAverageBandPowers();
+    void ComputeRelativeBandPowers();
+    void RelativeBandPowerVariance();
+    void AverageBandPowerVariance();
+    void varianceSummation();
+    void PopulateTestValues();
+
+    bool Classification();
     void TestValuesWooHoo();
+
+    void ConvertBandPowerArmMatrixToResult(Result& to_write);
 
     static SignalProcessingThread& GetInstance() {
         // NOTE: this method of using static local variable is thread-safe

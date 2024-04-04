@@ -408,26 +408,29 @@ public:
         }
         bandPower = bandPower * freqRes;
         return bandPower;
-    }
+    };
 
     // Computes the single-sided Relative Band Power given the specified bandPower values
-    std::vector<float32_t> singleSideRelativeBandPower(std::vector<float32_t> bandPowers){
-        
-        std::vector<float32_t> relativeBandpowers(4);
+    ArmMatrixWrapper<4,1>  singleSideRelativeBandPower(ArmMatrixWrapper<4,1> bandPowers, uint8_t electrode){   
+        ArmMatrixWrapper<4,1> relativeBandpowers;
+        // Temporary array to store power results for one channel
+        ArmMatrixWrapper<MaxRows, 1> electrodePowerResult = this->get_column_vector_at(electrode);
 
         // Calculate summation of total power for one channel
         float32_t totalPower = 0;
-        for(uint32_t i = 0; i < MaxBufferSize; i++){
-            totalPower += data[i];
+        for(uint32_t i = 0; i < MaxRows; i++){
+            totalPower += electrodePowerResult.data[i];
         }
 
         // Calculate relative band power relative to the total power of one channel
-        for(uint32_t i = 0; i < bandPowers.size(); i++){
-
-            relativeBandpowers[i] = bandPowers[i] / totalPower;
+        for(uint32_t i = 0; i < 4; i++){
+            if(totalPower == 0) {
+                relativeBandpowers.data[i] = 0.0f;
+            }
+            else {
+                relativeBandpowers.data[i] = bandPowers.data[i] / totalPower;
+            }
         }
-
         return relativeBandpowers;
     }
-
 };
