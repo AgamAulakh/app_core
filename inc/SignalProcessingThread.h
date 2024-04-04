@@ -57,6 +57,12 @@ private:
     ArmMatrixWrapper<4, num_electrodes> averageBandPowers;
     ArmMatrixWrapper<4, num_electrodes> relativeBandPowers;
 
+    ArmMatrixWrapper<4, 1> averageBandPowersVariance;
+    ArmMatrixWrapper<4, 1> relativeBandPowersVariance;
+
+    float32_t classificationVariance;
+
+
 
 public:
     static Semaphore done_flag;
@@ -89,6 +95,9 @@ public:
     void ComputeBandPowers();
     void ComputeAverageBandPowers();
     void ComputeRelativeBandPowers();
+    void RelativeBandPowerVariance();
+    void AverageBandPowerVariance();
+    void varianceSummation();
     void PopulateTestValues();
 
     bool Classification();

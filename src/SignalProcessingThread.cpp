@@ -48,7 +48,11 @@ void SignalProcessingThread::Run() {
                     ComputeSingleSidePower();
                     ComputeBandPowers();
                     ComputeAverageBandPowers();
-                    //Classification();
+                    ComputeRelativeBandPowers();
+                    RelativeBandPowerVariance();
+                    AverageBandPowerVariance();
+                    varianceSummation();
+                    Classification();
                     break;
                 case COMPUTE_DEBUG_RELATIVEPOWER_RESULTS:
                     ComputeRelativeBandPowers();
@@ -134,7 +138,7 @@ void SignalProcessingThread::PopulateTestValues()
         allChannels.set_at(Utils::channelSeven[i], i, 6);
         allChannels.set_at(Utils::channelEight[i], i, 7);
     }
-   allChannels.prettyPrint();
+   //allChannels.prettyPrint();
 };
 
 void SignalProcessingThread::ComputeSingleSideFFT()
@@ -176,8 +180,8 @@ ArmMatrixWrapper<4,1> SignalProcessingThread::ComputeBandPowersPerChannel(uint32
     bandPowers.set_at(channelPowerResults.singleSideBandPower(SAMPLE_FREQ, RAW_SAMPLE_NUMBER, THETA, electrode), THETA);
     bandPowers.set_at(channelPowerResults.singleSideBandPower(SAMPLE_FREQ, RAW_SAMPLE_NUMBER, ALPHA, electrode), ALPHA);
     bandPowers.set_at(channelPowerResults.singleSideBandPower(SAMPLE_FREQ, RAW_SAMPLE_NUMBER, BETA, electrode), BETA);
-    printk("YOLO");
-    bandPowers.prettyPrint();
+    //printk("YOLO");
+   // bandPowers.prettyPrint();
     return bandPowers;
 };
 
@@ -204,57 +208,79 @@ void SignalProcessingThread::ComputeRelativeBandPowers(){
     for (int i = 0; i < num_electrodes; i++) {
         relativeBandPowers.set_column_vector_at(channelPowerResults.singleSideRelativeBandPower(averageBandPowers.get_column_vector_at(i), i), i);
     }
+
+    relativeBandPowers.prettyPrint();
+}
+
+void SignalProcessingThread::AverageBandPowerVariance()
+{
+    // Set the last electrode to nothing
+    averageBandPowers.set_at(0, DELTA, 7);
+    averageBandPowers.set_at(0, THETA, 7);
+    averageBandPowers.set_at(0, ALPHA, 7);
+    averageBandPowers.set_at(0, BETA, 7);
+    
+    // Matrix is 4 x 8 but set to one that is 4 x 1
+    averageBandPowersVariance.set_at(averageBandPowers.get_row_vector_at(DELTA).variance(), DELTA, 0);
+    averageBandPowersVariance.set_at(averageBandPowers.get_row_vector_at(THETA).variance(), THETA, 0);
+    averageBandPowersVariance.set_at(averageBandPowers.get_row_vector_at(ALPHA).variance(), ALPHA, 0);
+    averageBandPowersVariance.set_at(averageBandPowers.get_row_vector_at(BETA).variance(), BETA, 0);
+    
+    printk("\nAVERAGE BAND POWER VARIANCE:\n");
+    averageBandPowersVariance.prettyPrint();
+   // }
+}
+
+void SignalProcessingThread::RelativeBandPowerVariance()
+{
+    // Set the last electrode to nothing
+    relativeBandPowers.set_at(0, DELTA, 7);
+    relativeBandPowers.set_at(0, THETA, 7);
+    relativeBandPowers.set_at(0, ALPHA, 7);
+    relativeBandPowers.set_at(0, BETA, 7);
+
+    // Matrix is 4 x 8 but set to one that is 4 x 1
+    relativeBandPowersVariance.set_at(relativeBandPowers.get_row_vector_at(DELTA).variance(), DELTA, 0);
+    relativeBandPowersVariance.set_at(relativeBandPowers.get_row_vector_at(THETA).variance(), THETA, 0);
+    relativeBandPowersVariance.set_at(relativeBandPowers.get_row_vector_at(ALPHA).variance(), ALPHA, 0);
+    relativeBandPowersVariance.set_at(relativeBandPowers.get_row_vector_at(BETA).variance(), BETA, 0);
+    
+    printk("\nRELATIVE BAND POWER VARIANCE:\n");
+    relativeBandPowersVariance.prettyPrint();
+    
+}
+
+void SignalProcessingThread::varianceSummation()
+{
+    float32_t averageBandPowerVarianceSum = 0;
+    float32_t relativeBandPowerVarianceSum = 0;
+
+    // Summation of the variance across all brain waves
+    averageBandPowerVarianceSum += averageBandPowersVariance.at(DELTA,0);
+    averageBandPowerVarianceSum += averageBandPowersVariance.at(THETA,0);
+    averageBandPowerVarianceSum += averageBandPowersVariance.at(ALPHA,0);
+    averageBandPowerVarianceSum += averageBandPowersVariance.at(BETA,0);
+
+    relativeBandPowerVarianceSum += relativeBandPowersVariance.at(DELTA,0);
+    relativeBandPowerVarianceSum += relativeBandPowersVariance.at(THETA,0);
+    relativeBandPowerVarianceSum += relativeBandPowersVariance.at(ALPHA,0);
+    relativeBandPowerVarianceSum += relativeBandPowersVariance.at(BETA,0);
+
+   
+    printk("\nLISA PRINT AVERAGE BAND POWER VARIANCE SUM %.10f:\n",  averageBandPowerVarianceSum);
+    printk("\nLISA PRINT RELATIVE BAND POWER VARIANCE SUM %.10f:\n",  relativeBandPowerVarianceSum);
+
+    classificationVariance = averageBandPowerVarianceSum;
 }
 
 bool SignalProcessingThread::Classification(){
 
-    // For Square Wave Test Config2: 01
-    // Frequency = 1.9531 Hz
-    // Expected Amplitude = 1.875 mV
+// Based on the variance values of the bands for one dropped electrode, 
+// if sum is more than the order of magnitude of 1E-5 then it is abnormal
     bool concussion = false;
-    // Four if statements for classification for the four bands (Delta, Theta, Alpha, Beta)
-    // for the Square Wave. We should have a standard of give or take +-0.0005
-    float32_t deviation = 0.0005;
-    
-    float32_t standardDelta = 0.1773;
-    float32_t lowDelta = standardDelta - deviation;
-    float32_t highDelta = standardDelta + deviation;
-    
-    float32_t standardTheta = 0.0196;
-    float32_t lowTheta = standardTheta - deviation;
-    float32_t highTheta = standardTheta + deviation;
-
-    float32_t standardAlpha = 0.0070;
-    float32_t lowAlpha = standardAlpha - deviation;
-    float32_t highAlpha = standardAlpha + deviation;
-
-    float32_t standardBeta = 0.0086;
-    float32_t lowBeta = standardBeta - deviation;
-    float32_t highBeta = standardBeta + deviation;
-
-    for (int electrode = 0; electrode < num_electrodes; electrode++) 
+    if (0.0039911643 <= classificationVariance)
     {
-        
-        if (averageBandPowers.at(DELTA, electrode) > highDelta || averageBandPowers.at(DELTA, electrode) < lowDelta){
-            concussion = true;
-            break;
-        }
-
-        if (averageBandPowers.at(THETA, electrode) > highTheta || averageBandPowers.at(THETA, electrode) < lowTheta){
-            concussion = true;
-            break;
-        }
-
-        if (averageBandPowers.at(ALPHA, electrode) > highAlpha || averageBandPowers.at(ALPHA, electrode) < lowAlpha){
-            concussion = true;
-            break;
-        }
-
-        if (averageBandPowers.at(BETA, electrode) > highBeta || averageBandPowers.at(BETA, electrode) < lowBeta){
-            concussion = true;
-            break;
-        }
-    
+        concussion = true;
     }
 
     if(concussion)
@@ -265,8 +291,72 @@ bool SignalProcessingThread::Classification(){
     {
         printk("\nYou DO NOT have a concussion\n");
     }
-    
+
     return concussion;
+
 }
+
+// bool SignalProcessingThread::Classification(){
+
+//     // For Square Wave Test Config2: 01
+//     // Frequency = 1.9531 Hz
+//     // Expected Amplitude = 1.875 mV
+//     bool concussion = false;
+//     // Four if statements for classification for the four bands (Delta, Theta, Alpha, Beta)
+//     // for the Square Wave. We should have a standard of give or take +-0.0005
+//     float32_t deviation = 0.0005;
+    
+//     float32_t standardDelta = 0.1773;
+//     float32_t lowDelta = standardDelta - deviation;
+//     float32_t highDelta = standardDelta + deviation;
+    
+//     float32_t standardTheta = 0.0196;
+//     float32_t lowTheta = standardTheta - deviation;
+//     float32_t highTheta = standardTheta + deviation;
+
+//     float32_t standardAlpha = 0.0070;
+//     float32_t lowAlpha = standardAlpha - deviation;
+//     float32_t highAlpha = standardAlpha + deviation;
+
+//     float32_t standardBeta = 0.0086;
+//     float32_t lowBeta = standardBeta - deviation;
+//     float32_t highBeta = standardBeta + deviation;
+
+//     for (int electrode = 0; electrode < num_electrodes; electrode++) 
+//     {
+        
+//         if (averageBandPowers.at(DELTA, electrode) > highDelta || averageBandPowers.at(DELTA, electrode) < lowDelta){
+//             concussion = true;
+//             break;
+//         }
+
+//         if (averageBandPowers.at(THETA, electrode) > highTheta || averageBandPowers.at(THETA, electrode) < lowTheta){
+//             concussion = true;
+//             break;
+//         }
+
+//         if (averageBandPowers.at(ALPHA, electrode) > highAlpha || averageBandPowers.at(ALPHA, electrode) < lowAlpha){
+//             concussion = true;
+//             break;
+//         }
+
+//         if (averageBandPowers.at(BETA, electrode) > highBeta || averageBandPowers.at(BETA, electrode) < lowBeta){
+//             concussion = true;
+//             break;
+//         }
+    
+//     }
+
+//     if(concussion)
+//     {
+//         printk("\nYou have a concussion\n");
+//     }
+//     else 
+//     {
+//         printk("\nYou DO NOT have a concussion\n");
+//     }
+    
+//     return concussion;
+// }
 
 

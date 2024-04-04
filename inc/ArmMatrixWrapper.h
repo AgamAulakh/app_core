@@ -155,7 +155,7 @@ public:
         for (int row = 0; row < matrix.numRows; row++ ) { 
             for (int col = 0; col < matrix.numCols; col++ ) 
             { 
-                printk("%.4f\t", this->at(row,col));
+                printk("%.10f\t", this->at(row,col));
             }
             printk("\n");
         } 
