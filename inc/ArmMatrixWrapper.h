@@ -323,9 +323,10 @@ public:
         
         // We need to multiply by 2 because we have single-sided spectrum
         // Start at index 1 since we theoretically do not care about the signal at frequency 0
-        for (int i = 1; i < MaxRows; i++) {
-            FFTResult.data[i] =  2 * FFTResult.data[i];
-        } 
+        // for (int i = 1; i < MaxRows; i++) {
+        //     FFTResult.data[i] =  2 * FFTResult.data[i];
+        // } 
+        FFTResult.scale(2);
 
         return FFTResult;
     }

@@ -41,13 +41,16 @@ int main(void)
 {
 	LOG_INF("Hello world from %s", CONFIG_BOARD);
 
-	StateMachineThread::GetInstance().Initialize();
-    HIDThread::GetInstance().Initialize();
-	DataAcquisitionThread::GetInstance().Initialize();
+	//StateMachineThread::GetInstance().Initialize();
+    //HIDThread::GetInstance().Initialize();
+	//DataAcquisitionThread::GetInstance().Initialize();
 	SignalProcessingThread::GetInstance().Initialize();
 
 	while(1) {
 		LOG_DBG("main thread Hello World");
+		SignalProcessingThread::GetInstance().SendMessage(
+			SignalProcessingThread::COMPUTE_DEBUG_BANDPOWER_RESULTS
+		);
 		k_msleep(LOG_DELAY_MS);
 	}
 

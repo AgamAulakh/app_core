@@ -48,7 +48,7 @@ void SignalProcessingThread::Run() {
                     ComputeSingleSidePower();
                     ComputeBandPowers();
                     ComputeAverageBandPowers();
-                    Classification();
+                    //Classification();
                     break;
                 case COMPUTE_DEBUG_RELATIVEPOWER_RESULTS:
                     ComputeRelativeBandPowers();
@@ -116,25 +116,25 @@ void SignalProcessingThread::StartProcessing()
 void SignalProcessingThread::PopulateTestValues()
 {
     printk("\nFilling up all Channels with Square Wave values\n");
-    for (int i = 0; i < num_electrodes; i++) {
+    // for (int i = 0; i < num_electrodes; i++) {
 
-        for (int j = 0; j < RAW_SAMPLE_NUMBER; j++) {
+    //     for (int j = 0; j < RAW_SAMPLE_NUMBER; j++) {
 
-            allChannels.set_at(Utils::inputSignal[j], j, i);
-        }
-    }
-    // Populate for the square wave test 
-	// for (int i = 0; i < RAW_SAMPLE_NUMBER; i++) {
-    //     allChannels.set_at(Utils::channelOne[i], i, 0);
-    //     allChannels.set_at(Utils::channelTwo[i], i, 1);
-    //     allChannels.set_at(Utils::channelThree[i], i, 2);
-    //     allChannels.set_at(Utils::channelFour[i], i, 3);
-    //     allChannels.set_at(Utils::channelFive[i], i, 4);
-    //     allChannels.set_at(Utils::channelSix[i], i, 5);
-    //     allChannels.set_at(Utils::channelSeven[i], i, 6);
-    //     allChannels.set_at(Utils::channelEight[i], i, 7);
+    //         allChannels.set_at(Utils::inputSignal[j], j, i);
+    //     }
     // }
-   //allChannels.prettyPrint();
+    // Populate for the square wave test 
+	for (int i = 0; i < RAW_SAMPLE_NUMBER; i++) {
+        allChannels.set_at(Utils::channelOne[i], i, 0);
+        allChannels.set_at(Utils::channelTwo[i], i, 1);
+        allChannels.set_at(Utils::channelThree[i], i, 2);
+        allChannels.set_at(Utils::channelFour[i], i, 3);
+        allChannels.set_at(Utils::channelFive[i], i, 4);
+        allChannels.set_at(Utils::channelSix[i], i, 5);
+        allChannels.set_at(Utils::channelSeven[i], i, 6);
+        allChannels.set_at(Utils::channelEight[i], i, 7);
+    }
+   allChannels.prettyPrint();
 };
 
 void SignalProcessingThread::ComputeSingleSideFFT()
@@ -142,8 +142,8 @@ void SignalProcessingThread::ComputeSingleSideFFT()
     for (int i = 0; i < num_electrodes; i++) {
         channelFFTResults.set_column_vector_at(allChannels.singleSideFFT(i), i);
     }
-    printk("\nPrint single-sided FFT results:\n");
-    channelFFTResults.prettyPrint();
+   // printk("\nPrint single-sided FFT results:\n");
+    ///channelFFTResults.prettyPrint();
 };
  
 
@@ -176,6 +176,8 @@ ArmMatrixWrapper<4,1> SignalProcessingThread::ComputeBandPowersPerChannel(uint32
     bandPowers.set_at(channelPowerResults.singleSideBandPower(SAMPLE_FREQ, RAW_SAMPLE_NUMBER, THETA, electrode), THETA);
     bandPowers.set_at(channelPowerResults.singleSideBandPower(SAMPLE_FREQ, RAW_SAMPLE_NUMBER, ALPHA, electrode), ALPHA);
     bandPowers.set_at(channelPowerResults.singleSideBandPower(SAMPLE_FREQ, RAW_SAMPLE_NUMBER, BETA, electrode), BETA);
+    printk("YOLO");
+    bandPowers.prettyPrint();
     return bandPowers;
 };
 
@@ -193,8 +195,8 @@ void SignalProcessingThread::ComputeAverageBandPowers()
         averageBandPowers.set_at(bandpwer_ch8.get_row_vector_at(band).mean(), band, 7);
            
     }
-    printk("\nAverage Band Power Results:\n");
-    averageBandPowers.prettyPrint();
+    //printk("\nAverage Band Power Results:\n");
+    //averageBandPowers.prettyPrint();
 }
 
 void SignalProcessingThread::ComputeRelativeBandPowers(){
