@@ -768,8 +768,9 @@ void TIBareMetalWrapper::TestFakeSampleDataBuffer() {
 }
 
 void TIBareMetalWrapper::PrintCurrentSample(){
-    LOG_DBG("TIBareMetalWrapper::%s ch1: %f, ch2: %f, ch3: %f, ch4: %f, ch5: %f, ch6: %f, ch7: %f, ch8: %f",
+    LOG_DBG("TIBareMetalWrapper::%s [%u]ch1: %f, ch2: %f, ch3: %f, ch4: %f, ch5: %f, ch6: %f, ch7: %f, ch8: %f",
         __FUNCTION__,
+        k_uptime_get_32(),
         afe_driver.sample.ch1,
         afe_driver.sample.ch2,
         afe_driver.sample.ch3,
