@@ -47,7 +47,7 @@ int main(void)
 	SignalProcessingThread::GetInstance().Initialize();
 
 	while(1) {
-		LOG_DBG("main thread Hello World");
+		LOG_DBG("main thread uptime: %u ms", k_uptime_get_32());
 		k_msleep(LOG_DELAY_MS);
 	}
 
